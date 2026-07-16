@@ -1,0 +1,19 @@
+{
+  "name": "@urbanjunglegoddess/digital-library",
+  "version": "0.1.0",
+  "description": "Urban Jungle Goddess component library: documented, playground-previewable, accessibility-audited UI components across 11 visual styles and 12 language targets.",
+  "license": "UNLICENSED",
+  "private": true,
+  "type": "module",
+  "keywords": [
+    "components",
+    "design-system",
+    "ui",
+    "accessibility",
+    "design-tokens"
+  ],
+  "exports": {
+    "./styles/tokens.css": "./styles/tokens.css",
+    "./button": "./components/button/Button.tsx"
+  }
+}

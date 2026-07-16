@@ -1,0 +1,110 @@
+/* =============================================================
+   Digital Library — Shared Style-Token Layer
+   The 11 visual styles, defined ONCE. Every component imports
+   this and inherits all skins for free via a [data-style] wrapper.
+
+   Style is skin only. A component's semantics, keyboard behavior,
+   focus ring, and 44px target NEVER change with the skin.
+   ============================================================= */
+
+:root {
+  /* --- brand + neutral foundation (UJG) --- */
+  --dl-primary:        oklch(42% 0.145 305);
+  --dl-primary-hover:  oklch(37% 0.150 305);
+  --dl-gold:           oklch(78% 0.135 82);
+  --dl-gold-ink:       oklch(38% 0.090 70);
+  --dl-danger:         oklch(52% 0.180 27);
+  --dl-success:        oklch(58% 0.130 150);
+  --dl-focus:          oklch(72% 0.150 82);
+
+  --dl-surface:   oklch(99% 0.004 305);
+  --dl-surface-2: oklch(95% 0.008 305);
+  --dl-line:      oklch(89% 0.010 305);
+  --dl-line-2:    oklch(82% 0.014 305);
+  --dl-ink:       oklch(24% 0.020 305);
+  --dl-ink-soft:  oklch(44% 0.016 305);
+
+  /* --- per-style tokens: bg / fg / radius / shadow ---
+     Consumed by component CSS via var(--sk-*). A component sets
+     these under each [data-style] block; the shared skins below
+     provide the defaults for a generic filled control. --- */
+}
+
+/* -------------------------------------------------------------
+   Generic skin classes. Apply .dl-skin to any element and wrap
+   it in [data-style="..."]; it takes on that style's surface.
+   Components extend these with their own structure.
+   ------------------------------------------------------------- */
+.dl-skin {
+  border: 1.5px solid transparent;
+  transition: background-color .16s cubic-bezier(.22,1,.36,1),
+              border-color .16s, color .16s, transform .07s, box-shadow .16s;
+}
+.dl-skin:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
+
+/* 1 · UJG (house default) */
+[data-style="ujg"] .dl-skin { background: var(--dl-primary); color: #fff; border-radius: 10px; }
+[data-style="ujg"] .dl-skin:hover { background: var(--dl-primary-hover); }
+
+/* 2 · Flat */
+[data-style="flat"] .dl-skin { background: oklch(55% .16 264); color:#fff; border-radius: 6px; box-shadow:none; }
+
+/* 3 · Material */
+[data-style="material"] .dl-skin { background: oklch(52% .18 292); color:#fff; border-radius: 8px;
+  text-transform: uppercase; letter-spacing: .05em;
+  box-shadow: 0 2px 4px oklch(30% .1 292/.28), 0 1px 2px oklch(30% .1 292/.2); }
+
+/* 4 · Glassmorphism */
+[data-style="glass"] .dl-skin { background: oklch(100% 0 0/.16); color:#fff; border-radius: 12px;
+  border: 1px solid oklch(100% 0 0/.35);
+  backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  text-shadow: 0 1px 2px oklch(20% 0 0/.4); box-shadow: 0 8px 32px oklch(20% .05 300/.25); }
+
+/* 5 · Liquid Glass (2026: Apple iOS 26 / macOS Tahoe) */
+[data-style="liquid"] .dl-skin { color:#fff; border-radius: 999px;
+  border: 1px solid oklch(100% 0 0/.45); position: relative; overflow: hidden;
+  background: linear-gradient(135deg, oklch(100% 0 0/.28), oklch(100% 0 0/.08) 45%, oklch(100% 0 0/.22));
+  backdrop-filter: blur(16px) saturate(1.7); -webkit-backdrop-filter: blur(16px) saturate(1.7);
+  box-shadow: inset 0 1px 1px oklch(100% 0 0/.6), inset 0 -1px 2px oklch(100% 0 0/.2), 0 8px 30px oklch(20% .05 300/.35);
+  text-shadow: 0 1px 2px oklch(20% 0 0/.35); }
+[data-style="liquid"] .dl-skin::before { content:""; position:absolute; inset:0; border-radius:inherit;
+  pointer-events:none; background: linear-gradient(115deg, transparent 30%, oklch(100% 0 0/.5) 48%, transparent 62%);
+  background-size: 250% 100%; animation: dl-sheen 4.5s ease-in-out infinite; }
+
+/* 6 · Neumorphism */
+[data-style="neu"] .dl-skin { background: oklch(92% .008 285); color: oklch(45% .14 285); border:none; border-radius: 16px;
+  box-shadow: 6px 6px 12px oklch(80% .01 285), -6px -6px 12px oklch(99% .004 285); }
+[data-style="neu"] .dl-skin:active { box-shadow: inset 4px 4px 8px oklch(80% .01 285), inset -4px -4px 8px oklch(99% .004 285); }
+
+/* 7 · Skeuomorphism */
+[data-style="skeu"] .dl-skin { color:#fff; border-radius: 9px; border: 1px solid oklch(40% .12 292);
+  background: linear-gradient(oklch(60% .16 292), oklch(48% .16 292));
+  text-shadow: 0 -1px 0 oklch(30% .1 292/.5);
+  box-shadow: inset 0 1px 0 oklch(100% 0 0/.4), 0 2px 3px oklch(30% .1 292/.4); }
+
+/* 8 · Neo-Brutalism */
+[data-style="brut"] .dl-skin { background: oklch(70% .2 20); color: oklch(15% .02 20);
+  border: 3px solid oklch(15% .02 20); border-radius: 0; font-weight: 700;
+  box-shadow: 5px 5px 0 oklch(15% .02 20); }
+[data-style="brut"] .dl-skin:hover { transform: translate(-2px,-2px); box-shadow: 7px 7px 0 oklch(15% .02 20); }
+
+/* 9 · Claymorphism */
+[data-style="clay"] .dl-skin { background: oklch(60% .16 292); color:#fff; border-radius: 22px;
+  box-shadow: inset 0 -6px 10px oklch(40% .16 292/.5), inset 0 6px 10px oklch(100% 0 0/.3), 0 10px 20px oklch(50% .12 292/.4); }
+
+/* 10 · Aurora / Gradient */
+[data-style="aurora"] .dl-skin { color:#fff; border:none; border-radius: 12px;
+  background: linear-gradient(110deg, oklch(65% .22 20), oklch(62% .2 320) 50%, oklch(66% .2 250));
+  background-size: 200% 100%; box-shadow: 0 6px 24px oklch(55% .2 320/.5); animation: dl-drift 5s ease infinite; }
+
+/* 11 · Minimal / Swiss */
+[data-style="swiss"] .dl-skin { background: oklch(20% .02 285); color:#fff; border-radius: 0; box-shadow:none; }
+
+@keyframes dl-drift { 0%,100% { background-position: 0 0; } 50% { background-position: 100% 0; } }
+@keyframes dl-sheen { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
+
+/* Accessibility guards that apply to every skin */
+@media (prefers-reduced-motion: reduce) {
+  [data-style="aurora"] .dl-skin,
+  [data-style="liquid"] .dl-skin::before { animation: none; }
+}

@@ -1,0 +1,52 @@
+/* =============================================================
+   Button — structure only. Skins come from styles/tokens.css
+   via the [data-style] wrapper. This file owns layout, sizing,
+   states, and the six variants' color intent; the shared layer
+   owns the visual skin.
+   ============================================================= */
+@import "../../styles/tokens.css";
+
+.btn {
+  --_h: 40px; --_px: 18px; --_fs: .95rem;
+  position: relative;
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--_h); padding: 0 var(--_px);
+  font: 500 var(--_fs)/1 system-ui, sans-serif; letter-spacing: -.01em;
+  border: 1.5px solid transparent; border-radius: 10px;
+  cursor: pointer; white-space: nowrap; user-select: none;
+  transition: background-color .16s cubic-bezier(.22,1,.36,1), border-color .16s, color .16s, transform .07s, box-shadow .16s;
+}
+/* expand tap target to 44px without changing visual size */
+.btn::after { content:""; position:absolute; inset:50% 0 0 0; min-height:44px; height:100%; transform:translateY(-50%); width:100%; }
+.btn:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity:.45; cursor:not-allowed; transform:none; }
+
+/* sizes */
+.btn--xs { --_h:26px; --_px:10px; --_fs:.78rem; }
+.btn--sm { --_h:32px; --_px:13px; --_fs:.85rem; }
+.btn--md { --_h:40px; --_px:18px; }
+.btn--lg { --_h:48px; --_px:24px; --_fs:1.05rem; }
+.btn--xl { --_h:58px; --_px:32px; --_fs:1.2rem; }
+
+/* full width + loading */
+.btn--block { width: 100%; }
+.btn.is-loading { color: transparent !important; pointer-events: none; }
+.btn.is-loading .spinner {
+  position:absolute; top:50%; left:50%; width:1.05em; height:1.05em; margin:-.525em 0 0 -.525em;
+  border:2px solid currentColor; border-right-color:transparent; border-radius:50%;
+  animation: btn-spin .6s linear infinite;
+}
+@keyframes btn-spin { to { transform: rotate(360deg); } }
+
+/* Default (UJG) variant colors. Other skins override via tokens.css
+   using [data-style] scoping; see the playground for the full matrix. */
+.btn--primary     { background: var(--dl-primary); color: #fff; }
+.btn--primary:hover:not(:disabled) { background: var(--dl-primary-hover); }
+.btn--secondary   { background: var(--dl-surface); color: var(--dl-ink); border-color: var(--dl-line-2); }
+.btn--ghost       { background: transparent; color: var(--dl-ink-soft); }
+.btn--ghost:hover:not(:disabled) { background: var(--dl-surface-2); color: var(--dl-ink); }
+.btn--gold        { background: var(--dl-gold); color: var(--dl-gold-ink); font-weight: 600; }
+.btn--destructive { background: var(--dl-danger); color: #fff; }
+.btn--text        { background: transparent; color: var(--dl-primary); padding-inline: 6px; }
+.btn--text:hover  { text-decoration: underline; text-underline-offset: 3px; }
