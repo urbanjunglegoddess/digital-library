@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Styles Gallery — 31 Visual Languages</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=Fredoka:wght@400;600&family=Cormorant+Garamond:wght@400;600;700&family=Nunito:wght@400;600;700&family=Caveat:wght@400;700&family=Orbitron:wght@400;700&family=Press+Start+2P&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --page-bg: oklch(8% 0.02 285);
+  --page-text: oklch(90% 0.01 285);
+  --card-bg: oklch(14% 0.015 285);
+  --card-border: oklch(22% 0.02 285);
+  --label-color: oklch(65% 0.01 285);
+  --number-color: oklch(40% 0.015 285);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--page-bg);
+  color: var(--page-text);
+  padding: 48px 24px;
+  min-height: 100vh;
+}
+
+.header {
+  max-width: 1400px;
+  margin: 0 auto 48px;
+  text-align: center;
+}
+
+.header h1 {
+  font-size: clamp(1.75rem, 4vw, 2.75rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+  text-wrap: balance;
+}
+
+.header p {
+  font-size: 1rem;
+  color: var(--label-color);
+  max-width: 60ch;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.style-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.style-card__preview {
+  height: 180px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.style-card__info {
+  padding: 16px 20px;
+  border-top: 1px solid var(--card-border);
+}
+
+.style-card__number {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--number-color);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.style-card__name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.style-card__era {
+  font-size: 0.8rem;
+  color: var(--label-color);
+}
+
+/* ===== STYLE 1: FLAT ===== */
+.preview-flat { background: oklch(97% 0.005 240); }
+.btn-flat {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 4px;
+  background: oklch(50% 0.2 260);
+  color: white;
+  cursor: pointer;
+  transition: background 150ms ease-out;
+}
+.btn-flat:hover { background: oklch(42% 0.2 260); }
+.btn-flat:active { background: oklch(38% 0.2 260); }
+
+/* ===== STYLE 2: MATERIAL ===== */
+.preview-material { background: oklch(98% 0.003 260); }
+.btn-material {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 20px;
+  background: oklch(55% 0.18 270);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 4px oklch(0% 0 0 / 0.2), 0 1px 2px oklch(0% 0 0 / 0.15);
+  transition: box-shadow 200ms cubic-bezier(0.4, 0, 0.2, 1), transform 100ms;
+  position: relative;
+  overflow: hidden;
+}
+.btn-material:hover { box-shadow: 0 4px 8px oklch(0% 0 0 / 0.25), 0 2px 4px oklch(0% 0 0 / 0.18); }
+.btn-material:active { transform: scale(0.97); }
+
+/* ===== STYLE 3: GLASSMORPHISM ===== */
+.preview-glass {
+  background: linear-gradient(135deg, oklch(55% 0.2 300), oklch(60% 0.22 340), oklch(65% 0.18 30));
+}
+.btn-glass {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: 1px solid oklch(100% 0 0 / 0.2);
+  border-radius: 12px;
+  background: oklch(100% 0 0 / 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  color: white;
+  cursor: pointer;
+  transition: background 200ms, border-color 200ms;
+  text-shadow: 0 1px 2px oklch(0% 0 0 / 0.2);
+}
+.btn-glass:hover { background: oklch(100% 0 0 / 0.25); border-color: oklch(100% 0 0 / 0.35); }
+
+/* ===== STYLE 4: LIQUID GLASS ===== */
+.preview-liquid {
+  background: linear-gradient(160deg, oklch(45% 0.18 280), oklch(50% 0.2 320), oklch(55% 0.15 220));
+}
+.btn-liquid {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: 1px solid oklch(100% 0 0 / 0.28);
+  border-top-color: oklch(100% 0 0 / 0.45);
+  border-left-color: oklch(100% 0 0 / 0.35);
+  border-radius: 16px;
+  background: linear-gradient(135deg, oklch(100% 0 0 / 0.14), oklch(100% 0 0 / 0.05));
+  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  color: white;
+  cursor: pointer;
+  box-shadow: inset 0 1px 1px oklch(100% 0 0 / 0.3), 0 4px 16px oklch(0% 0 0 / 0.15);
+  position: relative;
+  overflow: hidden;
+  transition: border-color 300ms, box-shadow 300ms;
+}
+.btn-liquid::before {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 40%; height: 100%;
+  background: linear-gradient(105deg, transparent 0%, oklch(100% 0 0 / 0.12) 50%, transparent 100%);
+  transform: skewX(-15deg);
+  transition: left 600ms ease;
+  pointer-events: none;
+}
+.btn-liquid:hover::before { left: 120%; }
+.btn-liquid:hover { border-color: oklch(100% 0 0 / 0.45); box-shadow: inset 0 1px 2px oklch(100% 0 0 / 0.4), 0 6px 20px oklch(0% 0 0 / 0.2); }
+
+/* ===== STYLE 5: NEUMORPHISM ===== */
+.preview-neu { background: oklch(90% 0.01 240); }
+.btn-neu {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 12px;
+  background: oklch(90% 0.01 240);
+  color: oklch(40% 0.02 240);
+  cursor: pointer;
+  box-shadow: 6px 6px 12px oklch(75% 0.01 240), -6px -6px 12px oklch(100% 0 0);
+  transition: box-shadow 200ms;
+}
+.btn-neu:hover { box-shadow: 4px 4px 8px oklch(75% 0.01 240), -4px -4px 8px oklch(100% 0 0); }
+.btn-neu:active { box-shadow: inset 4px 4px 8px oklch(75% 0.01 240), inset -4px -4px 8px oklch(100% 0 0); }
+
+/* ===== STYLE 6: SKEUOMORPHISM ===== */
+.preview-skeu { background: linear-gradient(180deg, oklch(82% 0.01 60), oklch(70% 0.02 60)); }
+.btn-skeu {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border: 1px solid oklch(35% 0.05 140);
+  border-radius: 6px;
+  background: linear-gradient(180deg, oklch(62% 0.12 140), oklch(45% 0.12 140));
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 2px 4px oklch(0% 0 0 / 0.3), inset 0 1px 0 oklch(100% 0 0 / 0.2);
+  text-shadow: 0 -1px 0 oklch(0% 0 0 / 0.3);
+  transition: background 150ms;
+}
+.btn-skeu:hover { background: linear-gradient(180deg, oklch(58% 0.12 140), oklch(42% 0.12 140)); }
+.btn-skeu:active { box-shadow: inset 0 2px 4px oklch(0% 0 0 / 0.3); }
+
+/* ===== STYLE 7: NEO-BRUTALISM ===== */
+.preview-brutal { background: oklch(88% 0.18 85); }
+.btn-brutal {
+  font-family: 'Space Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border: 3px solid oklch(10% 0 0);
+  border-radius: 0;
+  background: oklch(70% 0.2 145);
+  color: oklch(10% 0 0);
+  cursor: pointer;
+  box-shadow: 5px 5px 0 oklch(10% 0 0);
+  transition: transform 100ms linear, box-shadow 100ms linear;
+}
+.btn-brutal:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 oklch(10% 0 0); }
+.btn-brutal:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 oklch(10% 0 0); }
+
+/* ===== STYLE 8: CLAYMORPHISM ===== */
+.preview-clay { background: oklch(94% 0.02 280); }
+.btn-clay {
+  font-family: 'Nunito', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 16px;
+  background: oklch(60% 0.18 280);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 8px 20px oklch(50% 0.15 280 / 0.3), inset 0 -4px 6px oklch(0% 0 0 / 0.1), inset 0 2px 4px oklch(100% 0 0 / 0.3);
+  transition: transform 200ms cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.btn-clay:hover { transform: scale(1.03); }
+.btn-clay:active { transform: scale(0.96); }
+
+/* ===== STYLE 9: AURORA / GRADIENT ===== */
+.preview-aurora { background: oklch(12% 0.02 270); }
+.btn-aurora {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 8px;
+  background: linear-gradient(135deg, oklch(55% 0.2 270), oklch(55% 0.2 320), oklch(60% 0.18 200));
+  background-size: 200% 200%;
+  animation: auroraShift 4s ease-in-out infinite;
+  color: white;
+  cursor: pointer;
+  transition: opacity 200ms;
+}
+.btn-aurora:hover { opacity: 0.85; }
+@keyframes auroraShift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+/* ===== STYLE 10: MINIMAL / SWISS ===== */
+.preview-swiss { background: oklch(99% 0 0); }
+.btn-swiss {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 400;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 10px 24px;
+  border: 1px solid oklch(15% 0 0);
+  border-radius: 0;
+  background: transparent;
+  color: oklch(15% 0 0);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+.btn-swiss:hover { background: oklch(15% 0 0); color: oklch(99% 0 0); }
+
+/* ===== STYLE 11: UJG BRAND ===== */
+.preview-ujg { background: oklch(12% 0.03 305); }
+.btn-ujg {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  background: oklch(72% 0.16 82);
+  color: oklch(10% 0.02 305);
+  cursor: pointer;
+  box-shadow: 0 0 20px oklch(72% 0.16 82 / 0.35);
+  transition: box-shadow 250ms ease-out, transform 250ms ease-out;
+}
+.btn-ujg:hover { box-shadow: 0 0 32px oklch(72% 0.16 82 / 0.5); transform: translateY(-1px); }
+.btn-ujg:active { transform: translateY(0); }
+
+/* ===== STYLE 12: RETRO / PIXEL ===== */
+.preview-pixel { background: oklch(20% 0.04 270); }
+.btn-pixel {
+  font-family: 'Press Start 2P', monospace;
+  font-size: 10px;
+  padding: 12px 20px;
+  border: 3px solid oklch(85% 0.15 140);
+  border-radius: 0;
+  background: oklch(30% 0.08 270);
+  color: oklch(85% 0.15 140);
+  cursor: pointer;
+  box-shadow: 4px 4px 0 oklch(85% 0.15 140 / 0.5);
+  image-rendering: pixelated;
+  transition: none;
+}
+.btn-pixel:hover { background: oklch(85% 0.15 140); color: oklch(20% 0.04 270); }
+.btn-pixel:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0 oklch(85% 0.15 140 / 0.5); }
+
+/* ===== STYLE 13: ART DECO ===== */
+.preview-deco { background: oklch(12% 0.02 260); }
+.btn-deco {
+  font-family: 'Playfair Display', serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  padding: 12px 32px;
+  border: 1px solid;
+  border-image: linear-gradient(135deg, oklch(75% 0.12 82), oklch(85% 0.08 82), oklch(70% 0.12 82)) 1;
+  border-radius: 0;
+  background: transparent;
+  color: oklch(82% 0.1 82);
+  cursor: pointer;
+  transition: background 200ms, color 200ms;
+}
+.btn-deco:hover { background: oklch(82% 0.1 82); color: oklch(12% 0.02 260); }
+
+/* ===== STYLE 14: ORGANIC ===== */
+.preview-organic { background: oklch(95% 0.03 140); }
+.btn-organic {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 30% 70% 70% 30% / 60% 40% 60% 40%;
+  background: oklch(50% 0.12 155);
+  color: white;
+  cursor: pointer;
+  transition: border-radius 400ms ease, transform 300ms;
+}
+.btn-organic:hover { border-radius: 60% 40% 40% 60% / 40% 60% 40% 60%; transform: scale(1.03); }
+
+/* ===== STYLE 15: CYBERPUNK ===== */
+.preview-cyber { background: oklch(7% 0.02 280); position: relative; }
+.preview-cyber::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(0deg, oklch(0% 0 0 / 0.1) 0px, transparent 1px, transparent 3px);
+  pointer-events: none;
+}
+.btn-cyber {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 10px 24px;
+  border: 1px solid oklch(75% 0.2 175);
+  border-radius: 0;
+  background: transparent;
+  color: oklch(75% 0.2 175);
+  cursor: pointer;
+  text-shadow: 0 0 8px oklch(75% 0.2 175 / 0.7);
+  box-shadow: 0 0 8px oklch(75% 0.2 175 / 0.3), inset 0 0 8px oklch(75% 0.2 175 / 0.1);
+  transition: box-shadow 150ms, text-shadow 150ms;
+  position: relative;
+  z-index: 1;
+}
+.btn-cyber:hover {
+  box-shadow: 0 0 16px oklch(75% 0.2 175 / 0.6), inset 0 0 12px oklch(75% 0.2 175 / 0.2);
+  text-shadow: 0 0 12px oklch(75% 0.2 175);
+}
+
+/* ===== STYLE 16: MEMPHIS ===== */
+.preview-memphis { background: oklch(90% 0.15 60); position: relative; }
+.preview-memphis::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle 4px, oklch(55% 0.2 0) 50%, transparent 50%) 10px 10px / 30px 30px;
+  opacity: 0.3;
+}
+.btn-memphis {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 24px;
+  border: 3px solid oklch(15% 0 0);
+  border-radius: 0 20px 0 20px;
+  background: oklch(70% 0.22 320);
+  color: oklch(15% 0 0);
+  cursor: pointer;
+  box-shadow: 4px 4px 0 oklch(55% 0.2 200);
+  transform: rotate(-2deg);
+  transition: transform 150ms;
+  position: relative;
+  z-index: 1;
+}
+.btn-memphis:hover { transform: rotate(1deg) scale(1.05); }
+
+/* ===== STYLE 17: ISOMETRIC ===== */
+.preview-iso { background: oklch(95% 0.005 220); }
+.btn-iso {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 4px;
+  background: oklch(55% 0.15 220);
+  color: white;
+  cursor: pointer;
+  transform: perspective(400px) rotateX(5deg) rotateY(-5deg);
+  box-shadow: 4px 6px 0 oklch(40% 0.12 220), 8px 12px 20px oklch(0% 0 0 / 0.15);
+  transition: transform 200ms, box-shadow 200ms;
+}
+.btn-iso:hover { transform: perspective(400px) rotateX(3deg) rotateY(-3deg) translateY(-2px); box-shadow: 6px 8px 0 oklch(40% 0.12 220), 10px 14px 24px oklch(0% 0 0 / 0.2); }
+
+/* ===== STYLE 18: Y2K / VAPORWAVE ===== */
+.preview-y2k { background: linear-gradient(180deg, oklch(80% 0.12 300), oklch(82% 0.1 220)); }
+.btn-y2k {
+  font-family: 'Fredoka', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 28px;
+  border: 2px solid oklch(100% 0 0 / 0.5);
+  border-radius: 24px;
+  background: linear-gradient(180deg, oklch(90% 0.05 300 / 0.6), oklch(85% 0.08 200 / 0.6));
+  backdrop-filter: blur(4px);
+  color: oklch(30% 0.1 280);
+  cursor: pointer;
+  box-shadow: 0 4px 16px oklch(65% 0.15 300 / 0.3);
+  transition: transform 200ms, box-shadow 200ms;
+}
+.btn-y2k:hover { transform: scale(1.05); box-shadow: 0 6px 24px oklch(65% 0.15 300 / 0.5); }
+
+/* ===== STYLE 19: EDITORIAL ===== */
+.preview-editorial { background: oklch(98% 0.003 60); }
+.btn-editorial {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  padding: 10px 28px;
+  border: none;
+  border-bottom: 2px solid oklch(15% 0.02 30);
+  border-radius: 0;
+  background: transparent;
+  color: oklch(15% 0.02 30);
+  cursor: pointer;
+  transition: border-color 200ms, color 200ms;
+}
+.btn-editorial:hover { border-color: oklch(50% 0.18 20); color: oklch(50% 0.18 20); }
+
+/* ===== STYLE 20: CORPORATE ===== */
+.preview-corp { background: oklch(98% 0.003 220); }
+.btn-corp {
+  font-family: system-ui, -apple-system, sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border: 1px solid oklch(82% 0.01 220);
+  border-radius: 5px;
+  background: oklch(55% 0.14 250);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 1px 2px oklch(0% 0 0 / 0.06);
+  transition: background 150ms;
+}
+.btn-corp:hover { background: oklch(48% 0.14 250); }
+
+/* ===== STYLE 21: HIGH CONTRAST ===== */
+.preview-a11y { background: oklch(100% 0 0); }
+.btn-a11y {
+  font-family: 'Inter', sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  padding: 14px 28px;
+  border: 3px solid oklch(15% 0.02 250);
+  border-radius: 4px;
+  background: oklch(15% 0.02 250);
+  color: oklch(100% 0 0);
+  cursor: pointer;
+  transition: background 100ms, color 100ms;
+  outline-offset: 3px;
+}
+.btn-a11y:hover { background: oklch(100% 0 0); color: oklch(15% 0.02 250); }
+.btn-a11y:focus-visible { outline: 3px solid oklch(55% 0.2 250); }
+
+/* ===== STYLE 22: BAUHAUS ===== */
+.preview-bauhaus { background: oklch(97% 0.003 80); position: relative; }
+.preview-bauhaus::before {
+  content: '';
+  position: absolute;
+  width: 60px; height: 60px;
+  border-radius: 50%;
+  background: oklch(55% 0.2 250);
+  top: 20px; right: 30px;
+  opacity: 0.2;
+}
+.btn-bauhaus {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 10px 24px;
+  border: 2px solid oklch(15% 0 0);
+  border-radius: 0;
+  background: oklch(62% 0.22 30);
+  color: oklch(15% 0 0);
+  cursor: pointer;
+  transition: background 150ms;
+}
+.btn-bauhaus:hover { background: oklch(68% 0.22 85); }
+
+/* ===== STYLE 23: SCANDINAVIAN ===== */
+.preview-scandi { background: oklch(96% 0.008 70); }
+.btn-scandi {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 10px;
+  background: oklch(92% 0.01 70);
+  color: oklch(30% 0.02 70);
+  cursor: pointer;
+  box-shadow: 0 2px 8px oklch(0% 0 0 / 0.04);
+  transition: box-shadow 300ms ease-out, background 300ms;
+}
+.btn-scandi:hover { background: oklch(88% 0.015 70); box-shadow: 0 4px 12px oklch(0% 0 0 / 0.07); }
+
+/* ===== STYLE 24: JAPANESE / WABI-SABI ===== */
+.preview-wabi { background: oklch(95% 0.01 70); }
+.btn-wabi {
+  font-family: 'Cormorant Garamond', serif;
+  font-size: 15px;
+  font-weight: 400;
+  letter-spacing: 0.15em;
+  padding: 10px 32px;
+  border: 1px solid oklch(55% 0.03 70);
+  border-radius: 2px;
+  background: transparent;
+  color: oklch(30% 0.02 60);
+  cursor: pointer;
+  transition: opacity 400ms ease;
+}
+.btn-wabi:hover { opacity: 0.6; }
+
+/* ===== STYLE 25: GRUNGE ===== */
+.preview-grunge { background: oklch(88% 0.03 70); position: relative; }
+.preview-grunge::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+}
+.btn-grunge {
+  font-family: 'Space Mono', monospace;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 10px 22px;
+  border: 2px solid oklch(25% 0.04 30);
+  border-radius: 2px;
+  background: oklch(30% 0.08 30);
+  color: oklch(88% 0.03 60);
+  cursor: pointer;
+  transform: rotate(-0.5deg);
+  transition: transform 100ms;
+  position: relative;
+  z-index: 1;
+}
+.btn-grunge:hover { transform: rotate(0.5deg) scale(1.02); }
+
+/* ===== STYLE 26: BENTO GRID ===== */
+.preview-bento { background: oklch(15% 0.015 260); }
+.btn-bento {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 12px 28px;
+  border: none;
+  border-radius: 14px;
+  background: oklch(25% 0.02 260);
+  color: oklch(90% 0.01 260);
+  cursor: pointer;
+  transition: background 200ms, transform 200ms ease-out;
+}
+.btn-bento:hover { background: oklch(30% 0.03 260); transform: scale(1.02); }
+
+/* ===== STYLE 27: KINETIC ===== */
+.preview-kinetic { background: oklch(10% 0.01 200); }
+.btn-kinetic {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 28px;
+  border: 1px solid oklch(90% 0 0);
+  border-radius: 6px;
+  background: transparent;
+  color: oklch(95% 0 0);
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: color 300ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.btn-kinetic::before {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0;
+  width: 100%; height: 0%;
+  background: oklch(95% 0 0);
+  transition: height 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: -1;
+}
+.btn-kinetic:hover { color: oklch(10% 0.01 200); }
+.btn-kinetic:hover::before { height: 100%; }
+
+/* ===== STYLE 28: MONOCHROME ===== */
+.preview-mono { background: oklch(95% 0.01 250); }
+.btn-mono {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 24px;
+  border: 2px solid oklch(35% 0.08 250);
+  border-radius: 6px;
+  background: oklch(35% 0.08 250);
+  color: oklch(95% 0.01 250);
+  cursor: pointer;
+  transition: background 150ms, color 150ms;
+}
+.btn-mono:hover { background: transparent; color: oklch(35% 0.08 250); }
+
+/* ===== STYLE 29: PAPER CUT ===== */
+.preview-paper { background: oklch(94% 0.015 80); }
+.btn-paper {
+  font-family: 'Nunito', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  background: oklch(65% 0.12 160);
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 0 oklch(45% 0.1 160), 0 6px 0 oklch(35% 0.08 160), 0 9px 16px oklch(0% 0 0 / 0.1);
+  transition: transform 150ms, box-shadow 150ms;
+}
+.btn-paper:hover { transform: translateY(-2px); box-shadow: 0 5px 0 oklch(45% 0.1 160), 0 8px 0 oklch(35% 0.08 160), 0 11px 20px oklch(0% 0 0 / 0.12); }
+.btn-paper:active { transform: translateY(2px); box-shadow: 0 1px 0 oklch(45% 0.1 160), 0 2px 0 oklch(35% 0.08 160), 0 3px 8px oklch(0% 0 0 / 0.1); }
+
+/* ===== STYLE 30: HAND-DRAWN ===== */
+.preview-sketch { background: oklch(97% 0.005 80); }
+.btn-sketch {
+  font-family: 'Caveat', cursive;
+  font-size: 18px;
+  font-weight: 700;
+  padding: 10px 24px;
+  border: 2px solid oklch(25% 0.02 60);
+  border-radius: 255px 15px 225px 15px / 15px 225px 15px 255px;
+  background: oklch(92% 0.02 80);
+  color: oklch(25% 0.02 60);
+  cursor: pointer;
+  transition: transform 200ms;
+}
+.btn-sketch:hover { transform: rotate(-1deg) scale(1.03); }
+
+/* ===== STYLE 31: FUTURISM / HUD ===== */
+.preview-hud { background: oklch(5% 0.02 220); position: relative; }
+.preview-hud::before {
+  content: '';
+  position: absolute;
+  inset: 20px;
+  border: 1px solid oklch(60% 0.15 200 / 0.15);
+  border-radius: 4px;
+}
+.btn-hud {
+  font-family: 'Rajdhani', sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  padding: 10px 28px;
+  border: 1px solid oklch(70% 0.15 200 / 0.6);
+  border-radius: 2px;
+  background: oklch(70% 0.15 200 / 0.08);
+  color: oklch(70% 0.15 200);
+  cursor: pointer;
+  box-shadow: 0 0 12px oklch(70% 0.15 200 / 0.2), inset 0 0 12px oklch(70% 0.15 200 / 0.05);
+  position: relative;
+  z-index: 1;
+  transition: box-shadow 200ms, background 200ms;
+}
+.btn-hud:hover {
+  background: oklch(70% 0.15 200 / 0.15);
+  box-shadow: 0 0 20px oklch(70% 0.15 200 / 0.4), inset 0 0 16px oklch(70% 0.15 200 / 0.1);
+}
+
+@media (max-width: 700px) {
+  .grid { grid-template-columns: 1fr; }
+  body { padding: 24px 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .btn-aurora { animation: none; }
+  .btn-liquid::before { display: none; }
+  * { transition-duration: 0ms !important; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>Design Styles Gallery</h1>
+  <p>One button, thirty-one visual languages. Hover and click each to feel the behavior, not just the look. Style is skin; the semantics and accessibility never change.</p>
+</div>
+
+<div class="grid">
+  <div class="style-card">
+    <div class="style-card__preview preview-flat">
+      <button class="btn-flat">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">01</div>
+      <div class="style-card__name">Flat</div>
+      <div class="style-card__era">2012–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-material">
+      <button class="btn-material">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">02</div>
+      <div class="style-card__name">Material Design</div>
+      <div class="style-card__era">Google, 2014–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-glass">
+      <button class="btn-glass">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">03</div>
+      <div class="style-card__name">Glassmorphism</div>
+      <div class="style-card__era">2020–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-liquid">
+      <button class="btn-liquid">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">04</div>
+      <div class="style-card__name">Liquid Glass</div>
+      <div class="style-card__era">Apple, 2025–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-neu">
+      <button class="btn-neu">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">05</div>
+      <div class="style-card__name">Neumorphism</div>
+      <div class="style-card__era">2019–2020 peak</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-skeu">
+      <button class="btn-skeu">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">06</div>
+      <div class="style-card__name">Skeuomorphism</div>
+      <div class="style-card__era">2007–2013, returning</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-brutal">
+      <button class="btn-brutal">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">07</div>
+      <div class="style-card__name">Neo-Brutalism</div>
+      <div class="style-card__era">2020–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-clay">
+      <button class="btn-clay">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">08</div>
+      <div class="style-card__name">Claymorphism</div>
+      <div class="style-card__era">2021–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-aurora">
+      <button class="btn-aurora">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">09</div>
+      <div class="style-card__name">Aurora / Gradient</div>
+      <div class="style-card__era">2021–present</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-swiss">
+      <button class="btn-swiss">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">10</div>
+      <div class="style-card__name">Minimal / Swiss</div>
+      <div class="style-card__era">Timeless</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-ujg">
+      <button class="btn-ujg">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">11</div>
+      <div class="style-card__name">UJG Brand</div>
+      <div class="style-card__era">House style</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-pixel">
+      <button class="btn-pixel">Click</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">12</div>
+      <div class="style-card__name">Retro / Pixel Art</div>
+      <div class="style-card__era">Nostalgic</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-deco">
+      <button class="btn-deco">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">13</div>
+      <div class="style-card__name">Art Deco / Luxury</div>
+      <div class="style-card__era">1920s revival</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-organic">
+      <button class="btn-organic">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">14</div>
+      <div class="style-card__name">Organic / Biomorphic</div>
+      <div class="style-card__era">Nature-inspired</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-cyber">
+      <button class="btn-cyber">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">15</div>
+      <div class="style-card__name">Cyberpunk / Neon</div>
+      <div class="style-card__era">Dark futurism</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-memphis">
+      <button class="btn-memphis">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">16</div>
+      <div class="style-card__name">Memphis / Postmodern</div>
+      <div class="style-card__era">1980s revival</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-iso">
+      <button class="btn-iso">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">17</div>
+      <div class="style-card__name">Isometric / 3D</div>
+      <div class="style-card__era">Spatial</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-y2k">
+      <button class="btn-y2k">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">18</div>
+      <div class="style-card__name">Y2K / Vaporwave</div>
+      <div class="style-card__era">Retro-futurism</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-editorial">
+      <button class="btn-editorial">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">19</div>
+      <div class="style-card__name">Editorial / Magazine</div>
+      <div class="style-card__era">Type-driven</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-corp">
+      <button class="btn-corp">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">20</div>
+      <div class="style-card__name">Corporate / System UI</div>
+      <div class="style-card__era">Enterprise default</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-a11y">
+      <button class="btn-a11y">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">21</div>
+      <div class="style-card__name">High Contrast</div>
+      <div class="style-card__era">Accessible-first</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-bauhaus">
+      <button class="btn-bauhaus">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">22</div>
+      <div class="style-card__name">Bauhaus</div>
+      <div class="style-card__era">Geometric functionalism</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-scandi">
+      <button class="btn-scandi">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">23</div>
+      <div class="style-card__name">Scandinavian / Nordic</div>
+      <div class="style-card__era">Warm minimalism</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-wabi">
+      <button class="btn-wabi">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">24</div>
+      <div class="style-card__name">Japanese / Wabi-Sabi</div>
+      <div class="style-card__era">Imperfect beauty</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-grunge">
+      <button class="btn-grunge">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">25</div>
+      <div class="style-card__name">Grunge / Distressed</div>
+      <div class="style-card__era">Textured rebellion</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-bento">
+      <button class="btn-bento">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">26</div>
+      <div class="style-card__name">Bento Grid</div>
+      <div class="style-card__era">Modern compartmentalized</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-kinetic">
+      <button class="btn-kinetic">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">27</div>
+      <div class="style-card__name">Kinetic / Motion-First</div>
+      <div class="style-card__era">Animation as identity</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-mono">
+      <button class="btn-mono">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">28</div>
+      <div class="style-card__name">Monochrome / Duotone</div>
+      <div class="style-card__era">Color-restricted</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-paper">
+      <button class="btn-paper">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">29</div>
+      <div class="style-card__name">Paper Cut / Layered</div>
+      <div class="style-card__era">Stacked depth</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-sketch">
+      <button class="btn-sketch">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">30</div>
+      <div class="style-card__name">Hand-drawn / Illustrated</div>
+      <div class="style-card__era">Sketch aesthetic</div>
+    </div>
+  </div>
+
+  <div class="style-card">
+    <div class="style-card__preview preview-hud">
+      <button class="btn-hud">Click Me</button>
+    </div>
+    <div class="style-card__info">
+      <div class="style-card__number">31</div>
+      <div class="style-card__name">Futurism / HUD</div>
+      <div class="style-card__era">Sci-fi interface</div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
