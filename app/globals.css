@@ -1,0 +1,56 @@
+/* =============================================================================
+   Global stylesheet for the Digital Asset Library app.
+
+   Tailwind is layered ON TOP of the existing UJG design-token layer — it does
+   not replace it. styles/tokens.css owns the brand palette and the 11 visual
+   skins; Tailwind provides layout/utility classes. Nothing here overrides the
+   locked token values.
+   ============================================================================= */
+@import "tailwindcss";
+@import "../styles/tokens.css";
+
+/* --- UJG brand 4-font system --------------------------------------------------
+   The fonts themselves are loaded via <link> in app/layout.tsx. These variables
+   name the roles so the app (and future design-system work) reference roles,
+   not families. */
+:root {
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+  --font-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-accent: "Fredoka", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* Expose the brand palette + fonts to Tailwind v4 utilities
+   (e.g. text-ink, bg-surface, font-display). Values reference the token layer,
+   so a rebrand still happens in one place — the tokens. */
+@theme inline {
+  --color-primary: var(--dl-primary);
+  --color-primary-hover: var(--dl-primary-hover);
+  --color-gold: var(--dl-gold);
+  --color-gold-ink: var(--dl-gold-ink);
+  --color-danger: var(--dl-danger);
+  --color-success: var(--dl-success);
+  --color-surface: var(--dl-surface);
+  --color-surface-2: var(--dl-surface-2);
+  --color-line: var(--dl-line);
+  --color-line-2: var(--dl-line-2);
+  --color-ink: var(--dl-ink);
+  --color-ink-soft: var(--dl-ink-soft);
+
+  --font-display: var(--font-display);
+  --font-sans: var(--font-sans);
+  --font-accent: var(--font-accent);
+  --font-mono: var(--font-mono);
+}
+
+html {
+  color-scheme: light;
+}
+
+body {
+  background: var(--dl-surface);
+  color: var(--dl-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
