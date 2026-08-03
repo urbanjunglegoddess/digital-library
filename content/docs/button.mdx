@@ -1,0 +1,131 @@
+---
+name: Button
+slug: button
+category: Actions
+status: reusable
+summary: The reference component of the library — a real <button> with fixed semantics and behavior whose skin comes entirely from the [data-style] token layer.
+clickup_page_id: 838qa-200231
+tags: [action, form, cta, interactive, focus]
+styles: [ujg, flat, material, glass, liquid, neu, skeu, brut, clay, aurora, swiss]
+playground: button
+preview:
+  kind: button
+  label: Save changes
+snippets:
+  - language: tsx
+    framework: react
+    label: React · TS
+    primary: true
+    code: |
+      import { forwardRef, ButtonHTMLAttributes, ReactNode } from "react";
+      import "./button.css";
+
+      type Variant = "primary" | "secondary" | "ghost" | "gold" | "destructive" | "text";
+      type Size = "xs" | "sm" | "md" | "lg" | "xl";
+
+      export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
+        variant?: Variant;
+        size?: Size;
+        block?: boolean;
+        loading?: boolean;
+        leadingIcon?: ReactNode;
+      }
+
+      export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
+        ({ variant = "primary", size = "md", block, loading, leadingIcon,
+           disabled, children, className = "", type = "button", ...rest }, ref) => {
+          const cls = ["btn", `btn--${variant}`, `btn--${size}`,
+            block && "btn--block", loading && "is-loading", className]
+            .filter(Boolean).join(" ");
+          return (
+            <button ref={ref} type={type} className={cls}
+              disabled={disabled || loading} aria-busy={loading || undefined} {...rest}>
+              {loading && <span className="spinner" aria-hidden="true" />}
+              {!loading && leadingIcon}
+              <span>{children}</span>
+            </button>
+          );
+        }
+      );
+      Button.displayName = "Button";
+  - language: html
+    framework: null
+    label: HTML
+    code: |
+      <div data-style="ujg">
+        <button class="btn btn--primary btn--md">Save changes</button>
+      </div>
+references:
+  - title: WAI-ARIA APG — Button pattern
+    url: https://www.w3.org/WAI/ARIA/apg/patterns/button/
+    source: apg
+  - title: MDN — <button> element
+    url: https://developer.mozilla.org/en-US/docs/Web/HTML/Element/button
+    source: mdn
+---
+
+## 1 · Purpose
+
+The Button is the reference component of the Digital Asset Library — every other
+component follows its shape. It triggers an action (submit, confirm, open, run).
+Its structure, sizing, states, keyboard behavior, and 44px tap target are fixed;
+the **skin** is applied by an ancestor `[data-style]` wrapper from
+`styles/tokens.css`. Style is skin only — semantics never change with the skin.
+
+## 2 · Anatomy
+
+- **Container** — a real `<button>` element (never a styled `<div>`).
+- **Label** — the action text, wrapped in a `<span>` for loading-state swaps.
+- **Leading icon** (optional) — decorative, `aria-hidden`.
+- **Spinner** (loading) — replaces the icon, label goes transparent.
+
+## 3 · Variants
+
+`primary` · `secondary` · `ghost` · `gold` · `destructive` · `text`
+
+## 4 · Sizes
+
+`xs` · `sm` · `md` (default) · `lg` · `xl` — the tap target stays ≥ 44px at
+every size via an invisible `::after` overlay, so visual density never costs
+accessibility.
+
+## 5 · States
+
+| State | Behavior |
+| --- | --- |
+| Default | Filled per variant + skin |
+| Hover | Darkened / elevated per skin |
+| Focus-visible | 3px focus ring (`--dl-focus`), 2px offset |
+| Active | 1px translate down |
+| Disabled | 45% opacity, `not-allowed`, no pointer events |
+| Loading | Implies disabled; spinner shown; `aria-busy` |
+
+## 6 · Behavior
+
+- `loading` implies `disabled` — no double submits.
+- Native props (`onClick`, `type`, `aria-*`, `data-*`) pass straight through.
+- `type="button"` by default so it never accidentally submits a form.
+
+## 7 · Accessibility
+
+- Real `<button>` semantics: keyboard (Enter/Space) and focus for free.
+- Focus ring is always visible and meets WCAG 2.1 AA non-text contrast.
+- Icon-only usage requires an `aria-label`.
+- Loading communicates via `aria-busy`, not color alone.
+
+## 8 · Do & Don't
+
+- **Do** use it for actions; use a Link for navigation.
+- **Do** keep one primary button per view.
+- **Don't** disable the only path forward without explanation.
+- **Don't** recreate the skin inline — wrap in `[data-style]`.
+
+## 9 · Tokens consumed
+
+`--dl-primary`, `--dl-primary-hover`, `--dl-gold`, `--dl-gold-ink`,
+`--dl-danger`, `--dl-focus`, `--dl-surface`, `--dl-ink`, `--dl-ink-soft`.
+
+## 10 · Skin coverage
+
+Renders in all 11 styles. The structure is identical; only background, radius,
+border, and shadow change per `[data-style]`.

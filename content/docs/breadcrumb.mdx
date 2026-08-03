@@ -1,0 +1,1123 @@
+---
+name: Breadcrumb
+slug: breadcrumb
+category: Navigation
+status: built
+summary: "A secondary navigation control that shows the current page's position within the site's hierarchy, as a trail of links from the root."
+clickup_page_id: 838qa-216891
+tags: [breadcrumb, nav, hierarchy, links]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <nav aria-label="Breadcrumb">
+        <ol class="breadcrumb">
+          <li class="breadcrumb__item">
+            <a href="/">Home</a>
+          </li>
+          <li class="breadcrumb__item">
+            <a href="/shop">Shop</a>
+          </li>
+          <li class="breadcrumb__item">
+            <a href="/shop/women">Women</a>
+          </li>
+          <li class="breadcrumb__item">
+            <a href="/shop/women/shoes">Shoes</a>
+          </li>
+          <!-- Current page: NOT a link, marked as current -->
+          <li class="breadcrumb__item">
+            <span aria-current="page">Chelsea Boots</span>
+          </li>
+        </ol>
+      </nav>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import { Fragment, useState } from "react";
+
+      export interface Crumb {
+        label: string;
+        href?: string;        // absent => current page (rendered as text)
+      }
+
+      interface BreadcrumbProps {
+        items: Crumb[];
+        /** Collapse the middle when the trail exceeds this many items. 0 disables. */
+        maxItems?: number;
+        /** How many to always keep at the start/end when collapsed. */
+        itemsBeforeCollapse?: number;
+        itemsAfterCollapse?: number;
+        separator?: React.ReactNode;   // visual only
+      }
+
+      export function Breadcrumb({
+        items,
+        maxItems = 0,
+        itemsBeforeCollapse = 1,
+        itemsAfterCollapse = 1,
+        separator = "/",
+      }: BreadcrumbProps) {
+        const [expanded, setExpanded] = useState(false);
+
+        const shouldCollapse =
+          maxItems > 0 && items.length > maxItems && !expanded;
+
+        // Build the render list: either the full trail, or [head, …ellipsis, tail]
+        const rendered: (Crumb | "ellipsis")[] = shouldCollapse
+          ? [
+              ...items.slice(0, itemsBeforeCollapse),
+              "ellipsis",
+              ...items.slice(items.length - itemsAfterCollapse),
+            ]
+          : items;
+
+        return (
+          <nav aria-label="Breadcrumb">
+            <ol className="breadcrumb">
+              {rendered.map((entry, i) => {
+                const isLast = i === rendered.length - 1;
+
+                if (entry === "ellipsis") {
+                  return (
+                    <li key="ellipsis" className="breadcrumb__item">
+                      <span className="breadcrumb__sep" aria-hidden="true">
+                        {separator}
+                      </span>
+                      <button
+                        type="button"
+                        className="breadcrumb__ellipsis"
+                        aria-label="Show hidden breadcrumbs"
+                        aria-expanded={expanded}
+                        onClick={() => setExpanded(true)}
+                      >
+                        …
+                      </button>
+                    </li>
+                  );
+                }
+
+                // The true current page is the last item AND has no href
+                const isCurrent = isLast && !entry.href;
+
+                return (
+                  <li key={entry.href ?? entry.label} className="breadcrumb__item">
+                    {i > 0 && (
+                      <span className="breadcrumb__sep" aria-hidden="true">
+                        {separator}
+                      </span>
+                    )}
+                    {isCurrent || !entry.href ? (
+                      <span aria-current={isCurrent ? "page" : undefined}>
+                        {entry.label}
+                      </span>
+                    ) : (
+                      <a href={entry.href}>{entry.label}</a>
+                    )}
+                  </li>
+                );
+              })}
+            </ol>
+          </nav>
+        );
+      }
+  - language: vue
+    label: Vue
+    code: |
+      <script setup lang="ts">
+      defineProps<{ items: { label: string; href?: string }[] }>();
+
+      <template>
+        <nav aria-label="Breadcrumb">
+          <ol class="breadcrumb">
+            <li v-for="(c, i) in items" :key="c.href ?? c.label" class="breadcrumb__item">
+              <span v-if="i > 0" class="breadcrumb__sep" aria-hidden="true">/</span>
+              <a v-if="c.href" :href="c.href">{{ c.label }}</a>
+              <span v-else aria-current="page">{{ c.label }}</span>
+            </li>
+          </ol>
+        </nav>
+      </template>
+---
+
+## 1\. What a Breadcrumb Actually Is
+A breadcrumb is a **secondary navigation** control that shows the current page's position within the site's hierarchy, as a horizontal trail of links from the root down to where you are now. Named after Hansel and Gretel's trail of crumbs — it's the path back home.
+
+The word gets stretched over three genuinely different things, and conflating them is the #1 conceptual error:
+
+**Location breadcrumb (the real one):** shows where this page sits in the site's _structure_. `Home › Shop › Women › Shoes › Chelsea Boots`. It's identical for every visitor because it reflects the hierarchy, not the journey. This is what "breadcrumb" should mean, and 95% of the time it's what you want.
+**Path / history breadcrumb:** shows the _trail the user actually clicked_ to get here — a linear undo of their session. `Home › Search results › Product › Reviews`. Reflects behavior, not structure. Rare, and mostly redundant with the browser Back button (which does it better and for free).
+**Attribute breadcrumb:** shows the current page's _classifying attributes_ rather than a single parent path, useful when an item lives in many categories at once. `Home › Sale › Under $50 › Waterproof`. Common in faceted e-commerce where a product has no one true parent.
+
+The distinction that trips people: a breadcrumb is **not** the primary navigation, and it is **not** a wayfinding replacement for it. It's an _orientation_ aid and a _one-click-up_ shortcut. If your site's main nav can't be found, a breadcrumb won't save you. And a breadcrumb is not tabs, not a stepper/wizard progress indicator (that shows steps in a _process_, not a place in a _hierarchy_), and not a pagination control. Those look linear too, and they are all different components.
+
+**Rule of thumb:** if it reflects the site's tree and the last crumb is the page you're on, it's a breadcrumb. If it reflects a sequence of actions or steps, you want a stepper or you want the Back button.
+
+---
+
+## 2\. Why It Matters
+A breadcrumb is small, cheap, and quietly load-bearing on the three things that actually move a business:
+
+**Orientation reduces bounce.** Deep-linked users — the ones who land on a product page straight from Google or an ad, having never seen your homepage — have no idea where they are. The breadcrumb answers "where am I and what's the bigger category?" in one glance, and gives them a lateral escape upward instead of a bounce. On deep e-commerce catalogs this is measurable retention.
+**SEO is the underrated payoff.** This is the part people forget: breadcrumbs with `BreadcrumbList` structured data change how your result appears in Google. Instead of a raw URL, the SERP shows `example.com › Women › Shoes`, a readable hierarchy that improves click-through and helps Google understand your site structure. It's one of the few UI components with a _direct_, documented search-ranking-adjacent payoff.
+**It signals a coherent information architecture.** A site that can render an honest breadcrumb is a site whose content is actually organized into a tree. The exercise of building breadcrumbs often exposes that your IA is a flat swamp — which is a finding worth having.
+**Trust and reduced cognitive load.** Users don't consciously notice a good breadcrumb, but they feel lost without one on a deep site. It's an ambient "you are not lost" signal.
+
+The flip side — and this is real — is that on a **flat site** (a handful of top-level pages, no depth) a breadcrumb is pure noise: a trail of one or two items that teaches nothing. Adding it there is cargo-culting. The component earns its place only where hierarchy exists.
+
+---
+
+## 3\. Anatomy of a Breadcrumb
+Every well-built breadcrumb is composed of predictable parts:
+
+**Nav landmark:** the wrapping `<nav aria-label="Breadcrumb">`. This is what makes it a real, discoverable navigation region for assistive tech, distinct from the primary nav.
+**Ordered list:** an `<ol>`, because the order is _meaningful_ — root-to-current is a sequence, not a bag. Each crumb is an `<li>`.
+**Crumb links:** every ancestor is a real `<a href>` pointing at that level. These are the one-click-up shortcuts.
+**Current-page item:** the last crumb. It is **not** a link (you're already there) and carries `aria-current="page"`. Usually rendered as plain text or a de-emphasized span.
+**Separators:** the `/`, `›`, `→`, or chevron between crumbs. Visual only — generated in CSS or marked `aria-hidden`, never read aloud (§10).
+**Root/home crumb:** the first item. Often "Home," sometimes an icon. Optional to label as an icon, but if it's icon-only it needs an accessible name.
+**Overflow / collapse control (optional):** on long trails, the middle collapses to an ellipsis `…` that expands to reveal hidden ancestors (§12).
+
+---
+
+## 4\. Sizing, Density & Spacing
+Breadcrumbs are typographic, not boxy — there's no "height scale" like a button. What you tune is text size, the gap around separators, and the tap target of each link.
+
+| Token | Typical value | Notes |
+| ---| ---| --- |
+| Font size | 13–14px | One step below body. Secondary nav, not a headline. |
+| Line height | 1.4–1.5 | Trails can wrap on narrow screens; give them room. |
+| Separator gap | 8px each side | Breathing room so `/` doesn't crowd the text. |
+| Link tap target | ≥44px tall hit area | Expand with vertical padding even though text is small (§10). |
+| Max trail width | container width | Then truncate or wrap — never let it force horizontal scroll. |
+| Current-item weight | 500–600 | Slightly bolder or muted to read as "you are here." |
+
+Rules that matter:
+
+**Small text, big hit area.** The visible link is 13px, but the clickable region should still clear ~44px tall on touch. Achieve it with vertical padding on the `<a>`, not a bigger font.
+**Don't let the trail push layout around.** A long breadcrumb must truncate, wrap, or scroll _within its own lane_ — never widen the page or trigger horizontal body scroll.
+**Anchor it to a spacing token,** not magic numbers, so the whole system scales when density changes.
+
+---
+
+## 5\. States
+A breadcrumb looks static, but its parts have real states, and missing them is the tell of a rushed build.
+
+**Default (rest)** — ancestor crumbs as links, current crumb as text.
+**Hover** — link crumbs get an underline or color shift. The current crumb does _not_ react (it's not interactive).
+**Focus** — keyboard focus on a crumb link shows a visible `:focus-visible` ring. Non-negotiable.
+**Active (pressed)** — brief press feedback on the link being clicked.
+**Current page** — the terminal crumb: `aria-current="page"`, non-link, visually de-emphasized or emphasized (both conventions exist; pick one and be consistent).
+**Collapsed / overflow** — the middle is an ellipsis trigger; it has its own hover/focus/expanded states (`aria-expanded` on the toggle).
+**Expanded** — the overflow menu is open, revealing hidden ancestors.
+**Truncated crumb** — an individual label too long for its lane gets `text-overflow: ellipsis` with the full label available on hover/`title`.
+**Loading / skeleton** — on client-rendered apps where the trail is fetched, show a skeleton row so the layout doesn't jump when crumbs arrive.
+**RTL** — in right-to-left locales the whole trail and its separators mirror (§9.10 environment states).
+
+There's no "disabled" breadcrumb — a crumb is either a link (ancestor) or the current page. If a level in the path isn't a real navigable page, render it as plain text, not a dead link.
+
+---
+
+## 6\. Types & Variants
+By _what the trail reflects_ (the important axis) and by _form_:
+
+**By data source:**
+
+**Location-based (hierarchy):** derived from the site's tree — the page's true parent chain. Stable per URL. The default and usually correct choice. Easy to generate from a route or a category path.
+**Attribute-based:** derived from the item's facets/categories when it has no single parent. Common in catalogs where a product is in "Sale" _and_ "Waterproof" _and_ "Under $50." You choose which attribute chain to show, often the one the user filtered by.
+**Path/history-based:** derived from the user's actual click trail this session. Reflects the journey. Mostly redundant with the Back button; use sparingly, and never let it grow unbounded.
+
+**By form:**
+
+**Text with separators:** the classic `Home › Shop › Shoes`. The default.
+**Icon + text:** a home glyph as the root, or category icons per crumb. Icon-only crumbs still need accessible names.
+**Dropdown crumbs:** each crumb doubles as a menu of its siblings (`Shoes ▾` opens Boots/Sneakers/Sandals). Powerful for lateral movement in deep catalogs; more complex to build and to make accessible.
+**Collapsed/back-button hybrid (mobile):** on small screens, the full trail collapses to a single "‹ Shoes" back-up affordance pointing at the immediate parent (§9.14, §12).
+
+---
+
+## 7\. When to Use One (and When Not To)
+Use a breadcrumb when the site has **real depth** and users arrive **deep**:
+
+**Deep hierarchies (3+ levels).** E-commerce catalogs, documentation sites, knowledge bases, large corporate sites, file/folder systems, admin consoles with nested resources. This is the breadcrumb's home turf.
+**Deep-link-heavy traffic.** If a lot of your sessions start on interior pages from search or ads, breadcrumbs orient people who never saw the homepage.
+**Multi-category items.** Faceted catalogs benefit from an attribute breadcrumb so users can climb back to the filter they came from.
+
+Do **not** use one when:
+
+**The site is flat.** Two or three top-level pages produce a one-item trail that teaches nothing and adds clutter. Skip it.
+**You're on the homepage or a top-level page.** A breadcrumb with a single crumb is noise. Render it only from level 2 down.
+**It's actually a process.** Checkout, onboarding, a multi-step form — that's a **stepper/wizard**, not a breadcrumb. The trail there shows _steps_, not _places_.
+**You'd use it to compensate for bad primary nav.** Breadcrumbs are a supplement, never a substitute. Fix the nav.
+**Mobile with no room.** On phones a full deep trail often can't fit and becomes horizontal-scroll clutter. Collapse it to a single back-up link or drop it below the fold (§12, §9.14) — don't force the desktop trail onto a 360px screen.
+
+Placement heuristic: **top of the content area, below the primary nav/header, above the page** **`<h1>`**\*\*\*\***.** Left-aligned, quiet, consistent on every page that has one. It's the first thing in the main content, orienting before the title.
+
+---
+
+## 8\. Breadcrumbs Across Design Systems
+Same component, different house rules. Knowing them makes you fluent in any codebase.
+
+**Material Design (Google):** Breadcrumbs aren't a headline Material component (Material leans on the top app bar + back navigation), but Material 3 guidance treats them as a top-of-content trail with text separators, reserved for genuinely deep desktop hierarchies. On mobile Material prefers the up-arrow in the app bar over a full trail.
+**Apple HIG (iOS/macOS):** iOS has no traditional breadcrumb — the **navigation stack + back button** _is_ the breadcrumb, with the back button labeled with the parent's title. macOS uses path controls (Finder's path bar) as the desktop equivalent. The concept survives; the widget is native navigation.
+**Fluent (Microsoft):** A first-class `Breadcrumb` component with built-in overflow: when the trail is too long it automatically collapses the middle into an overflow menu. Fluent's is one of the more complete out-of-the-box implementations, chevron separators by default.
+**Ant Design / enterprise:** A dedicated `Breadcrumb` with `items`, separators, dropdown crumbs, and router integration. Ubiquitous in data-dense admin dashboards where nested resources are the norm.
+**Tailwind / utility-first:** No prescribed component; you compose the `nav > ol > li` yourself from utilities. Tailwind UI ships a copy-paste pattern with the correct semantics.
+**shadcn/Radix (2024+ web standard):** shadcn ships a `Breadcrumb` set of primitives (`Breadcrumb`, `BreadcrumbList`, `BreadcrumbItem`, `BreadcrumbLink`, `BreadcrumbPage`, `BreadcrumbSeparator`, `BreadcrumbEllipsis`) — semantic, unstyled-by-default, accessibility baked in, appearance yours. The modern reference implementation (see §9.7).
+**Bootstrap:** The classic `.breadcrumb` component: an `<ol class="breadcrumb">` with `.breadcrumb-item`, CSS-generated separators via a custom property, and `.active` + `aria-current="page"` on the last item. Zero-JS, instantly styled (§9.12).
+
+---
+
+## 9\. The Code
+### 9.1 Semantic HTML (master this first — everything else is a wrapper around it)
+The entire component is a labeled `nav`, an ordered list, real links for ancestors, and a non-link current page. Get this shape right and you're 80% done.
+
+```html
+<nav aria-label="Breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb__item">
+      <a href="/">Home</a>
+    </li>
+    <li class="breadcrumb__item">
+      <a href="/shop">Shop</a>
+    </li>
+    <li class="breadcrumb__item">
+      <a href="/shop/women">Women</a>
+    </li>
+    <li class="breadcrumb__item">
+      <a href="/shop/women/shoes">Shoes</a>
+    </li>
+    <!-- Current page: NOT a link, marked as current -->
+    <li class="breadcrumb__item">
+      <span aria-current="page">Chelsea Boots</span>
+    </li>
+  </ol>
+</nav>
+```
+
+The non-obvious rules, all of which auditors check:
+
+**`<nav aria-label="Breadcrumb">`** — the label distinguishes this landmark from your primary `<nav>`. Without it, a screen-reader user hears "navigation" twice with no way to tell them apart. Use the word "Breadcrumb"; screen readers already announce "navigation," so `aria-label="Breadcrumbs navigation"` would be redundant.
+**`<ol>`****, not** **`<ul>`****. The order carries meaning: root → current is a sequence. An unordered list is semantically wrong here.The last crumb is not a link. You're already on that page; a link to the current page is a dead end and a known usability smell. Render it as text (or a** **`<span>`****) with** **`aria-current="page"`** **so assistive tech announces "current page."Every other crumb is a real** **`<a href>`**\*\*\*\***.** Not a `<span onClick>`, not a `<div>`. Real anchors get keyboard support, focus, right-click-open-in-new-tab, and are crawlable by search engines — which is the whole SEO point.
+
+### 9.2 CSS (separators done right)
+The separator is the part people mangle. **Generate it in CSS with** **`::before`** **and** **`content`****, and mark it** **`aria-hidden`** **in effect by keeping it out of the DOM entirely.** A CSS-generated separator is never in the accessibility tree, so screen readers never read "slash" between every crumb.
+
+```css
+.breadcrumb {
+  display: flex;
+  flex-wrap: wrap;      /* wrap on narrow screens instead of overflowing */
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;     /* kill the <ol> numbers */
+  font-size: 13px;
+  line-height: 1.4;
+```
+
+}
+
+```css
+.breadcrumb__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+```
+
+}
+
+```css
+/* Separator: CSS-generated, so it never reaches the accessibility tree */
+.breadcrumb__item:not(:first-child)::before {
+  content: "/";          /* or "\203A" for › , "\2192" for → */
+  color: var(--crumb-separator, #8a8393);
+  /* decorative: not selectable, not announced */
+  user-select: none;
+```
+
+}
+
+```css
+.breadcrumb__item a {
+  color: var(--crumb-link, #5F2C82);
+  text-decoration: none;
+  padding: 10px 2px;     /* vertical padding lifts the tap target toward 44px */
+  border-radius: 4px;
+}
+```
+
+.breadcrumb\_\_item a:hover { text-decoration: underline; }
+
+```css
+/* Keyboard focus only */
+.breadcrumb__item a:focus-visible {
+  outline: 2px solid var(--crumb-focus, #DCA424);
+  outline-offset: 2px;
+```
+
+}
+
+```css
+/* Current page: de-emphasized, not interactive */
+.breadcrumb__item [aria-current="page"] {
+  color: var(--crumb-current, #4a4453);
+  font-weight: 600;
+}
+```
+
+Why CSS-generated separators win over a literal `/` in the markup or an inline SVG:
+
+**A** **`/`** **typed into the HTML is read aloud.** Screen readers announce "Home slash Shop slash Women" — noise on every crumb. Move it to `content` and it disappears from the a11y tree.
+**If you must put the separator in the DOM** (e.g. an SVG chevron you can't do in `content`), give it `aria-hidden="true"` and `role="presentation"`. Same outcome, more markup.
+**Never make the separator a real character between crumbs that a screen reader treats as content.** That's the single most common breadcrumb a11y bug.
+
+### 9.3 React + TypeScript (a proper reusable component, with truncation)
+The real-world component: typed items, a non-link current page, CSS separators, and **middle-collapse truncation** for long trails. This is the longest block because truncation is where breadcrumbs get interesting.
+
+import { Fragment, useState } from "react";
+
+```tsx
+export interface Crumb {
+  label: string;
+  href?: string;        // absent => current page (rendered as text)
+```
+
+}
+
+```tsx
+interface BreadcrumbProps {
+  items: Crumb[];
+  /** Collapse the middle when the trail exceeds this many items. 0 disables. */
+  maxItems?: number;
+  /** How many to always keep at the start/end when collapsed. */
+  itemsBeforeCollapse?: number;
+  itemsAfterCollapse?: number;
+  separator?: React.ReactNode;   // visual only
+```
+
+}
+
+```tsx
+export function Breadcrumb({
+  items,
+  maxItems = 0,
+  itemsBeforeCollapse = 1,
+  itemsAfterCollapse = 1,
+  separator = "/",
+}: BreadcrumbProps) {
+```
+
+const \[expanded, setExpanded\] = useState(false);
+
+```tsx
+const shouldCollapse =
+```
+
+```plain
+maxItems > 0 && items.length > maxItems && !expanded;
+```
+
+```tsx
+// Build the render list: either the full trail, or [head, …ellipsis, tail]
+  const rendered: (Crumb | "ellipsis")[] = shouldCollapse
+    ? [
+        ...items.slice(0, itemsBeforeCollapse),
+        "ellipsis",
+        ...items.slice(items.length - itemsAfterCollapse),
+      ]
+```
+
+```plain
+: items;
+```
+
+```tsx
+return (
+    <nav aria-label="Breadcrumb">
+      <ol className="breadcrumb">
+        {rendered.map((entry, i) => {
+```
+
+```plain
+const isLast = i === rendered.length - 1;
+```
+
+```tsx
+if (entry === "ellipsis") {
+            return (
+              <li key="ellipsis" className="breadcrumb__item">
+                <span className="breadcrumb__sep" aria-hidden="true">
+                  {separator}
+                </span>
+                <button
+                  type="button"
+                  className="breadcrumb__ellipsis"
+                  aria-label="Show hidden breadcrumbs"
+                  aria-expanded={expanded}
+                  onClick={() => setExpanded(true)}
+                >
+                  …
+                </button>
+              </li>
+            );
+```
+
+```plain
+}
+```
+
+```tsx
+// The true current page is the last item AND has no href
+```
+
+```plain
+const isCurrent = isLast && !entry.href;
+```
+
+```tsx
+return (
+            <li key={entry.href ?? entry.label} className="breadcrumb__item">
+              {i > 0 && (
+                <span className="breadcrumb__sep" aria-hidden="true">
+                  {separator}
+                </span>
+              )}
+              {isCurrent || !entry.href ? (
+                <span aria-current={isCurrent ? "page" : undefined}>
+                  {entry.label}
+                </span>
+              ) : (
+                <a href={entry.href}>{entry.label}</a>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </nav>
+  );
+}
+```
+
+Why this is the senior version, not the junior one:
+
+**`href`****\-absence** **_is_** **the current-page signal.** The type models reality: an ancestor has a URL, the current page doesn't. No separate `isCurrent` prop to keep in sync.
+**Truncation collapses the** **_middle_**\*\*, keeps head and tail.\*\* Users need the root (top-level context) and the immediate parent (one-click-up) most; the middle levels are the least useful, so those are what hide behind the ellipsis. Collapsing the wrong end is a common mistake.
+**The ellipsis is a real** **`<button>`** **with** **`aria-expanded`****, not a dead** **`…`****. Keyboard and screen-reader users can expand it. (A fuller build opens a menu of the hidden crumbs instead of expanding inline — see §12.)Separators are** **`aria-hidden`** **spans** so they never reach assistive tech, matching §9.2's CSS approach for when you can't use pure `content`.
+
+### 9.4 Next.js (auto-breadcrumbs from the route — the pattern worth stealing)
+The best breadcrumb is one nobody has to hand-maintain. In the Next.js App Router you can derive the trail from the URL segments, so every page gets a correct breadcrumb for free. This is a **Server Component** — no client JS needed, and it's crawlable.
+
+```tsx
+// app/components/AutoBreadcrumb.tsx  (Server Component — no "use client")
+```
+
+import Link from "next/link";
+
+```tsx
+// Map ugly slugs to human labels; extend or load from a CMS/DB as needed.
+const LABELS: Record<string, string> = {
+  shop: "Shop",
+  women: "Women",
+  shoes: "Shoes",
+```
+
+};
+
+```tsx
+function labelFor(segment: string) {
+  return (
+    LABELS[segment] ??
+    segment.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+```
+
+}
+
+```tsx
+export function AutoBreadcrumb({ pathname }: { pathname: string }) {
+```
+
+const segments = pathname.split("/").filter(Boolean);
+
+```tsx
+// Don't render a one-crumb trail on top-level pages (§7).
+```
+
+if (segments.length === 0) return null;
+
+```tsx
+const crumbs = segments.map((seg, i) => ({
+    label: labelFor(seg),
+    href: "/" + segments.slice(0, i + 1).join("/"),
+    isLast: i === segments.length - 1,
+```
+
+}));
+
+```tsx
+return (
+    <nav aria-label="Breadcrumb">
+      <ol className="breadcrumb">
+        <li className="breadcrumb__item">
+          <Link href="/">Home</Link>
+        </li>
+        {crumbs.map((c) => (
+          <li key={c.href} className="breadcrumb__item">
+            <span className="breadcrumb__sep" aria-hidden="true">/</span>
+            {c.isLast ? (
+              <span aria-current="page">{c.label}</span>
+            ) : (
+              <Link href={c.href}>{c.label}</Link>
+            )}
+          </li>
+        ))}
+      </ol>
+    </nav>
+  );
+}
+```
+
+Getting the current path: in a Server Component, pass it down from a layout that reads `headers()` (e.g. a middleware-set `x-pathname`), or in a Client Component use `usePathname()` from `next/navigation`:
+
+```tsx
+"use client";
+import { usePathname } from "next/navigation";
+// const pathname = usePathname();  // "/shop/women/shoes"
+```
+
+Two honest caveats the naive version misses:
+
+**URL segments aren't always the true hierarchy.** A product at `/p/chelsea-boots` may belong under `Shop › Women › Shoes` even though the URL is flat. When the URL and the IA disagree, drive the breadcrumb from your _data_ (the category the user arrived through, or the product's canonical category path), not the raw path. Route-derived breadcrumbs are a great default, not a universal truth.
+**Slug-to-label needs a real source.** The title-case fallback turns `chelsea-boots` into "Chelsea Boots," which is fine for many slugs but wrong for IDs (`/p/8837`). Back it with a lookup (CMS, DB, or a generated map) for anything that isn't human-readable.
+
+### 9.5 The SEO Layer — BreadcrumbList JSON-LD (the real payoff)
+This is the section that separates a decorative breadcrumb from one that earns money. Google renders breadcrumb trails in search results **only** when you provide machine-readable structured data. The visible `nav` is for humans; the JSON-LD is for the crawler. Ship both, and keep them in sync.
+
+Use [**schema.org**](http://schema.org) **`BreadcrumbList`** as JSON-LD in a `<script>` tag. JSON-LD is Google's preferred format (over microdata/RDFa) because it's a separate block you can generate programmatically instead of littering `itemprop` attributes through your markup.
+
+```html
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Home",
+      "item": "https://example.com/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Shop",
+      "item": "https://example.com/shop"
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "Women",
+      "item": "https://example.com/shop/women"
+    },
+    {
+      "@type": "ListItem",
+      "position": 4,
+      "name": "Shoes",
+      "item": "https://example.com/shop/women/shoes"
+    },
+    {
+      "@type": "ListItem",
+      "position": 5,
+      "name": "Chelsea Boots"
+    }
+  ]
+}
+</script>
+```
+
+Generate it from the same data that renders the visible trail, so they never drift:
+
+```tsx
+// Next.js: emit JSON-LD next to the visible breadcrumb.
+export function BreadcrumbJsonLd({ items }: { items: Crumb[] }) {
+  const json = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((c, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: c.label,
+      // The LAST item omits "item" — Google infers it's the current page.
+      ...(c.href ? { item: new URL(c.href, "https://example.com").href } : {}),
+    })),
+  };
+  return (
+    <script
+      type="application/ld+json"
+      // JSON.stringify output is safe here; it's your own structured data.
+      dangerouslySetInnerHTML={{ __html: JSON.stringify(json) }}
+    />
+  );
+}
+```
+
+The rules Google actually enforces (get these wrong and the rich result silently won't show):
+
+**`position`** **is 1-based and sequential.** Start at 1, no gaps.
+**Use absolute URLs** in `item`. Relative URLs are a common cause of "breadcrumb not eligible."
+**The last item omits** **`item`** (or points at the current page) — it's the page you're on. Google treats the final `name`\-only entry as the terminal crumb.
+**The structured data must match the visible breadcrumb.** Google's guidelines require the JSON-LD to represent what's on the page. Injecting a richer trail into the JSON-LD than what users see is a manual-action risk, not a growth hack.
+**Validate it.** Google's Rich Results Test and the [Schema.org](http://Schema.org) validator both check `BreadcrumbList`. Put one in CI if breadcrumbs matter to your traffic.
+
+### 9.6 Tailwind CSS (utility-first)
+Same semantics, utilities for the skin. Note the separators are still decorative.
+
+```html
+<nav aria-label="Breadcrumb">
+  <ol class="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+    <li class="flex items-center gap-2">
+      <a href="/" class="hover:text-purple-800 hover:underline
+                         focus-visible:outline focus-visible:outline-2
+                         focus-visible:outline-amber-400 rounded px-0.5 py-2">Home</a>
+    </li>
+    <li class="flex items-center gap-2">
+      <span aria-hidden="true" class="text-gray-300 select-none">/</span>
+      <a href="/shop" class="hover:text-purple-800 hover:underline
+                             focus-visible:outline focus-visible:outline-2
+                             focus-visible:outline-amber-400 rounded px-0.5 py-2">Shop</a>
+    </li>
+    <li class="flex items-center gap-2">
+      <span aria-hidden="true" class="text-gray-300 select-none">/</span>
+      <span aria-current="page" class="font-semibold text-gray-700">Shoes</span>
+    </li>
+  </ol>
+</nav>
+```
+
+Real teams extract this into a component rather than repeating the utility soup — which is exactly what shadcn does next.
+
+### 9.7 shadcn/ui (the 2024+ standard)
+shadcn ships breadcrumb _primitives_ you copy into your repo and own. Each primitive maps to one semantic part, so correct markup is the path of least resistance.
+
+```tsx
+import {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
+```
+
+} from "@/components/ui/breadcrumb";
+
+```tsx
+export function ProductBreadcrumb() {
+  return (
+    <Breadcrumb>              {/* renders <nav aria-label="breadcrumb"> */}
+      <BreadcrumbList>        {/* renders the <ol> */}
+        <BreadcrumbItem>
+          <BreadcrumbLink href="/">Home</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />          {/* aria-hidden chevron */}
+        <BreadcrumbItem>
+          <BreadcrumbEllipsis />          {/* collapsed middle -> menu */}
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbLink href="/shop/women/shoes">Shoes</BreadcrumbLink>
+        </BreadcrumbItem>
+        <BreadcrumbSeparator />
+        <BreadcrumbItem>
+          <BreadcrumbPage>Chelsea Boots</BreadcrumbPage>   {/* aria-current="page" */}
+        </BreadcrumbItem>
+      </BreadcrumbList>
+    </Breadcrumb>
+  );
+}
+```
+
+The design lesson embedded here: `BreadcrumbPage` renders the non-link current item with `aria-current="page"` for you, and `BreadcrumbSeparator` is `aria-hidden` by default. The primitives make the _correct_ accessible markup the _easy_ markup — which is the whole point of a good component library. Pair `BreadcrumbEllipsis` with a `DropdownMenu` to turn the collapsed middle into a real menu of hidden crumbs.
+
+### 9.8 Vanilla JavaScript (build the trail from data, no framework)
+When you have a data array and no framework, render the same semantic markup and handle the ellipsis toggle by hand.
+
+```js
+function renderBreadcrumb(container, items, { maxItems = 4 } = {}) {
+  const collapse = items.length > maxItems;
+  const view = collapse
+    ? [items[0], { ellipsis: true }, ...items.slice(-2)]
+```
+
+```plain
+: items;
+```
+
+```js
+const ol = document.createElement("ol");
+```
+
+ol.className = "breadcrumb";
+
+```js
+view.forEach((it, i) => {
+    const li = document.createElement("li");
+```
+
+```plain
+li.className = "breadcrumb__item";
+```
+
+```js
+if (i > 0) {
+      const sep = document.createElement("span");
+      sep.className = "breadcrumb__sep";
+      sep.setAttribute("aria-hidden", "true");
+      sep.textContent = "/";
+      li.appendChild(sep);
+```
+
+```plain
+}
+```
+
+```js
+if (it.ellipsis) {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.textContent = "…";
+      btn.setAttribute("aria-label", "Show hidden breadcrumbs");
+      btn.setAttribute("aria-expanded", "false");
+      btn.addEventListener("click", () =>
+        renderBreadcrumb(container, items, { maxItems: Infinity })
+      );
+      li.appendChild(btn);
+    } else if (it.href) {
+      const a = document.createElement("a");
+      a.href = it.href;
+      a.textContent = it.label;
+      li.appendChild(a);
+    } else {
+      const span = document.createElement("span");
+      span.setAttribute("aria-current", "page");
+      span.textContent = it.label;
+      li.appendChild(span);
+    }
+    ol.appendChild(li);
+```
+
+});
+
+```js
+const nav = document.createElement("nav");
+  nav.setAttribute("aria-label", "Breadcrumb");
+  nav.appendChild(ol);
+  container.replaceChildren(nav);
+}
+```
+
+Note it builds nodes with `textContent`/`createElement`, not `innerHTML` string-concatenation — crumb labels can come from user content or a CMS, and concatenating them into `innerHTML` is an XSS hole (§9.11).
+
+### 9.9 Other Frameworks (Vue, Svelte, Angular)
+Same `nav > ol > li` underneath; different syntax.
+
+**Vue 3 (SFC):**
+
+```vue
+<script setup lang="ts">
+defineProps<{ items: { label: string; href?: string }[] }>();
+```
+
+```vue
+<template>
+  <nav aria-label="Breadcrumb">
+    <ol class="breadcrumb">
+      <li v-for="(c, i) in items" :key="c.href ?? c.label" class="breadcrumb__item">
+        <span v-if="i > 0" class="breadcrumb__sep" aria-hidden="true">/</span>
+        <a v-if="c.href" :href="c.href">{{ c.label }}</a>
+        <span v-else aria-current="page">{{ c.label }}</span>
+      </li>
+    </ol>
+  </nav>
+</template>
+```
+
+**Svelte:**
+
+```svelte
+<script lang="ts">
+  export let items: { label: string; href?: string }[] = [];
+```
+
+```svelte
+<nav aria-label="Breadcrumb">
+  <ol class="breadcrumb">
+    {#each items as c, i (c.href ?? c.label)}
+      <li class="breadcrumb__item">
+        {#if i > 0}<span class="breadcrumb__sep" aria-hidden="true">/</span>{/if}
+        {#if c.href}<a href={c.href}>{c.label}</a>
+        {:else}<span aria-current="page">{c.label}</span>{/if}
+      </li>
+    {/each}
+  </ol>
+</nav>
+```
+
+**Angular (standalone):** Angular Router's `ActivatedRoute` data is the idiomatic source — walk the route tree and build crumbs from each segment's `data.breadcrumb`, then render the same semantic list. The component is trivial; the value is wiring it to the router so it stays automatic, exactly like the Next.js approach in §9.4.
+
+### 9.10 Native Mobile (SwiftUI, Jetpack Compose, Flutter)
+Off the web, the traditional horizontal trail mostly gives way to native navigation — but the concept maps.
+
+**SwiftUI (iOS):** there's no breadcrumb view; the **NavigationStack** _is_ the breadcrumb. The back button is auto-labeled with the parent's title, giving one-level-up context.
+
+```swift
+NavigationStack {
+    List(categories) { c in
+        NavigationLink(c.name, value: c)   // back button shows this title
+    }
+    .navigationTitle("Shoes")              // the "current crumb"
+}
+```
+
+**Jetpack Compose (Android):** the top app bar's up-arrow + title is the idiomatic trail; a literal horizontal breadcrumb is a custom `Row` of `TextButton`s with separators, reserved for tablets/deep content apps.
+
+**Flutter:** no built-in breadcrumb widget; build a `Wrap` of `InkWell` text links separated by `Icon(Icons.chevron_right)`, or lean on the `Navigator` stack + `AppBar` back button. The through-line across all three: **mobile platforms treat "up one level" as the primary affordance and reserve full trails for wide screens.** That's a design signal worth heeding on the web too (§9.14).
+
+### 9.11 Security & Backend Notes (lighter, but real)
+A breadcrumb is mostly a read-only, presentational component — it doesn't reach the server the way a form or a payment button does. But two things still bite:
+
+**Crumb labels are untrusted content.** Labels often come from a CMS, a product title, or a URL slug — attacker-influenceable surfaces. Rendering them via `innerHTML` string-concatenation is a stored/reflected **XSS** vector. Always render labels as text (`textContent`, framework interpolation, JSX children — all of which escape by default), never as raw HTML. The one place to be careful in React is the JSON-LD `dangerouslySetInnerHTML` in §9.5: `JSON.stringify` of your own structured data is safe, but if any `name` came from user input, that's fine inside JSON (it's escaped as a string value) — just never build that block by string concatenation.
+**Don't leak structure the user can't access.** If a breadcrumb is generated from a resource path, make sure every crumb points at something the current user is authorized to see. A breadcrumb that reveals `Admin › Billing › Customer 8837` to a user who shouldn't know that hierarchy exists is an information-disclosure leak. Generate crumbs from _authorized_ ancestors, and 404/redirect the same way the target pages would.
+**Server-render for SEO.** Because the JSON-LD and the crawlable `<a href>`s are the entire SEO value, render breadcrumbs on the server (SSR/SSG). A breadcrumb that only appears after client-side hydration is worth far less to search crawlers.
+
+### 9.12 Testing the Breadcrumb
+You test the _semantics and behavior_, not the pixels. Three layers.
+
+**Unit / component (Vitest + React Testing Library).** Prove the landmark, the current page, the links, and the collapse behave.
+
+```tsx
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, it, expect } from "vitest";
+```
+
+import { Breadcrumb } from "./Breadcrumb";
+
+```tsx
+const trail = [
+  { label: "Home", href: "/" },
+  { label: "Shop", href: "/shop" },
+  { label: "Women", href: "/shop/women" },
+  { label: "Shoes", href: "/shop/women/shoes" },
+  { label: "Chelsea Boots" },   // no href => current
+```
+
+\];
+
+```tsx
+describe("Breadcrumb", () => {
+  it("exposes a labeled navigation landmark", () => {
+    render(<Breadcrumb items={trail} />);
+    expect(screen.getByRole("navigation", { name: /breadcrumb/i }))
+      .toBeInTheDocument();
+```
+
+});
+
+```tsx
+it("marks the last item as the current page and does not link it", () => {
+    render(<Breadcrumb items={trail} />);
+    const current = screen.getByText("Chelsea Boots");
+    expect(current).toHaveAttribute("aria-current", "page");
+    expect(current.closest("a")).toBeNull();   // current page is not a link
+```
+
+});
+
+```tsx
+it("renders ancestors as real links", () => {
+    render(<Breadcrumb items={trail} />);
+    expect(screen.getByRole("link", { name: "Shop" }))
+      .toHaveAttribute("href", "/shop");
+```
+
+});
+
+```tsx
+it("collapses the middle and expands on demand", async () => {
+    render(<Breadcrumb items={trail} maxItems={3} />);
+    // Hidden middle crumbs aren't in the DOM yet
+    expect(screen.queryByRole("link", { name: "Women" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: /show hidden breadcrumbs/i })
+    );
+    expect(screen.getByRole("link", { name: "Women" })).toBeInTheDocument();
+  });
+});
+```
+
+**Accessibility (jest-axe).** Automated pass to catch missing labels, separator-in-a11y-tree, and contrast wiring.
+
+```tsx
+import { axe } from "jest-axe";
+it("has no a11y violations", async () => {
+  const { container } = render(<Breadcrumb items={trail} />);
+  expect(await axe(container)).toHaveNoViolations();
+});
+```
+
+**Structured-data test.** If breadcrumbs carry SEO weight, assert the JSON-LD is valid and matches the visible trail: parse the `application/ld+json` block, check `@type === "BreadcrumbList"`, `position` is 1..N sequential, and the names equal the rendered crumb labels. Wire Google's Rich Results Test into CI for the pages that matter.
+
+What to assert (and skip): **do test** the landmark role+name, `aria-current` on the last item, ancestors are links, collapse/expand works, and JSON-LD validity. **Don't test** the separator character, exact colors, or class names — implementation details that break tests without catching real bugs.
+
+---
+
+## 10\. Accessibility (non-negotiable)
+Breadcrumbs are a WAI-ARIA Authoring Practices pattern with a small, exact contract. Hit every point:
+
+**Landmark:** wrap in `<nav aria-label="Breadcrumb">`. The label is what lets a screen-reader user jump to it and distinguishes it from the main nav. Don't include the word "navigation" in the label — it's already announced.
+**Structure:** an `<ol>` (ordered — the sequence is meaningful) of `<li>`s. Screen readers announce "list, 5 items," giving the user the trail's shape.
+**Current page:** the last crumb carries `aria-current="page"` and is **not** a link. Screen readers announce "current page." This is the single most important ARIA attribute on the component.
+**Separators are silent.** CSS-generated (`::before content`) — best, never in the a11y tree — or, if in the DOM, `aria-hidden="true"`. A breadcrumb that reads "Home slash Shop slash Women" on every load is the classic failure.
+**Real links.** Every ancestor is an `<a href>`, so it's keyboard-focusable, Enter-activates, and works with right-click / screen-reader link lists for free. Never fake a crumb with a `<div onClick>`.
+**Keyboard:** Tab moves between crumb links; Enter activates. Nothing custom needed if you used real anchors. The ellipsis toggle is a real `<button>` (Enter/Space), with `aria-expanded` reflecting open/closed and focus moving into the revealed menu.
+**Focus visible:** every crumb link and the ellipsis button show a `:focus-visible` ring. Never `outline: none` without a replacement.
+**Target size:** the visible text is small (13px) but the tap target should reach ~44px tall via padding — small crumbs jammed together are a mis-tap magnet on touch.
+**Contrast:** link and current-page text ≥ 4.5:1 against the background (WCAG AA). The muted-gray current crumb is a frequent contrast failure — check it, don't eyeball it.
+**Don't rely on the separator to convey meaning** — it's decoration. The list order and the links carry the structure.
+
+The keyboard/focus/landmark contract **never changes with the visual skin** (§17). A neumorphic breadcrumb and a brutalist one expose the identical accessibility tree.
+
+---
+
+## 11\. Innovative & Emerging Ideas
+The breadcrumb looks solved, but it's quietly evolving:
+
+**Dropdown crumbs for lateral movement.** Each crumb becomes a menu of its siblings (`Shoes ▾` → Boots/Sneakers/Sandals), turning a one-dimensional "up" trail into two-dimensional navigation. Increasingly common in deep catalogs and admin consoles.
+**AI/semantic breadcrumbs.** On sites without a rigid tree (search-driven, personalized, AI-generated pages), the "hierarchy" is inferred per session — the trail reflects a computed conceptual path rather than a fixed folder structure. Nascent, and a genuine design challenge for keeping the crumb honest.
+**Scroll-aware / sticky breadcrumbs.** On long articles and docs, the breadcrumb condenses into a slim sticky bar on scroll, doubling as a persistent "where am I" anchor and a jump-up control.
+**View Transitions API.** Native browser morphing when a crumb click navigates — the current heading animates into place — with `prefers-reduced-motion` respected.
+**Breadcrumb + filters memory.** In faceted commerce, the crumb remembers the filter path the user came through (attribute breadcrumb, §6) so "back to Shoes" restores the filtered view, not the bare category.
+**Voice & agent surfaces.** As agentic browsing grows, the `BreadcrumbList` JSON-LD becomes machine-navigation fuel — an agent reads your hierarchy the same way Google does. The structured data is quietly becoming an API.
+
+---
+
+## 12\. Conversion & UX Killers (the quiet mistakes)
+None of these throw an error. They just make deep sites feel confusing and leak the SEO upside.
+
+**Breadcrumb on a flat site.** A one- or two-item trail teaches nothing and adds clutter. If there's no depth, there's no breadcrumb. This is the most common misuse.
+**The last crumb is a link.** Linking the current page is a dead end and a known usability smell. Make it non-link text with `aria-current="page"`.
+**Separators read aloud.** A literal `/` in the markup means screen readers announce "slash" between every crumb. Move it to CSS or `aria-hidden` it.
+**No structured data.** The single biggest missed opportunity: a perfectly good visible breadcrumb with no `BreadcrumbList` JSON-LD gets zero SEO benefit. You built the trail; emit the schema.
+**JSON-LD that doesn't match the visible trail.** Injecting a richer or different hierarchy into the structured data than what users see risks a Google manual action. Keep them generated from one source.
+**Breadcrumb instead of primary nav.** Using it to paper over navigation that users can't find. It's a supplement; fix the nav.
+**Desktop trail forced onto mobile.** A five-level trail on a 360px screen either overflows into horizontal scroll or wraps into a mess. Collapse to a single "‹ Parent" back-up link or truncate the middle.
+**Truncating the wrong end.** Collapsing the root and immediate parent (the two most useful crumbs) while keeping middle levels. Always keep head + tail, hide the middle.
+**Confusing it with a stepper.** Rendering checkout/onboarding steps as a breadcrumb. Steps in a process are a wizard; places in a hierarchy are a breadcrumb. Different mental models, different components.
+
+**The through-line:** breadcrumb mistakes fail quietly — a slightly more confusing deep site, a search result that shows a raw URL instead of a clean hierarchy. Audit the trail before you audit your funnel.
+
+---
+
+## 13\. Advanced Patterns
+Techniques that lean on data, tokens, and the type system.
+
+**Single source of truth.** Generate the visible trail _and_ the JSON-LD _and_ (if used) the mobile back-link from **one** `Crumb[]` array. The moment those diverge, you get the "structured data doesn't match the page" bug and the mobile-desktop mismatch. One array in, three renderers out.
+
+**Route-config-driven breadcrumbs.** Attach a `breadcrumb` field to each route definition (Angular route `data`, Next.js segment metadata, a central route map) so the trail is declared once, next to the route, and derived automatically everywhere. No page hand-maintains its own crumbs.
+
+**Design tokens.** Drive the separator glyph, gap, colors, and current-item weight from tokens so a rebrand or a skin swap (§17) touches one block:
+
+```css
+:root {
+  --crumb-font-size: 13px;
+  --crumb-gap: 8px;
+  --crumb-sep: "/";            /* swap to "\203A" for chevron */
+  --crumb-link: #5F2C82;
+  --crumb-current: #4a4453;
+  --crumb-separator: #8a8393;
+  --crumb-focus: #DCA424;
+}
+.breadcrumb__item:not(:first-child)::before { content: var(--crumb-sep); }
+```
+
+**Per-crumb overflow with menus.** Beyond a single middle ellipsis, each crumb can carry a sibling menu (§11). Build it on a real `<button aria-expanded>` + menu, keep the crumb link itself intact, and make the caret the only new interactive target.
+
+**TypeScript models reality.** Type a crumb so the current page can't accidentally get a URL:
+
+```ts
+type AncestorCrumb = { label: string; href: string };
+type CurrentCrumb  = { label: string; href?: never };
+type Crumb = AncestorCrumb | CurrentCrumb;
+// The last element being a CurrentCrumb is enforceable at the call site.
+```
+
+---
+
+## 14\. Performance & Bundle Cost
+Breadcrumbs are about as cheap as a component gets — but there are two honest notes:
+
+**Render on the server.** The whole SEO value (crawlable `<a href>`s + JSON-LD) depends on the markup existing before hydration. SSR/SSG it; don't make crawlers wait for client JS. This is a correctness point as much as a perf one.
+**Don't ship an icon library for one chevron.** If your separator is an SVG icon, import the single glyph (`import { ChevronRight } from "lucide-react"`), never the whole namespace — the same tree-shaking trap the Button doc flags. Better still: a CSS `content` chevron costs zero JS.
+**No layout shift.** If crumbs are fetched client-side, reserve the row's height with a skeleton so the page doesn't jump when the trail arrives. A breadcrumb that pops in and pushes the `<h1>` down is a CLS ding.
+**Static where possible.** For most sites the trail is knowable at build time. Precompute it; there's rarely a reason for a breadcrumb to be dynamic or interactive beyond the optional overflow menu.
+
+---
+
+## 15\. Security
+A breadcrumb is mostly presentational, but it touches two real security surfaces: user-influenceable content and information architecture disclosure.
+
+**Crumb labels are untrusted content.** Labels often come from a CMS, a product title, a category name, or a URL slug — all attacker-influenceable. Rendering them via string concatenation into `innerHTML` is a stored or reflected XSS vector. Always render labels as text: framework interpolation (JSX children, Vue `{{ }}`, Svelte `{expr}`), `textContent` in vanilla JS — all escape by default. Never build breadcrumb HTML by concatenating user strings.
+
+**The JSON-LD block is safe by construction — if you use** **`JSON.stringify`****\*\*\*\*.** [Schema.org](http://Schema.org) structured data emitted via `JSON.stringify` encodes values safely (strings are escaped). Building the `<script type="application/ld+json">` block by string-concatenating label values is an XSS hole — a label containing `</script><script>…` breaks out of the JSON-LD block and injects code. Always use `JSON.stringify` on the whole object, never template literals with raw values.
+
+**Don't leak unauthorized hierarchy.** If breadcrumbs are generated from a resource path, every ancestor crumb must point at something the current user is authorized to access. A trail that reveals `Admin › Billing › Customer 8837` to an unauthorized user is an information-disclosure vulnerability. Generate crumbs from _authorized_ ancestors, and ensure each ancestor's page would 403/404 if accessed directly by this user — the breadcrumb shouldn't reveal structure the user can't navigate to.
+
+**Server-render for integrity.** A breadcrumb that only appears after client-side hydration can be tampered with via browser dev tools before the user shares the URL (social-engineering vector). Server-rendering the trail ensures the canonical hierarchy is authoritative and not client-manipulable.
+
+**Avoid open redirects in crumb links.** If crumb `href` values are constructed from query params or dynamic segments, validate they point to your own domain. A crafted URL that injects an external domain into a crumb link turns your breadcrumb into a phishing vector.
+
+---
+
+## 16\. Senior-Level Checklist (ship-ready)
+Before a breadcrumb is "done":
+
+Wrapped in `<nav aria-label="Breadcrumb">` (label present, no redundant "navigation").
+It's an `<ol>` (ordered), one `<li>` per crumb.
+Every ancestor is a real `<a href>`; the current page is non-link text.
+Last crumb has `aria-current="page"`.
+Separators are CSS-generated or `aria-hidden` — never read aloud.
+`BreadcrumbList` JSON-LD emitted, absolute URLs, 1-based positions, last item terminal.
+JSON-LD matches the visible trail (generated from one source).
+Not rendered on flat sites or top-level/one-crumb pages.
+Long trails collapse the _middle_ (head + tail kept); ellipsis is a real `<button aria-expanded>`.
+Mobile: collapses to a back-up link or truncates — never forces horizontal scroll.
+Focus-visible ring on every crumb link; tap target ≥44px tall; text contrast ≥4.5:1.
+Crumb labels rendered as text (escaped), never `innerHTML`; crumbs only expose authorized ancestors.
+Server-rendered so links + JSON-LD are crawlable.
+
+---
+
+## 17\. Visual Styles (the same breadcrumb, eleven skins)
+Design systems are _whose_ rules; visual styles are _which look_. The same semantic `nav > ol > li` trail wears any of these skins. **The style is skin; the semantics, keyboard behavior,** **`aria-current`**\*\*\*\***, silent separators, and 44px targets never change.** Full guidance in the 🎨 Design Styles (visual languages) reference.
+
+**Flat:** plain text links, a simple `/` or `›` separator, one accent color for links. Reads instantly; the default for most content sites.
+**Material:** slightly heavier type, chevron separators, a subtle ripple on the link tap, muted current crumb. Trail sits just under the top app bar.
+**Glassmorphism:** the trail floats on a translucent `backdrop-filter: blur()` bar over imagery. Watch contrast — muted crumb text over a busy photo fails AA fast; add a scrim.
+**Liquid Glass (the 2026 trend):** Apple's iOS 26 / macOS Tahoe material — the breadcrumb bar becomes a refractive translucent lozenge with a specular rim and a sheen that shifts with scroll. Gorgeous on a dark Eminence backdrop; guard contrast and `prefers-reduced-motion`. Web is an honest approximation; SwiftUI emits native `.glassEffect()`.
+**Neumorphism:** the trail on a same-color surface with soft dual shadows; crumbs as barely-raised pills. Pretty, contrast-poor — accent use only, and only if the text still clears 4.5:1.
+**Skeuomorphism:** an engraved "path bar" like macOS Finder, beveled separators, an inset track. Leans into the literal "trail" metaphor.
+**Neo-Brutalism:** thick black text, a hard `»` separator, an offset shadow on hover, zero radius. Loud and confident — campaign pages.
+**Claymorphism:** puffy rounded crumb chips with soft inner glow, generous gap. Friendly, playful; good for lifestyle brands.
+**Aurora / Gradient:** the active/current crumb picks up an animated multi-hue gradient text fill on dark. Premium; honor `prefers-reduced-motion` and keep contrast on the moving fill.
+**Minimal / Swiss:** tiny uppercase tracking-wide labels, a hairline separator, near-zero color. Typography does all the work.
+**UJG Brand:** Goldenrod link crumbs on deep Eminence/Night, a warm-glow `›` separator, the current crumb in Platinum at 600 weight. Afro-Futurist house style — confident, warm, and legible on the dark field. Reserve Liquid Glass accents for hero/landing contexts; keep Flat/Swiss for docs and dense catalogs.
+
+**Rule that never changes:** every skin above exposes the identical accessibility tree. Guard glass / liquid-glass / neumorphism for contrast; guard aurora / liquid-glass for `prefers-reduced-motion`.
+
+---
+
+**Bottom line:** a breadcrumb is a tiny, quiet component that does two jobs punching far above its size — it orients deep-linked users so they climb instead of bounce, and, with `BreadcrumbList` structured data, it reshapes how you appear in search. Nail the four semantics that matter (`nav[aria-label]`, `<ol>`, non-link current page with `aria-current`, silent separators), generate the visible trail and the JSON-LD from one source, collapse the _middle_ on long trails, and never ship it on a flat site. Get those right and you've turned the smallest navigation component into a real orientation and SEO asset.
