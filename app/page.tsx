@@ -1,6 +1,5 @@
 import { Button } from "@/components/button/Button";
-import { createClient } from '@/utils/supabase/server'
-import { cookies } from 'next/headers'
+import { createClient } from '@/lib/supabase/server'
 /**
  * Phase 0 brand shell. Proof-of-life home page: renders the UJG palette, the
  * 4-font system, and the 11 visual skins through the real component-library
@@ -41,8 +40,7 @@ const STYLES: { key: string; name: string }[] = [
 ];
 
 export default async function Page() {
-  const cookieStore = await cookies()
-  const supabase = createClient(cookieStore)
+  const supabase = await createClient()
 
   const { data: todos } = await supabase.from('todos').select()
 
