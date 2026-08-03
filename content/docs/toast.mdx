@@ -1,0 +1,1071 @@
+---
+name: Toast
+slug: toast
+category: Feedback & Status
+status: built
+summary: "A brief, auto-dismissing, non-blocking message that reports the result of an action or a background event and disappears on its own."
+clickup_page_id: 838qa-216531
+tags: [toast, snackbar, notification, feedback]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- Polite region: routine status. Exists on page load, empty. -->
+      <!-- aria-label names the viewport; tabindex=-1 lets a hotkey send focus here. -->
+      <div id="toast-region"
+           class="toast-region"
+           role="status"
+           aria-live="polite"
+           aria-atomic="false"
+           aria-label="Notifications"
+           tabindex="-1"></div>
+
+      <!-- Separate assertive region for errors, so a failure interrupts. -->
+      <div id="toast-region-alert"
+           class="toast-region"
+           role="alert"
+           aria-live="assertive"
+           aria-atomic="false"
+           aria-label="Errors"
+           tabindex="-1"></div>
+
+      <!-- A single toast, injected into the polite region -->
+      <div class="toast toast--success">
+        <svg class="toast__icon" aria-hidden="true"><!-- check --></svg>
+        <p class="toast__msg">Changes saved</p>
+        <button type="button" class="toast__close" aria-label="Dismiss notification">&times;</button>
+      </div>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      // Toaster.tsx
+      import { useEffect, useState } from "react";
+      import { subscribe, dismiss, pauseAll, resumeAll, type Toast } from "./toast-store";
+
+      export function Toaster({ position = "bottom-right" }: { position?: string }) {
+        const [toasts, setToasts] = useState<Toast[]>([]);
+        useEffect(() => subscribe(setToasts), []);
+
+        return (
+          <>
+            {/* Polite region: success / info / warning */}
+            <ol
+              className={`toast-region toast-region--${position}`}
+              role="status" aria-live="polite" aria-atomic="false"
+              aria-label="Notifications"
+              tabIndex={-1}
+              onMouseEnter={pauseAll} onMouseLeave={resumeAll}
+              onFocus={pauseAll} onBlur={resumeAll}
+            >
+              {toasts.filter((t) => t.variant !== "error").map((t) => (
+                <ToastItem key={t.id} toast={t} />
+              ))}
+            </ol>
+
+            {/* Assertive region: errors interrupt */}
+            <ol className="toast-region toast-region--alert"
+                role="alert" aria-live="assertive" aria-atomic="false"
+                aria-label="Errors"
+                tabIndex={-1}
+                onMouseEnter={pauseAll} onMouseLeave={resumeAll}
+                onFocus={pauseAll} onBlur={resumeAll}>
+              {toasts.filter((t) => t.variant === "error").map((t) => (
+                <ToastItem key={t.id} toast={t} />
+              ))}
+            </ol>
+          </>
+        );
+      }
+
+      function ToastItem({ toast }: { toast: Toast }) {
+        return (
+          <li className={`toast toast--${toast.variant}`} data-state="entering">
+            <StatusIcon variant={toast.variant} />
+            <div className="toast__body">
+              <p className="toast__msg">{toast.message}</p>
+              {toast.description && <p className="toast__desc">{toast.description}</p>}
+            </div>
+            {toast.action && (
+              <button type="button" className="toast__action"
+                      onClick={() => { toast.action!.onClick(); dismiss(toast.id); }}>
+                {toast.action.label}
+              </button>
+            )}
+            <button type="button" className="toast__close"
+                    aria-label="Dismiss notification"
+                    onClick={() => dismiss(toast.id)}>
+              &times;
+            </button>
+          </li>
+        );
+      }
+
+      function StatusIcon({ variant }: { variant: Toast["variant"] }) {
+        // Decorative: the text carries the meaning.
+        return <span className="toast__icon" aria-hidden="true" data-variant={variant} />;
+      }
+  - language: html
+    label: Tailwind
+    code: |
+      <ol
+        className="pointer-events-none fixed bottom-6 right-6 z-[9999] flex w-[min(420px,calc(100vw-2rem))] flex-col gap-2.5"
+        role="status" aria-live="polite" aria-atomic="false" aria-label="Notifications" tabIndex={-1}
+        onMouseEnter={pauseAll} onMouseLeave={resumeAll}
+      >
+        {/* one toast */}
+        <li className="pointer-events-auto flex items-center gap-2.5 rounded-xl border-l-[3px]
+                       border-amber-400 bg-zinc-900/95 px-3.5 py-3 text-zinc-100 shadow-2xl
+                       backdrop-blur data-[state=exiting]:opacity-0
+                       motion-safe:data-[state=entering]:animate-in motion-safe:slide-in-from-bottom-2">
+          <span aria-hidden="true" className="h-4 w-4 rounded-full bg-amber-400" />
+          <p className="text-sm">Changes saved</p>
+          <button aria-label="Dismiss notification" className="ml-auto opacity-60 hover:opacity-100">&times;</button>
+        </li>
+      </ol>
+---
+
+## 1\. What a Toast Actually Is
+A toast is a **brief, auto-dismissing, non-blocking** message that reports the result of an action or a background event. It pops up (usually a corner), announces something short — "Saved," "Message sent," "Upload failed" — and disappears on its own. The user never has to do anything. That last clause is the entire definition, and it's where the confusion starts.
+
+The word "toast" gets slapped on four very different things that behave nothing alike:
+
+* **Toast (snackbar):** transient, non-modal, self-dismissing, **requires no action**. Feedback about something that _already happened_. "Draft saved."
+* **Alert / inline validation:** persistent, tied to a specific place in the page (a form field, a banner). Stays until the condition clears. "Password must be 8+ characters." This is _not_ a toast — it doesn't time out and it's anchored to content.
+* **Message bar / notification banner:** persistent, page-level, often dismissible by the user but not by a timer. "Your subscription expires in 3 days." Lives at the top of the app until acknowledged.
+* **Dialog / modal:** blocking. Steals focus, traps the keyboard, demands a decision before the user can continue. "Delete this account? Cancel / Delete." The opposite of a toast in every way.
+
+The single most common architecture mistake: **using a toast to deliver information the user must act on or must not miss.** A toast that auto-dismisses after 4 seconds is the wrong home for "Your payment failed — update your card" or for a required confirmation. If missing it has consequences, it isn't a toast. Rule of thumb: **a toast is for feedback you'd be fine with the user glancing at or missing entirely.** The moment an action is _required_, you've outgrown the pattern — escalate to a banner, an inline message, or a dialog.
+
+A second distinction people fumble: **toast vs. system notification.** A toast lives inside your web/app viewport and dies with the tab. An OS-level notification (Web Push, APNs, Android notifications) survives outside the app, persists in a tray, and is governed by the platform's permission model. Different lifecycle, different code, different consent rules. Don't conflate the in-app snackbar with `Notification` / the Push API.
+
+---
+
+## 2\. Why It Matters
+A toast looks trivial — it's the component a junior reaches for to "just show a message." But it sits on top of two high-stakes systems at once: **feedback perception** and **accessibility**, and it's the component most likely to silently exclude disabled users.
+
+* **It closes the feedback loop.** Every action needs a reaction. When a user clicks "Send" and _nothing_ visibly confirms it, they click again, or they distrust the app. The toast is the cheapest, least intrusive way to say "yes, that worked" without yanking the user out of their flow. Perceived reliability is mostly acknowledgment.
+* **It's the #1 accessibility landmine in the average codebase.** A toast that appears with the wrong ARIA plumbing is **completely invisible to screen-reader users** — the sighted user sees "Saved," the blind user hears silence. Worse, a toast built with `role="alert"` for a routine success interrupts whatever the screen reader was reading, mid-word. Getting the politeness level right is the whole game, and most teams never test it.
+* **It's a WCAG timing trap.** Auto-dismiss directly collides with WCAG 2.2.1 (Timing Adjustable). A message that vanishes on a fixed timer can disappear before a user with low vision, a cognitive disability, or a screen reader has finished reading it. This isn't a nice-to-have; it's a documented failure mode with a specific success criterion attached (see §10).
+* **It shapes trust at the exact moment of consequence.** Toasts fire right after the user commits — pays, deletes, submits. A missing or broken toast at that moment reads as "did that go through?" — the single most anxiety-inducing state in any interface.
+
+---
+
+## 3\. Anatomy of a Toast
+Every well-built toast is composed of predictable parts, and a well-built _system_ has parts above the individual toast too.
+
+The single toast:
+* **Region (the viewport):** the fixed-position container that holds all active toasts. This is the ARIA live region — it exists in the DOM _before_ any toast appears, so screen readers are already watching it. Getting this wrong (creating the region at the same moment as the toast) is the #1 reason toasts don't announce.
+* **Container:** the individual toast box. Padding, radius, background, shadow/elevation, a max-width so long text wraps instead of stretching across the screen.
+* **Icon (optional):** a status glyph (check, x, info, warning, spinner). Decorative — `aria-hidden="true"` — because the meaning is carried by the text, not the icon.
+* **Title / message:** the text. One line ideally, two max. Verb-first past tense for results ("Changes saved"), plain and specific.
+* **Action (optional):** a single button — "Undo," "View," "Retry." This is the most dangerous part of the whole component (see §5 and §10): an action inside a thing that auto-dismisses is an accessibility contradiction.
+* **Close affordance (optional):** a dismiss "×". Recommended for any toast that carries an action or long text, so the user isn't racing a timer.
+* **Progress / timer indicator (optional):** a shrinking bar showing time-to-dismiss. Nice affordance, but never the _only_ signal.
+
+The system around it:
+* **Provider / store:** the single source of truth holding the array of active toasts.
+* **Imperative API:** the `toast(...)` function you call from anywhere — `toast.success`, `toast.error`, `toast.promise`.
+* **Queue / stack manager:** decides how many show at once, what happens to overflow, and the order (see §5 and §9.4).
+* **Timer controller:** per-toast dismissal timers that **pause on hover and on focus** (non-negotiable — see §10).
+
+---
+
+## 4\. Sizes, Timing & Density
+Toasts don't have a "size scale" like buttons; their key dimensions are **duration**, **width**, and **stack depth**. These are the numbers that actually matter.
+
+| Dimension | Typical value | Notes |
+| ---| ---| --- |
+| Min width | 240px | Below this, text wraps awkwardly |
+| Max width | 400–440px | Keeps long messages readable; never full-viewport on desktop |
+| Padding | 12–16px | Comfortable but compact |
+| Gap between stacked toasts | 8–12px | Or a collapsed "deck" that expands on hover |
+| Corner offset | 16–24px | Distance from the viewport edge |
+| Border radius | 8–12px | Match your system's card radius |
+| Elevation | shadow lg | It floats above everything; z-index near the top of your scale |
+
+**Duration** is the load-bearing number, and the honest answer is \_it depends on reading time, not a magic constant:\*
+
+| Content | Suggested duration | Reasoning |
+| ---| ---| --- |
+| Short success ("Saved") | 3–4s | Long enough to register, short enough to ignore |
+| Standard message | 5–6s | Roughly reading speed + a buffer |
+| With an action ("Undo") | 8–10s or no timer | Users need time to decide and reach the button |
+| Error the user should read | Consider no auto-dismiss | Let them close it deliberately |
+| Loading (in-flight) | Until resolved | Never time out a pending state |
+
+A defensible heuristic: **base duration ≈ reading time**, estimated at roughly 200 words/minute plus a ~1s floor, clamped to a min of ~4s and a max of ~10s. Sonner and Material both lean on "longer for actions, shorter for confirmations." The one hard rule: **never auto-dismiss anything with an action or anything critical.** If a keyboard or screen-reader user physically cannot reach the action before the timer wins, the action is a lie.
+
+---
+
+## 5\. States (where toasts get interesting)
+A single toast has a lifecycle; the _system_ has states on top of that. Missing these is the tell of a naive build.
+
+Per-toast lifecycle:
+1. **Entering** — animating in (slide + fade). Should respect `prefers-reduced-motion`.
+2. **Visible (rest)** — displayed, timer running.
+3. **Paused** — timer frozen because the pointer is hovering the region **or** keyboard focus is inside it. The moment the user engages, the clock must stop.
+4. **Loading / pending** — an in-flight variant (`toast.promise`) showing a spinner, no timer, waiting to resolve into success or error _in place_.
+5. **Resolved** — the loading toast morphs to success or error (same DOM node, updated content — avoids a jarring swap).
+6. **Exiting** — animating out (timer elapsed, user dismissed, or programmatic).
+7. **Removed** — pulled from the store and the DOM.
+
+Variant states (the semantic flavor):
+* **Success** — confirmation, low urgency. `role="status"` / `aria-live="polite"`.
+* **Info** — neutral notice. Polite.
+* **Warning** — caution, still non-blocking. Usually polite; assertive only if genuinely time-sensitive.
+* **Error** — something failed. This is the one case for `role="alert"` / `aria-live="assertive"`, and strongly consider **no auto-dismiss**.
+* **Loading → resolve** — the promise pattern; starts pending, becomes success or error.
+
+System / stack states:
+* **Empty** — no toasts; the region exists but is empty (this is normal and correct).
+* **Single** — one visible.
+* **Stacked** — multiple visible, offset or fanned.
+* **Collapsed deck** — Sonner's signature: newest on top, older ones peeking behind, expanding on hover.
+* **Overflow / queued** — more toasts requested than the max visible (e.g. cap of 3); extras wait in a queue and promote as slots free up. Prevents a "toast avalanche" from a burst of events.
+* **Swipe-dismissing** — on touch, the toast tracks the finger and dismisses past a threshold (see §13).
+
+---
+
+## 6\. Types & Variants
+Two axes: **semantic variant** (what kind of message) and **structural variant** (what the toast contains).
+
+Semantic:
+* **Success / Error / Warning / Info** — the four canonical flavors, each with its own color, icon, and — critically — its own ARIA politeness (error = assertive, the rest = polite).
+* **Loading / Promise** — starts pending, resolves in place. The pattern for "Uploading… → Uploaded" without two separate toasts.
+* **Default / neutral** — no semantic color; plain message.
+
+Structural:
+* **Message-only** — text, maybe an icon. The 90% case.
+* **Titled** — a bold title + a description line for more detail.
+* **Action toast** — includes one button ("Undo," "Retry," "View"). **The accessibility problem child** (see §10) — always pair it with a persistent, reachable alternative.
+* **Rich / custom** — arbitrary JSX (avatar, thumbnail, multiple actions). Powerful, easy to abuse; the more interactive content you put in a timed box, the more you're fighting the pattern itself.
+* **Persistent (sticky)** — `duration: Infinity`; stays until dismissed. At this point ask whether it should be a banner instead.
+
+---
+
+## 7\. When to Use One (and When Not To)
+Use a toast when you need to **confirm that something happened** with the least possible interruption, and it's fine if the user only half-notices.
+
+Good fits:
+* Confirming a completed action ("Copied to clipboard," "Message sent").
+* Non-critical background events ("New version available").
+* The result of an async operation the user initiated, where the outcome isn't blocking.
+
+Reach for something else when:
+* **The user must act.** Required decision → **dialog**. A toast that auto-dismisses can't demand a choice.
+* **The message must not be missed.** Critical, persistent info → **banner / message bar**, which stays put.
+* **The message belongs to a specific field or section.** Form errors → **inline validation** next to the field, not a toast floating in the corner. Inline errors are anchored, persistent, and re-findable; a toast is none of those.
+* **You'd show several at once for one action.** If one click spawns five toasts, you have a design problem, not a queueing problem. Consolidate.
+* **It's a long message.** If it can't be read in a glance, it's not toast-shaped.
+
+Placement heuristics:
+* **Pick one corner and stay there.** Bottom-center/bottom-left is Material's snackbar home; top-right is the web-app convention (GitHub, Linear, Vercel). Consistency beats theory — users learn where to look.
+* **Keep it clear of primary actions.** A bottom-center toast that covers the mobile "Submit" button is a self-own. Offset above thumb-reach controls or move it.
+* **Respect safe areas** on mobile (notches, home indicator) with `env(safe-area-inset-*)`.
+* **One region, one direction of growth.** New toasts push the stack one way consistently.
+
+---
+
+## 8\. Toasts Across Design Systems
+Same idea, very different opinions — and different names, which trips people up.
+
+* **Material Design (Google):** calls it a **Snackbar**. Bottom-center (mobile) or bottom-left (desktop), single line, one optional action, auto-dismiss. Material is explicit: snackbars are for _brief_ messages and only **one shows at a time** — new ones replace the current. FAB gets pushed up to avoid overlap.
+* **Apple HIG:** iOS has no generic "toast" primitive — Apple deliberately steers you to **transient system elements** and, in SwiftUI/iOS 17+, an official design language rather than a stock snackbar. The closest native things are the system HUD (the volume/AirPods-style overlay) and banners. The lesson: Apple treats ephemeral confirmation as a considered thing, not a default.
+* **Fluent (Microsoft):** **Toast / Notification** with layered severity styling and a dedicated `Toaster` region; strong emphasis on the message bar for persistent, page-level stuff (their guidance clearly separates transient toast from persistent bar).
+* **Ant Design / enterprise:** two separate components — **`message`** (lightweight, top-center, auto-dismiss, for feedback) and **`notification`** (richer, corner, title + description + actions, for events). Splitting them by weight is a genuinely good model to steal.
+* **Tailwind / utility-first:** no prescribed component; you compose it or, in practice, install **Sonner** or **react-hot-toast**.
+* **Radix / shadcn (the 2024+ web standard):** shadcn shipped a Radix-based `Toast` and has since **adopted Sonner as the default** toast in the CLI. Radix Toast gives you the accessibility primitives (the live region, swipe, hotkey to focus the region); Sonner gives you the batteries-included imperative API and the collapsed-deck UX.
+* **Sonner (Emil Kowalski):** the de-facto modern web toast. Imperative `toast` API, promise support, the expanding stack, swipe-to-dismiss, and sensible a11y defaults out of the box. If you're on React in 2026, this is the reference implementation.
+
+---
+
+## 8b. Visual Styles (the same toast, eleven aesthetics)
+Design systems are _whose_ rules; visual styles are _which look_. The same semantic toast wears any of these skins. See them all in the Design Styles (visual languages) gallery.
+
+* **Flat:** solid fill by variant color, crisp edge, simple shadow. Reads instantly.
+* **Material:** the snackbar — dark surface, single line, a colored action label, elevation shadow.
+* **Glassmorphism:** translucent + `backdrop-filter: blur`. Looks premium over busy backgrounds; guard the text contrast hard, because a toast over arbitrary page content is the worst-case for legibility.
+* **Liquid Glass (the 2026 trend):** Apple's iOS 26 / macOS Tahoe material — refractive translucency with a specular rim and a subtle moving sheen, glassmorphism's grown-up successor. Beautiful for a floating toast, but honor `prefers-reduced-motion` (kill the sheen) and keep a solid-enough backing for contrast.
+* **Neumorphism:** soft dual-shadow on a same-color surface. Pretty, contrast-poor — a bad fit for status messaging where the whole point is legibility. Accent use only.
+* **Skeuomorphism:** beveled "physical card" look, inner highlight, gradient. Reads as a tangible slip of paper sliding in.
+* **Neo-Brutalism:** thick border, hard offset shadow, zero blur, loud variant colors. High personality; great for a distinctive brand.
+* **Claymorphism:** big radius, puffy inner light + soft outer glow. Friendly, approachable confirmation.
+* **Aurora / Gradient:** animated multi-hue gradient border or fill on a dark toast. Premium; honor `prefers-reduced-motion`.
+* **Minimal / Swiss:** near-zero decoration, a thin left rule in the variant color, type does the work. The safest choice for dense/pro tools.
+* **UJG Brand:** Goldenrod accent (icon + action label) on a deep Eminence/Night glass surface, confident 12px radius, warm glow. Success leans Goldenrod, error leans Spanish Orange, all over the dark saturated backdrop the house style is built on.
+
+**Rule that never changes:** the style is skin. The toast's semantics (`role`/`aria-live`), timer-pause-on-hover, focus behavior, dismiss affordance, and reduced-motion handling stay identical across all eleven. Guard glass / liquid-glass / neumorphism for contrast; guard aurora / liquid-glass for reduced motion.
+
+---
+
+## 9\. The Code
+The biggest section. A toast is deceptively a _system_, not a widget — so the center of gravity here is the provider + store + imperative API, then the a11y plumbing, then the platform ports.
+
+### 9.1 HTML (the live region is the whole point)
+Before any framework, understand the bare bones. The region must exist **up front** and carry the right ARIA, so the browser/AT is already listening when text is injected.
+
+```plain
+<!-- Polite region: routine status. Exists on page load, empty. -->
+<!-- aria-label names the viewport; tabindex=-1 lets a hotkey send focus here. -->
+<div id="toast-region"
+     class="toast-region"
+     role="status"
+     aria-live="polite"
+     aria-atomic="false"
+     aria-label="Notifications"
+     tabindex="-1"></div>
+
+<!-- Separate assertive region for errors, so a failure interrupts. -->
+<div id="toast-region-alert"
+     class="toast-region"
+     role="alert"
+     aria-live="assertive"
+     aria-atomic="false"
+     aria-label="Errors"
+     tabindex="-1"></div>
+
+<!-- A single toast, injected into the polite region -->
+<div class="toast toast--success">
+  <svg class="toast__icon" aria-hidden="true"><!-- check --></svg>
+  <p class="toast__msg">Changes saved</p>
+  <button type="button" class="toast__close" aria-label="Dismiss notification">&times;</button>
+</div>
+```
+
+Key HTML rules:
+* **The region is created before the toast, not with it.** If you inject a fresh `aria-live` node and its text in the same tick, many screen readers miss the announcement. Persistent region, dynamic children.
+* **Two regions, two politeness levels.** Route success/info/warning into the polite one, errors into the assertive one. A single region can't be both.
+* **`aria-atomic="false"`** on these multi-toast regions, so a newly added toast is announced on its own instead of re-reading the whole stack every time one arrives or leaves. (`aria-atomic="true"` is only correct for a region that holds a single message at a time; the added node is already announced as a unit either way.)
+* **Name the region and don't fake list semantics.** Give the region an `aria-label` ("Notifications" / "Errors") so it's identifiable when a hotkey sends focus there, and don't put `role="listitem"` on the injected toast — the region is a live-status container, not a `list`, so an orphaned `listitem` is a broken-ownership ARIA error.
+* **The icon is** **`aria-hidden`****\*\*\*\*.** Meaning lives in the text. A green check that's the _only_ signal fails color-blind and screen-reader users both.
+* **Never put** **`role="alert"`** **on a success toast.** Assertive interrupts; a routine "Saved" should never barge in.
+
+### 9.2 CSS (states, motion, and the pause affordance)
+
+```css
+.toast-region {
+  position: fixed;
+  inset-block-end: 24px;         /* logical: respects writing mode */
+  inset-inline-end: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  z-index: 9999;
+  /* Region itself must not eat clicks meant for the page behind it */
+  pointer-events: none;
+}
+.toast {
+  pointer-events: auto;          /* but the toasts themselves are interactive */
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 240px;
+  max-width: 420px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: #1b1420;
+  color: #E8E6E1;
+  box-shadow: 0 10px 30px rgba(0,0,0,.35);
+  border-inline-start: 3px solid var(--toast-accent, #DCA424);
+}
+.toast--success { --toast-accent: #DCA424; }
+.toast--error   { --toast-accent: #E86100; }
+.toast--warning { --toast-accent: #E86100; }
+.toast--info    { --toast-accent: #5F2C82; }
+
+/* Enter / exit */
+@keyframes toast-in  { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes toast-out { to   { opacity: 0; transform: translateY(12px); } }
+.toast[data-state="entering"] { animation: toast-in .18s ease-out; }
+.toast[data-state="exiting"]  { animation: toast-out .16s ease-in forwards; }
+
+/* Timer bar (visual only, never the sole signal) */
+.toast__timer {
+  position: absolute; inset-block-end: 0; inset-inline-start: 0; height: 3px;
+  background: var(--toast-accent);
+  animation: toast-timer var(--toast-duration, 5s) linear forwards;
+}
+@keyframes toast-timer { from { width: 100%; } to { width: 0%; } }
+
+/* Pause the timer bar when the user engages the region */
+.toast-region:hover .toast__timer,
+.toast-region:focus-within .toast__timer { animation-play-state: paused; }
+
+/* Motion-sensitive users: no slide, no timer animation */
+@media (prefers-reduced-motion: reduce) {
+  .toast[data-state] { animation: none; }
+  .toast__timer { animation: none; width: 100%; }
+}
+```
+
+Two things juniors miss: **`pointer-events: none`** **on the region,** **`auto`** **on the toasts** (so the empty region never blocks clicks to the app behind it), and **pausing the timer on** **`:hover`****/****`:focus-within`** — the CSS half of the WCAG timing requirement.
+
+### 9.3 The Store (framework-agnostic imperative API)
+The heart of a toast system is a tiny external store plus a global function. This is deliberately framework-free — React/Vue/Svelte all subscribe to the same store. Sonner and react-hot-toast are both built on exactly this shape.
+
+```typescript
+// toast-store.ts
+export type ToastVariant = "success" | "error" | "warning" | "info" | "loading";
+
+export interface ToastAction { label: string; onClick: () => void; }
+
+export interface Toast {
+  id: string;
+  variant: ToastVariant;
+  message: string;
+  description?: string;
+  duration: number;          // ms; Infinity = sticky
+  action?: ToastAction;
+  createdAt: number;
+}
+
+type Listener = (toasts: Toast[]) => void;
+
+const MAX_VISIBLE = 3;         // cap; the rest queue
+let toasts: Toast[] = [];
+let queue: Toast[] = [];
+const listeners = new Set<Listener>();
+const timers = new Map<string, ReturnType<typeof setTimeout>>();
+
+function emit() { for (const l of listeners) l([...toasts]); }
+
+function schedule(t: Toast) {
+  if (t.duration === Infinity) return;           // sticky: no timer
+  const id = setTimeout(() => dismiss(t.id), t.duration);
+  timers.set(t.id, id);
+}
+
+function promote() {
+  while (toasts.length < MAX_VISIBLE && queue.length) {
+    const next = queue.shift()!;
+    toasts.push(next);
+    schedule(next);
+  }
+}
+
+export function addToast(input: Omit<Toast, "id" | "createdAt">) {
+  const t: Toast = { ...input, id: crypto.randomUUID(), createdAt: Date.now() };
+  if (toasts.length < MAX_VISIBLE) { toasts.push(t); schedule(t); }
+  else queue.push(t);            // overflow waits its turn
+  emit();
+  return t.id;
+}
+
+export function dismiss(id: string) {
+  clearTimeout(timers.get(id)); timers.delete(id);
+  toasts = toasts.filter((t) => t.id !== id);
+  promote();                     // fill the freed slot from the queue
+  emit();
+}
+
+// Pause/resume every active timer (hover or focus on the region)
+export function pauseAll() { for (const id of timers.values()) clearTimeout(id); timers.clear(); }
+export function resumeAll() {
+  for (const t of toasts) {
+    if (t.duration === Infinity) continue;
+    const elapsed = Date.now() - t.createdAt;
+    const remaining = Math.max(t.duration - elapsed, 1000);   // floor so it never vanishes instantly
+    timers.set(t.id, setTimeout(() => dismiss(t.id), remaining));
+  }
+}
+
+export function subscribe(l: Listener) { listeners.add(l); return () => listeners.delete(l); }
+
+// The ergonomic public API
+export const toast = Object.assign(
+  (message: string, opts: Partial<Toast> = {}) =>
+    addToast({ variant: "info", message, duration: 5000, ...opts }),
+  {
+    success: (m: string, o: Partial<Toast> = {}) => addToast({ variant: "success", message: m, duration: 4000, ...o }),
+    error:   (m: string, o: Partial<Toast> = {}) => addToast({ variant: "error", message: m, duration: Infinity, ...o }), // errors don't auto-dismiss
+    warning: (m: string, o: Partial<Toast> = {}) => addToast({ variant: "warning", message: m, duration: 6000, ...o }),
+    dismiss,
+  }
+);
+```
+
+Why this is the senior version:
+* **The store is external and framework-agnostic.** `toast.success("Saved")` works from a click handler, a route loader, or a websocket callback — nowhere near a component.
+* **A real queue with a** **`MAX_VISIBLE`** **cap.** A burst of 20 events shows 3 and promotes the rest as slots free — no avalanche.
+* **`error`** **defaults to** **`Infinity`** duration. Failures are the one thing you don't race a timer on.
+* **`resumeAll`** **floors the remaining time** so a toast you hovered at second 4.9 doesn't blink out the instant you leave.
+
+### 9.4 The `toast.promise` pattern (loading → resolve in place)
+The killer feature: one toast that starts pending and morphs to success or error on the same node — no flicker, no double toast.
+
+```typescript
+export function promiseToast<T>(
+  p: Promise<T>,
+  msgs: { loading: string; success: string | ((v: T) => string); error: string | ((e: unknown) => string) }
+) {
+  const id = addToast({ variant: "loading", message: msgs.loading, duration: Infinity });
+  p.then((v) => {
+    update(id, { variant: "success", message: typeof msgs.success === "function" ? msgs.success(v) : msgs.success, duration: 4000 });
+  }).catch((e) => {
+    update(id, { variant: "error", message: typeof msgs.error === "function" ? msgs.error(e) : msgs.error, duration: Infinity });
+  });
+  return p; // pass the promise through so callers can still await it
+}
+
+// Usage:
+toast.promise(api.saveProfile(), {
+  loading: "Saving…",
+  success: "Profile saved",
+  error:   "Couldn't save — try again",
+});
+```
+
+`update` mutates the existing toast in the store and re-arms (or clears) its timer. Updating in place matters for screen readers too: with `aria-atomic`, the region re-announces the resolved message on the same node.
+
+### 9.5 React + TypeScript (Provider + Viewport, the reusable system)
+The React binding is thin: subscribe to the store, render the region, wire the hover/focus pause. **No context is needed for the imperative API** (the store is a module singleton) — the Provider exists only to mount the viewport once.
+
+```plain
+// Toaster.tsx
+import { useEffect, useState } from "react";
+import { subscribe, dismiss, pauseAll, resumeAll, type Toast } from "./toast-store";
+
+export function Toaster({ position = "bottom-right" }: { position?: string }) {
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  useEffect(() => subscribe(setToasts), []);
+
+  return (
+    <>
+      {/* Polite region: success / info / warning */}
+      <ol
+        className={`toast-region toast-region--${position}`}
+        role="status" aria-live="polite" aria-atomic="false"
+        aria-label="Notifications"
+        tabIndex={-1}
+        onMouseEnter={pauseAll} onMouseLeave={resumeAll}
+        onFocus={pauseAll} onBlur={resumeAll}
+      >
+        {toasts.filter((t) => t.variant !== "error").map((t) => (
+          <ToastItem key={t.id} toast={t} />
+        ))}
+      </ol>
+
+      {/* Assertive region: errors interrupt */}
+      <ol className="toast-region toast-region--alert"
+          role="alert" aria-live="assertive" aria-atomic="false"
+          aria-label="Errors"
+          tabIndex={-1}
+          onMouseEnter={pauseAll} onMouseLeave={resumeAll}
+          onFocus={pauseAll} onBlur={resumeAll}>
+        {toasts.filter((t) => t.variant === "error").map((t) => (
+          <ToastItem key={t.id} toast={t} />
+        ))}
+      </ol>
+    </>
+  );
+}
+
+function ToastItem({ toast }: { toast: Toast }) {
+  return (
+    <li className={`toast toast--${toast.variant}`} data-state="entering">
+      <StatusIcon variant={toast.variant} />
+      <div className="toast__body">
+        <p className="toast__msg">{toast.message}</p>
+        {toast.description && <p className="toast__desc">{toast.description}</p>}
+      </div>
+      {toast.action && (
+        <button type="button" className="toast__action"
+                onClick={() => { toast.action!.onClick(); dismiss(toast.id); }}>
+          {toast.action.label}
+        </button>
+      )}
+      <button type="button" className="toast__close"
+              aria-label="Dismiss notification"
+              onClick={() => dismiss(toast.id)}>
+        &times;
+      </button>
+    </li>
+  );
+}
+
+function StatusIcon({ variant }: { variant: Toast["variant"] }) {
+  // Decorative: the text carries the meaning.
+  return <span className="toast__icon" aria-hidden="true" data-variant={variant} />;
+}
+```
+
+Why this shape wins:
+* **Two** **`<ol>`** **regions**, split by politeness — errors go assertive, everything else polite. This is the single most-skipped detail in real codebases.
+* **`onMouseEnter/onFocus`** **→** **`pauseAll`****\*\*\*\*.** Hover _and_ keyboard focus freeze the timers. WCAG 2.2.1 satisfied at the interaction layer.
+* **The action fires then dismisses**, and there's _also_ an always-present close button, so a keyboard user is never trapped racing the clock (see §10 for why the action alone is not enough).
+* **`aria-live`** **on a container that's mounted once**, empty, from app start — the region is warm before the first toast lands.
+
+### 9.6 Tailwind CSS (utility-first skin)
+Same structure, utilities instead of a stylesheet. The region and pause behavior are unchanged; only the classes move inline.
+
+```plain
+<ol
+  className="pointer-events-none fixed bottom-6 right-6 z-[9999] flex w-[min(420px,calc(100vw-2rem))] flex-col gap-2.5"
+  role="status" aria-live="polite" aria-atomic="false" aria-label="Notifications" tabIndex={-1}
+  onMouseEnter={pauseAll} onMouseLeave={resumeAll}
+>
+  {/* one toast */}
+  <li className="pointer-events-auto flex items-center gap-2.5 rounded-xl border-l-[3px]
+                 border-amber-400 bg-zinc-900/95 px-3.5 py-3 text-zinc-100 shadow-2xl
+                 backdrop-blur data-[state=exiting]:opacity-0
+                 motion-safe:data-[state=entering]:animate-in motion-safe:slide-in-from-bottom-2">
+    <span aria-hidden="true" className="h-4 w-4 rounded-full bg-amber-400" />
+    <p className="text-sm">Changes saved</p>
+    <button aria-label="Dismiss notification" className="ml-auto opacity-60 hover:opacity-100">&times;</button>
+  </li>
+</ol>
+```
+
+Note `motion-safe:` prefixes so the enter animation is automatically dropped under `prefers-reduced-motion` — Tailwind's built-in guard.
+
+### 9.7 shadcn/ui + Sonner (the 2024+ default)
+shadcn's toast recommendation is now **Sonner**. You add the `<Toaster />` once at the root, then call `toast` from anywhere. This is the batteries-included version of everything in §9.3–9.5.
+
+```plain
+// app/layout.tsx (or _app) — mount once
+import { Toaster } from "@/components/ui/sonner";
+
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <html><body>
+      {children}
+      <Toaster position="bottom-right" richColors closeButton />
+    </body></html>
+  );
+}
+```
+
+```plain
+// anywhere
+import { toast } from "sonner";
+
+toast.success("Profile saved");
+toast.error("Payment failed", { description: "Your card was declined." });
+
+// promise pattern, in place
+toast.promise(saveSettings(), {
+  loading: "Saving settings…",
+  success: "Settings saved",
+  error: "Couldn't save settings",
+});
+
+// action toast — BUT provide a real alternative too (see §10)
+toast("Message archived", {
+  action: { label: "Undo", onClick: () => restore() },
+  duration: 10000,           // give keyboard users time to reach it
+});
+```
+
+`richColors` maps the variant to its semantic color; `closeButton` adds the always-reachable dismiss (do this whenever there's an action). Radix's own `Toast` is the alternative when you want to own the primitives — it ships the live region, swipe, and the **F6/hotkey to jump focus to the toast region** so keyboard users can reach an action deliberately.
+
+### 9.8 Next.js (App Router: where does `toast` run?)
+The catch: `toast` is a client-side call, so it can only fire from a **Client Component** or a client event handler. A Server Action can't call `toast` directly — it returns a result, and the client fires the toast.
+
+```plain
+// components/SaveButton.tsx
+"use client";
+import { toast } from "sonner";
+import { saveProfile } from "@/app/actions";
+import { useTransition } from "react";
+
+export function SaveButton() {
+  const [pending, start] = useTransition();
+  return (
+    <button disabled={pending} onClick={() =>
+      start(async () => {
+        const res = await saveProfile();        // server action
+        res.ok ? toast.success("Saved") : toast.error(res.error);
+      })
+    }>
+      {pending ? "Saving…" : "Save"}
+    </button>
+  );
+}
+```
+
+For progressive-enhancement forms (`<form action={serverAction}>`), you can't fire a toast until JS hydrates. The pattern: the server action returns state via `useActionState`, and a `useEffect` watching that state fires the toast client-side once — and you _also_ render the message inline (in an `aria-live` node) so non-JS and pre-hydration users still get it. **A toast is never the only channel for a critical result.**
+
+### 9.9 Vanilla JavaScript (no framework)
+The store from §9.3 works untouched; here's the DOM binding, including swipe and pause.
+
+```javascript
+const region = document.getElementById("toast-region");
+
+subscribe((toasts) => {
+  region.replaceChildren(...toasts.map(renderToast));
+});
+
+function renderToast(t) {
+  const el = document.createElement("li");
+  el.className = `toast toast--${t.variant}`;
+  el.dataset.state = "entering";
+  el.innerHTML = `
+    <span class="toast__icon" aria-hidden="true"></span>
+    <p class="toast__msg">${escapeHtml(t.message)}</p>
+    <button class="toast__close" aria-label="Dismiss notification">&times;</button>`;
+  el.querySelector(".toast__close").addEventListener("click", () => dismiss(t.id));
+  addSwipe(el, () => dismiss(t.id));
+  return el;
+}
+
+// Pause timers whenever the pointer or keyboard is in the region
+region.addEventListener("mouseenter", pauseAll);
+region.addEventListener("mouseleave", resumeAll);
+region.addEventListener("focusin", pauseAll);
+region.addEventListener("focusout", resumeAll);
+```
+
+Always `escapeHtml` toast text — messages often carry user- or server-supplied strings (a filename, an email), and `innerHTML` without escaping is a stored-XSS vector (see §15).
+
+### 9.10 Swipe-to-dismiss (Pointer Events, touch-first)
+The gesture that makes mobile toasts feel native. Track the pointer, translate the node, dismiss past a threshold, snap back otherwise.
+
+```javascript
+function addSwipe(el, onDismiss, threshold = 80) {
+  let startX = 0, dx = 0, dragging = false;
+  el.addEventListener("pointerdown", (e) => {
+    dragging = true; startX = e.clientX; el.setPointerCapture(e.pointerId);
+    el.style.transition = "none";
+  });
+  el.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    dx = e.clientX - startX;
+    el.style.transform = `translateX(${dx}px)`;
+    el.style.opacity = String(Math.max(1 - Math.abs(dx) / 200, 0.2));
+  });
+  el.addEventListener("pointerup", () => {
+    dragging = false;
+    el.style.transition = "transform .18s, opacity .18s";
+    if (Math.abs(dx) > threshold) { el.style.transform = `translateX(${Math.sign(dx) * 400}px)`; el.style.opacity = "0"; setTimeout(onDismiss, 180); }
+    else { el.style.transform = ""; el.style.opacity = ""; }
+    dx = 0;
+  });
+}
+```
+
+Swipe is a **progressive enhancement** — the close button is the accessible baseline. Never make swipe the _only_ way to dismiss; keyboard and switch users can't swipe. And skip the translate animation under `prefers-reduced-motion` (jump straight to dismissed).
+
+### 9.11 Testing (behavior + accessibility)
+A toast is behavior and announcement, so test both — including the plumbing screen readers depend on.
+
+```typescript
+import { render, screen, act, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
+import { Toaster } from "./Toaster";
+import { toast } from "./toast-store";
+
+it("announces in a polite live region", async () => {
+  render(<Toaster />);
+  act(() => { toast.success("Saved"); });
+  const region = screen.getByRole("status");
+  expect(region).toHaveAttribute("aria-live", "polite");
+  expect(await screen.findByText("Saved")).toBeInTheDocument();
+});
+
+it("routes errors to an assertive region", async () => {
+  render(<Toaster />);
+  act(() => { toast.error("Payment failed"); });
+  expect(screen.getByRole("alert")).toHaveTextContent("Payment failed");
+});
+
+it("auto-dismisses after its duration", async () => {
+  vi.useFakeTimers();
+  render(<Toaster />);
+  act(() => { toast.success("Saved", { duration: 4000 }); });
+  expect(screen.getByText("Saved")).toBeInTheDocument();
+  act(() => { vi.advanceTimersByTime(4000); });
+  await waitFor(() => expect(screen.queryByText("Saved")).not.toBeInTheDocument());
+  vi.useRealTimers();
+});
+
+it("pauses the timer on hover (WCAG 2.2.1)", async () => {
+  vi.useFakeTimers();
+  const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+  render(<Toaster />);
+  act(() => { toast.success("Saved", { duration: 4000 }); });
+  await user.hover(screen.getByRole("status"));
+  act(() => { vi.advanceTimersByTime(6000); });     // past the duration
+  expect(screen.getByText("Saved")).toBeInTheDocument(); // still there — paused
+  vi.useRealTimers();
+});
+
+it("has no axe violations", async () => {
+  const { container } = render(<Toaster />);
+  act(() => { toast.error("Oops"); });
+  expect(await axe(container)).toHaveNoViolations();
+});
+```
+
+What to assert (and skip):
+* **Do test:** the region exists with the right `aria-live`/`role`, errors go assertive, the timer fires _and_ pauses on hover, and the toast is reachable by role.
+* **Don't test:** exact class names, shadow values, animation timing curves. Implementation detail.
+* **Bonus:** an e2e (Playwright) that clicks a real "Save," asserts the toast appears, hovers to confirm it persists, then dismisses it.
+
+### 9.12 Vue, Svelte, Angular
+Same store (§9.3), different binding syntax. The `<button>`\-and-region underneath never changes.
+
+**Vue 3:**
+
+```plain
+<script setup lang="ts">
+import { ref, onMounted, onUnmounted } from "vue";
+import { subscribe, dismiss, pauseAll, resumeAll, type Toast } from "./toast-store";
+const toasts = ref<Toast[]>([]);
+let off: () => void;
+onMounted(() => (off = subscribe((t) => (toasts.value = t))));
+onUnmounted(() => off?.());
+</script>
+<template>
+  <ol class="toast-region" role="status" aria-live="polite"
+      @mouseenter="pauseAll" @mouseleave="resumeAll">
+    <li v-for="t in toasts" :key="t.id" :class="`toast toast--${t.variant}`">
+      <span class="toast__icon" aria-hidden="true" />
+      <p>{{ t.message }}</p>
+      <button aria-label="Dismiss notification" @click="dismiss(t.id)">&times;</button>
+    </li>
+  </ol>
+</template>
+```
+
+(Or just use **vue-sonner** / Element Plus `ElMessage` / Vuetify `v-snackbar`.)
+
+**Svelte:** the store maps naturally to a Svelte store; `{#each $toasts as t (t.id)}` renders the region, `on:mouseenter={pauseAll}`. **svelte-sonner** is the drop-in.
+
+**Angular:** wrap the store in an injectable service exposing a `toasts$` observable; a root `<app-toaster>` subscribes with the async pipe and renders the `role="status"` region. **ngx-sonner** or Angular Material's `MatSnackBar` (with `announcementMessage` for the live-region text) are the off-the-shelf options.
+
+### 9.13 Web Component (framework-agnostic)
+A `<toast-region>` custom element that any stack can drop in.
+
+```typescript
+class ToastRegion extends HTMLElement {
+  connectedCallback() {
+    this.setAttribute("role", "status");
+    this.setAttribute("aria-live", "polite");
+    this.setAttribute("aria-atomic", "false");
+    this.setAttribute("aria-label", "Notifications");
+    this.setAttribute("tabindex", "-1");
+    this.addEventListener("mouseenter", () => pauseAll());
+    this.addEventListener("mouseleave", () => resumeAll());
+    this.addEventListener("focusin", () => pauseAll());
+    this.addEventListener("focusout", () => resumeAll());
+    this._off = subscribe((toasts) => this.render(toasts));
+  }
+  disconnectedCallback() { this._off?.(); }
+  render(toasts) { /* diff + patch <li> children */ }
+}
+customElements.define("toast-region", ToastRegion);
+// Usage: <toast-region></toast-region> once, then call the global toast() anywhere.
+```
+
+### 9.14 Native Mobile (SwiftUI, Jetpack Compose, Flutter)
+Off the web, the concept survives with platform-native primitives — and here the platforms are opinionated.
+
+**SwiftUI (iOS):** there's no stock "toast," but the idiomatic transient confirmation is an overlay you drive from state, and for many flows Apple pushes you toward `.alert`/`.confirmationDialog` (blocking) or a custom overlay. A minimal toast:
+
+```swift
+.overlay(alignment: .bottom) {
+  if let msg = toast {
+    Text(msg).padding().background(.regularMaterial).clipShape(Capsule())
+      .transition(.move(edge: .bottom).combined(with: .opacity))
+      .task { try? await Task.sleep(for: .seconds(4)); toast = nil }
+  }
+}
+// iOS 26: wrap in .glassEffect() for the native Liquid Glass material.
+```
+
+**Jetpack Compose (Android):** first-class support — `Snackbar` via `SnackbarHostState`, with a built-in optional action and duration:
+
+```kotlin
+val host = remember { SnackbarHostState() }
+Scaffold(snackbarHost = { SnackbarHost(host) }) { /* … */ }
+// fire it:
+scope.launch {
+  val result = host.showSnackbar("Message archived", actionLabel = "Undo", duration = SnackbarDuration.Long)
+  if (result == SnackbarResult.ActionPerformed) restore()
+}
+```
+
+Material's rule holds on Android too: **one snackbar at a time**, new replaces old.
+
+**Flutter (Dart):**
+
+```dart
+ScaffoldMessenger.of(context).showSnackBar(
+  SnackBar(
+    content: const Text('Message archived'),
+    action: SnackBarAction(label: 'Undo', onPressed: restore),
+    duration: const Duration(seconds: 8),
+  ),
+);
+```
+
+The through-line: every platform gives you a **transient surface**, an **optional single action**, a **duration**, and treats the action's accessibility as your problem to get right — same concept, remapped syntax.
+
+---
+
+## 10\. Accessibility (the entire reason this component is hard)
+Toasts are the component where good intentions produce inaccessible results by default. This section is non-negotiable.
+
+**The live region is everything.**
+* The container must exist in the DOM **before** the first toast, with `aria-live` already set. Inject the region and its text together and screen readers frequently announce nothing.
+* **Politeness by variant:** `role="status"` / `aria-live="polite"` for success/info/warning (waits for a pause in speech). `role="alert"` / `aria-live="assertive"` for errors (interrupts immediately). Using assertive for routine confirmations is user-hostile — it barges into whatever the user was reading. Using polite for a genuine error can mean they never hear it.
+* `aria-atomic`: use `false` on the usual **multi-toast stack region** so a newly arrived toast is announced on its own instead of re-reading the whole stack; `aria-atomic="true"` is only right for a region that holds a **single** message at a time.
+* **Name the region.** Give the viewport an `aria-label` ("Notifications" / "Errors") so it has an accessible name when focus is sent there, and don't hang `role="listitem"` on a toast whose parent isn't a `list` — an orphaned `listitem` is a broken-ownership error, not a helpful hint.
+
+**Focus must NOT move to the toast.** This is the rule people get backwards. A toast appears _unsolicited_ — the user didn't ask for it — so stealing focus rips them out of what they were doing (mid-form, mid-read). Toasts are announced via the live region **without** a focus change. (Contrast a modal dialog, which _should_ take focus because the user triggered it and must respond.) Auto-focusing a toast is a bug, not a feature.
+
+**The auto-dismiss timing conflict (WCAG 2.2.1 Timing Adjustable).** A message on a fixed timer can vanish before a slow reader, a screen-reader user, or someone using magnification has consumed it. To satisfy 2.2.1, at least one must be true:
+* The user can **turn off** the time limit, **extend** it, or it's **at least 20 seconds** and adjustable — _or_
+* The toast **pauses on hover and on focus** (the practical web approach) and provides a **manual dismiss**, so nothing disappears while the user is engaging with it.
+* **Never auto-dismiss critical information** and **never auto-dismiss anything with a required action.** Errors and action-toasts should be sticky (`duration: Infinity`) or generously long _and_ pausable.
+
+**The "toast with an Undo button" problem — the classic accessibility trap.** Picture "Message deleted — \[Undo\]" that vanishes in 5 seconds. A sighted mouse user grabs Undo instantly. But:
+* A **keyboard user** has to Tab to the toast region — which may be far in the tab order, or not focusable at all — and the toast is gone before they arrive.
+* A **screen-reader user** hears "Message deleted, Undo, button," then has to navigate to it — and it's gone.
+* A user with a **motor disability** can't move fast enough, period.
+
+The action is a promise the component can't keep for these users. Fixes, in order of robustness:
+1. **Provide a persistent alternative.** The Undo must _also_ exist somewhere durable — a trash/recently-deleted view, an "Undo" in a menu, a keyboard shortcut (Cmd/Ctrl+Z). The toast becomes a convenience, not the only door.
+2. **Don't auto-dismiss action toasts.** Give them `duration: Infinity` (or ≥10s) _and_ pause-on-hover/focus _and_ a close button, so the action is reachable at the user's pace.
+3. **Make the region keyboard-reachable on demand.** Radix Toast ships an **F6 hotkey** to jump focus into the toast region; expose something equivalent so keyboard users can deliberately reach the action. Give that region a `tabindex="-1"` and an `aria-label` so focus can land there and it announces what it is.
+
+**Other rules:**
+* **Don't rely on color alone.** Success-green vs error-red is invisible to color-blind users and screen readers. Carry meaning in the _text_ ("Error: payment failed"), back it with an icon _and_ a word.
+* **Contrast ≥ 4.5:1** for the message text against the toast surface — extra vigilance on glass/translucent skins where the background bleeds through.
+* **Dismiss and action buttons ≥ 44px** tap target, with visible `:focus-visible` rings.
+* **Don't stack ten toasts** — a screen reader will read a wall of interruptions. Cap visible count; queue the rest.
+
+---
+
+## 11\. Innovative & Emerging Ideas
+The toast looks solved but keeps moving:
+* **The expanding deck (Sonner):** newest toast on top, older ones peeking behind and scaling down; hover fans them out. Set the modern expectation for stacking.
+* **In-place promise resolution:** `toast.promise` morphing loading → success/error on one node is now table stakes; the frontier is streaming/agentic toasts that update progressively ("Analyzing… 40%… Done").
+* **Liquid Glass toasts:** iOS 26's refractive material for the floating surface — gorgeous over a dark app, with the reduced-motion and contrast caveats.
+* **View Transitions API:** native browser morphing for toast enter/exit and for the loading→resolved swap, cutting animation JS.
+* **Interruption budgets:** systems that _rate-limit_ their own toasts, coalescing "3 files uploaded" instead of firing three, to protect attention and the screen-reader experience.
+* **Anchored / contextual toasts:** feedback that appears near the element that triggered it (next to the "like" button) rather than a distant corner, reducing the eye-travel and the "what was that?" problem.
+* **Cross-surface continuity:** an in-app toast that, if unacknowledged and the tab is backgrounded, escalates to a Web Push notification — one message, two delivery channels.
+
+---
+
+## 12\. UX & Conversion Killers (the silent ones)
+None of these throw an error. They just quietly erode trust and exclude users.
+* **Toasting things that need action.** "Your session will expire" as a 4-second toast the user misses, then gets logged out. Critical or actionable → banner/dialog, not toast.
+* **No feedback at all** after a commit. The user clicks "Send," sees nothing, sends again. A toast is the cheapest fix for the most anxious moment in the app.
+* **Wrong ARIA = invisible to screen readers.** The most expensive silent failure: it works perfectly for sighted users and doesn't exist for blind ones. Nothing in QA catches it unless you test with a screen reader or axe.
+* **Auto-dismissing errors.** The user glances away, the "Upload failed" toast is gone, and they think it worked. Errors shouldn't race a timer.
+* **The unreachable Undo.** Covered in §10 — an action keyboard/AT users can't reach before it vanishes is a broken promise.
+* **Toast avalanche.** Bulk action fires 30 toasts; the screen and the screen reader are buried. Coalesce and cap.
+* **Covering the thing they need.** A bottom toast hiding the mobile submit button or the nav. Offset it.
+* **Duplicate spam.** The same "Saved" firing on every keystroke of an autosave. Dedupe by a stable id so repeats update one toast instead of stacking.
+* **Motion that nauseates.** Big slide/bounce animations with no `prefers-reduced-motion` guard.
+
+**The through-line:** toast failures are almost all _silent_ — no crash, no log, just a user who's confused, anxious, or entirely excluded. Test with the keyboard and a screen reader before you ship, not after a complaint.
+
+---
+
+## 13\. Advanced Patterns
+Techniques that separate a toast _system_ from a toast _widget_.
+
+**Dedupe / coalesce by id.** Pass a stable `id` and let repeats update the existing toast instead of stacking:
+
+```typescript
+toast.success("Saved", { id: "autosave" }); // fires once; subsequent calls update the same node
+```
+
+**Priority & preemption.** Give errors a higher priority so they jump the queue and aren't stuck behind three "Saved" toasts. The store sorts by priority, then recency.
+
+**Positioning as a first-class prop.** Support the nine standard anchors (`top-left`… `bottom-right`, plus centers) via logical properties and `env(safe-area-inset-*)`, so the same system respects notches and RTL automatically.
+
+**RTL & logical properties.** Use `inset-inline-end`, not `right`, so the region flips for Arabic/Hebrew with zero extra code, and mirror any directional slide.
+
+**Design tokens.** Drive the whole thing off tokens so a rebrand is one file:
+
+```css
+:root {
+  --toast-bg: #1b1420; --toast-fg: #E8E6E1; --toast-radius: 12px;
+  --toast-accent-success: #DCA424; --toast-accent-error: #E86100;
+  --toast-accent-info: #5F2C82; --toast-shadow: 0 10px 30px rgba(0,0,0,.35);
+  --toast-duration: 5000ms;
+}
+```
+
+**TS-enforced a11y.** A discriminated union that _requires_ a persistent-alternative hint when an `action` is present nudges the "unreachable Undo" fix into the type system:
+
+```typescript
+type BaseToast = { message: string; variant: ToastVariant };
+type PlainToast = BaseToast & { action?: never };
+type ActionToast = BaseToast & {
+  action: ToastAction;
+  duration: number | "infinite";  // force a deliberate, non-default duration for action toasts
+  persistentAlternative: string;  // e.g. "Undo also available in Trash" — documents the fallback
+};
+export type ToastInput = PlainToast | ActionToast;
+```
+
+**Portal to** **`document.body`****\*\*\*\*.** Render the region in a portal so it escapes `overflow: hidden`/`transform` ancestors that would clip a fixed element — a real bug when a toast lives inside a transformed card.
+
+---
+
+## 14\. Performance & Bundle Cost
+A toast feels free; at scale it isn't.
+* **The region should mount once.** One persistent `<Toaster />` at the root, not a component per page. Re-mounting the region re-creates the live region and can drop announcements.
+* **Animate only** **`transform`** **and** **`opacity`****\*\*\*\*.** Enter/exit and swipe should never animate `width`/`height`/`top` — those force reflow every frame. Compositor-only properties keep it at 60fps.
+* **`contain: layout style paint`** on each toast isolates its work from the page.
+* **Cap the visible count.** Rendering 50 stacked toasts is 50 subscribed nodes animating; the queue exists partly for perf.
+* **Tree-shake the library.** Sonner and react-hot-toast are tiny (a few KB), but as always import named icons (`import { Check } from "lucide-react"`), never `import * as Icons`.
+* **Clear timers on unmount/dismiss.** A `setTimeout` that fires after its toast is gone is a leak; the store's `dismiss` must `clearTimeout`.
+
+---
+
+## 15\. Security (the toast is a small XSS surface)
+Toasts are low-privilege, but they carry one real risk: **they display strings, often from users or the server.**
+* **Never** **`innerHTML`** **untrusted text.** A toast that renders a filename, an email, or a server error via `innerHTML` is a stored-XSS vector: `toast(\`Deleted ${[file.name](http://file.name)}\`)`where`[file.name](http://file.name)`is`<img src=x onerror=…>`. Use` textContent\` / framework interpolation (which auto-escapes), or explicitly escape.
+* **Don't leak internals in error toasts.** Piping a raw exception or stack trace into `toast.error(err.message)` can surface SQL, file paths, or tokens to the user (and anyone shoulder-surfing). Show a friendly message; log the detail server-side.
+* **No secrets, no PII you didn't intend.** Toasts get screenshotted and screen-shared constantly. "Saved to /admin/keys/prod.env" is a leak.
+* **Rate-limit self-inflicted toast floods** if events are driven by a websocket an attacker could spam.
+
+---
+
+## 16\. Senior-Level Checklist (ship-ready)
+Before a toast system is "done":
+- [ ] The live region exists in the DOM **before** the first toast, empty, on load, with an `aria-label` and `tabindex="-1"` so a hotkey can name and reach it.
+- [ ] Success/info/warning use `role="status"` / `aria-live="polite"`; errors use `role="alert"` / `aria-live="assertive"`.
+- [ ] `aria-atomic="false"` on a multi-toast stack region (`true` only for a single-message region); no orphaned `role="listitem"`; icon is `aria-hidden`; meaning is in the text, not color alone.
+- [ ] Focus does **not** move to the toast when it appears.
+- [ ] Timers **pause on hover and on focus**; a manual dismiss (`×`) is always available.
+- [ ] Errors and action-toasts do **not** auto-dismiss on a short timer.
+- [ ] Every action toast has a **persistent, keyboard-reachable alternative** (Undo also in Trash / Cmd+Z / F6 into the region).
+- [ ] Visible count is capped; overflow queues; duplicates dedupe by id.
+- [ ] Dismiss/action targets ≥ 44px with visible focus rings; text contrast ≥ 4.5:1.
+- [ ] Enter/exit/swipe respect `prefers-reduced-motion`; animate only transform/opacity.
+- [ ] Region is portaled to `body`, positioned with logical properties + safe-area insets (RTL-safe).
+- [ ] Toast text is escaped; no raw errors/PII/secrets rendered.
+- [ ] Critical results are **also** delivered through a non-transient channel — a toast is never the only copy.
+
+---
+
+## 17\. Visual Styles (the same toast, eleven skins)
+Style is skin; the skeleton — `role`/`aria-live`, no-focus-steal, pause-on-hover, dismiss button, reduced-motion, 44px targets — is identical across all eleven.
+
+* **Flat:** solid variant-colored surface or a colored left rule on a neutral card, crisp edge, one soft shadow. Reads instantly; the safe default.
+* **Material:** the dark snackbar — one line, a colored uppercase action label, elevation shadow, bottom-center. One at a time.
+* **Glassmorphism:** translucent + `backdrop-filter: blur`, thin light border. Premium over imagery; **guard contrast** because the page shows through.
+* **Liquid Glass (2026):** refractive translucent material, specular rim, faint moving sheen — Apple iOS 26 / macOS Tahoe. Stunning for a floating toast over a dark app; kill the sheen under reduced-motion, keep a solid-enough backing for text contrast. SwiftUI: `.glassEffect`.
+* **Neumorphism:** soft dual-shadow on a same-color surface. Low contrast — poor for status messaging; accent only, never for errors.
+* **Skeuomorphism:** beveled "paper slip" with an inner highlight and gradient; reads as a physical note sliding in.
+* **Neo-Brutalism:** thick black border, hard offset shadow, zero blur, loud variant fills. Distinctive, high-personality brands.
+* **Claymorphism:** big radius, puffy inner-light + soft outer glow. Friendly, approachable confirmations.
+* **Aurora / Gradient:** animated multi-hue gradient border/fill on a dark toast. Premium; honor `prefers-reduced-motion`.
+* **Minimal / Swiss:** near-zero decoration, a thin variant-colored left rule, type does the work. Best for dense pro tools.
+* **UJG Brand:** deep Eminence/Night glass surface, 12px radius, Goldenrod icon + action label with a warm glow; success = Goldenrod, error/warning = Spanish Orange, info = Eminence. Afro-Futurist, at home on the dark saturated backdrop the house style is built on.
+
+Full guidance in the Design Styles (visual languages) gallery.
+
+---
+
+**Bottom line:** a toast is the smallest component with the largest gap between "looks done" and "is done." Anyone can slide a box into the corner. The senior build is the invisible 80%: the persistent live region with the right politeness, the timer that pauses when a human engages it, the focus that _doesn't_ move, the Undo that survives outside the 5-second window, and the queue that keeps a burst of events from burying the user. Get those right and your toasts serve everyone — miss them and you've built a confirmation that quietly excludes the people who need confirmation most.
