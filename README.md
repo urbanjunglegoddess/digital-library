@@ -62,7 +62,7 @@ The service-role key is used only by `lib/supabase/server.ts`
 
 ### Database migrations
 
-Schema v1 lives in `supabase/migrations/0001_init.sql` (all tables, the 11
+Schema v1 lives in `utils/supabase/migrations/0001_init.sql` (all tables, the 11
 `visual_styles` seed rows, full-text + trigram search indexes, and RLS policies).
 Apply it with the Supabase CLI linked to **this** project:
 
