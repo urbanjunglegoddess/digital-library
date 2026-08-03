@@ -1,5 +1,5 @@
 import { forwardRef, ButtonHTMLAttributes, ReactNode } from "react";
-import "./button.css";
+import "./Button.css";
 
 type Variant = "primary" | "secondary" | "ghost" | "gold" | "destructive" | "text";
 type Size = "xs" | "sm" | "md" | "lg" | "xl";

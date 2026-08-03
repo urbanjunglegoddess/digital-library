@@ -1,5 +1,6 @@
 import { Button } from "@/components/button/Button";
-
+import { createClient } from '@/utils/supabase/server'
+import { cookies } from 'next/headers'
 /**
  * Phase 0 brand shell. Proof-of-life home page: renders the UJG palette, the
  * 4-font system, and the 11 visual skins through the real component-library
@@ -39,7 +40,12 @@ const STYLES: { key: string; name: string }[] = [
   { key: "swiss", name: "Swiss" },
 ];
 
-export default function Home() {
+export default async function Page() {
+  const cookieStore = await cookies()
+  const supabase = createClient(cookieStore)
+
+  const { data: todos } = await supabase.from('todos').select()
+
   return (
     <main
       style={{
@@ -89,6 +95,15 @@ export default function Home() {
           the catalog lands in Phase 1.
         </p>
       </header>
+
+      {/* Todos (from Supabase) */}
+      <Section title="Todos" caption="Server-side Supabase query">
+        <ul>
+          {todos?.map((todo) => (
+            <li key={todo.id}>{todo.name}</li>
+          ))}
+        </ul>
+      </Section>
 
       {/* Palette */}
       <Section title="Brand palette" caption="Semantic tokens from styles/tokens.css">
