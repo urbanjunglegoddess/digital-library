@@ -128,7 +128,9 @@ function readAll(): ComponentDoc[] {
 
   const files = fs
     .readdirSync(DOCS_DIR)
-    .filter((f) => f.endsWith(".mdx") || f.endsWith(".md"));
+    .filter((f) => f.endsWith(".mdx") || f.endsWith(".md"))
+    // Ignore templates/notes: files starting with "_" or a README.
+    .filter((f) => !f.startsWith("_") && !/^readme\.mdx?$/i.test(f));
 
   const docs = files.map((file) => {
     const raw = fs.readFileSync(path.join(DOCS_DIR, file), "utf8");

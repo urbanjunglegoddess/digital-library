@@ -1,0 +1,88 @@
+---
+# Copy this file to content/docs/<slug>.mdx and fill it in.
+# The catalog reads this frontmatter to build the card, detail header,
+# 11-style switcher, code tabs, references, and ClickUp traceability.
+# (Files starting with "_" — like this one — are ignored by the loader.)
+name: Component Name
+slug: component-slug            # must match the filename, url-safe
+category: Inputs & Forms        # Actions | Inputs & Forms | Navigation | Overlays & Popouts | Feedback & Status | Data Display | Media | Layout & Structure | Marketing & Content | Utilities
+status: built                   # idea | drafting | built | audited | reusable
+summary: "One plain sentence describing what it is and does (≤160 chars)."
+clickup_page_id: 838qa-000000   # source page in ClickUp doc 838qa-81211 (optional)
+tags: [tag1, tag2, tag3]
+# styles:                       # optional — omit to support all 11 skins
+#   [ujg, flat, material, glass, liquid, neu, skeu, brut, clay, aurora, swiss]
+# playground: component-slug    # optional — public/playgrounds/<name>.html to embed
+preview:
+  label: "Preview label"        # text shown inside the 11-style switcher
+snippets:                       # copy tabs on the detail page; keep code verbatim
+  - language: html
+    label: HTML
+    code: |
+      <!-- markup here (real < > characters, not &lt; &gt;) -->
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      // primary implementation
+  - language: css
+    label: CSS
+    code: |
+      /* styles here */
+references:                     # optional — external docs only (drop internal links)
+  - title: "WAI-ARIA APG — Pattern"
+    url: https://www.w3.org/WAI/ARIA/apg/
+    source: apg                 # mdn | so | github | apg | other
+---
+
+## 1 · What it actually is
+Plain definition; what it's confused with; the rule of thumb for when it IS this.
+
+## 2 · Why it matters
+The stakes — conversion, accessibility, trust, performance, or legal.
+
+## 3 · Anatomy
+Every named part.
+
+## 4 · Sizes / scale / density
+Table of size tiers with tokens + pixel values + use cases.
+
+## 5 · States
+default · hover · focus · active · disabled · loading · error — plus any specific to this component.
+
+## 6 · Types / variants
+Every functional variant.
+
+## 7 · When to use (and when not to)
+Use-when, don't-use-when (name the alternative), placement heuristics.
+
+## 8 · Across design systems + trends
+Material, Apple HIG, Fluent, Ant, Tailwind, shadcn/Radix, Bootstrap — and what's trending.
+
+## 9 · The code
+The implementations (HTML, React+TS, and the other targets). Keep the primary ones in the frontmatter `snippets` too.
+
+## 10 · Accessibility
+ARIA roles/attrs, keyboard map, focus management, contrast, 44px targets, reduced motion.
+
+## 11 · Innovative / emerging ideas
+Forward-looking patterns, including a 2026-era API.
+
+## 12 · Conversion / UX killers
+The silent mistakes, each with the why and the fix.
+
+## 13 · Advanced patterns
+Senior techniques; at least one TS-enforced a11y pattern and one design-token pattern.
+
+## 14 · Performance & bundle cost
+Animation/compositor, tree-shaking, virtualize/lazy-load.
+
+## 15 · Security
+Attack surface, XSS, server validation, authorization. If zero surface, say so.
+
+## 16 · Senior-level checklist
+The ship gate — semantics, keyboard, focus, contrast, target size, states, performance.
+
+## 17 · Visual styles
+The component across the 11 skins. Style is skin; behavior is the skeleton.
