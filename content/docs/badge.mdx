@@ -1,0 +1,1041 @@
+---
+name: Badge
+slug: badge
+category: Feedback & Status
+status: built
+summary: "A small, non-interactive marker that conveys status, count, or category attached to another element."
+clickup_page_id: 838qa-217711
+tags: [badge, count, status, indicator]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- COUNT badge on an icon button.
+           The accessible name lives on the BUTTON, not the number. -->
+      <button type="button" class="icon-btn" aria-label="Notifications, 3 unread">
+        <svg class="icon" aria-hidden="true"><!-- bell --></svg>
+        <span class="badge badge--count" aria-hidden="true">3</span>
+      </button>
+
+      <!-- Capped count -->
+      <button type="button" class="icon-btn" aria-label="Cart, 99 or more items">
+        <svg class="icon" aria-hidden="true"><!-- cart --></svg>
+        <span class="badge badge--count" aria-hidden="true">99+</span>
+      </button>
+
+      <!-- STATUS dot on an avatar. Color is reinforcement; the text carries meaning. -->
+      <span class="avatar-wrap">
+        <img class="avatar" src="/omegea.jpg" alt="Omegea Hunter">
+        <span class="badge badge--dot badge--success">
+          <span class="sr-only">Online</span>
+        </span>
+      </span>
+
+      <!-- LABEL pill: standalone, inline, non-interactive -->
+      <span class="badge badge--label badge--brand">PRO</span>
+
+      <!-- DOT-only "something new", no number -->
+      <button type="button" class="tab" aria-label="Messages, new activity">
+        Messages
+        <span class="badge badge--dot badge--danger" aria-hidden="true"></span>
+      </button>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import { forwardRef, HTMLAttributes, ReactNode } from "react";
+
+      type Tone = "neutral" | "brand" | "info" | "success" | "warning" | "danger";
+
+      /* --- Standalone label pill --- */
+      interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+        tone?: Tone;
+        variant?: "solid" | "soft" | "outline";
+      }
+      export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
+        ({ tone = "neutral", variant = "soft", className = "", children, ...rest }, ref) => (
+          <span
+            ref={ref}
+            className={`badge badge--label badge--${tone} badge--${variant} ${className}`}
+            {...rest}
+          >
+            {children}
+          </span>
+        )
+      );
+      Badge.displayName = "Badge";
+
+      /* --- Count badge that decorates an anchor (icon/avatar) --- */
+      interface CountBadgeProps {
+        count: number;
+        max?: number;
+        /** Noun for the accessible label: "notification", "message", "item". */
+        noun?: string;
+        tone?: Tone;
+        /** The thing being decorated (a bell button, an avatar). */
+        children: ReactNode;
+        /** Announce changes to screen readers. Off by default — only the
+            user's OWN, foregrounded counters should be live. */
+        live?: boolean;
+      }
+      export function CountBadge({
+        count, max = 99, noun = "notification", tone = "danger", children, live = false,
+      }: CountBadgeProps) {
+        const show = count > 0;
+        const shown = count > max ? `${max}+` : String(count);
+        const label =
+          count <= 0 ? `No ${noun}s`
+          : count > max ? `${noun}s, ${max} or more`
+          : `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+        return (
+          <span className="badge-anchor" style={{ position: "relative", display: "inline-flex" }}>
+            {children}
+            {/* Visually-hidden LIVE truth for AT — only mounted when `live` is set.
+                role="status" is itself a polite live region, so gating aria-live
+                alone would still announce; the whole node must be gated on `live`
+                or a wall of badges floods the screen reader (see 9.6 and 10). */}
+            {live && (
+              <span className="sr-only" role="status" aria-live="polite">
+                {label}
+              </span>
+            )}
+            {show && (
+              <span className={`badge badge--count badge--${tone}`} aria-hidden="true">
+                {shown}
+              </span>
+            )}
+          </span>
+        );
+      }
+
+      /* --- Status dot with mandatory text alternative --- */
+      interface StatusDotProps {
+        status: "online" | "offline" | "away" | "busy";
+        children: ReactNode; // the avatar
+      }
+      const STATUS_TONE: Record<StatusDotProps["status"], Tone> = {
+        online: "success", away: "warning", busy: "danger", offline: "neutral",
+      };
+      export function StatusDot({ status, children }: StatusDotProps) {
+        return (
+          <span className="badge-anchor" style={{ position: "relative", display: "inline-flex" }}>
+            {children}
+            <span className={`badge badge--dot badge--${STATUS_TONE[status]}`}>
+              <span className="sr-only">{status[0].toUpperCase() + status.slice(1)}</span>
+            </span>
+          </span>
+        );
+      }
+  - language: vue
+    label: Vue
+    code: |
+      <script setup lang="ts">
+      const props = defineProps<{ count: number; max?: number; noun?: string }>();
+      const max = props.max ?? 99;
+      const shown = () => (props.count > max ? `${max}+` : String(props.count));
+      const label = () =>
+        props.count <= 0 ? `No ${props.noun ?? "item"}s`
+        : props.count > max ? `${props.noun ?? "item"}s, ${max} or more`
+        : `${props.count} ${props.noun ?? "item"}${props.count === 1 ? "" : "s"}`;
+      </script>
+
+      <template>
+        <span class="badge-anchor" style="position:relative;display:inline-flex">
+          <slot />
+          <span class="sr-only" role="status" aria-live="polite">{{ label() }}</span>
+          <span v-if="count > 0" class="badge badge--count" aria-hidden="true">{{ shown() }}</span>
+        </span>
+      </template>
+---
+
+## 1\. What a Badge Actually Is
+A badge is a small, non-interactive marker that conveys **status, count, or category** attached to another thing. It decorates; it doesn't act. The word covers three genuinely different components that people lump together, and knowing which one you're building decides the entire accessibility story:
+
+*   **Count badge (notification badge):** a number superimposed on an icon or avatar. "3" on a bell, "99+" on a cart, the red dot on an app icon. It answers _how many_.
+*   **Status badge / dot:** a tiny indicator of a binary or enumerated state. The green "online" dot on an avatar, the "New" flag, the red/yellow/green health dot. It answers _what state_.
+*   **Label badge / pill:** an inline chip of text. "PRO", "Beta", "Sale", a category tag. It answers _what kind_. This one overlaps heavily with **Tag** and **Chip** — see the distinction below.
+
+The single most common mistake: treating all three as "a small colored thing" and giving them the same markup. A count badge that reads to a screen reader as a bare "3" is meaningless. A status dot that's _only_ a green circle is invisible to a colorblind or blind user. A label pill is often mistaken for something clickable when it isn't. Different jobs, different semantics.
+
+**Badge vs Tag vs Chip vs Alert** — the distinctions people get wrong:
+*   **Badge** is a passive marker _owned by another element_ (it hangs off an icon, avatar, tab, or menu item). Non-interactive.
+*   **Tag** is a metadata label, often user-generated ("#afrofuturism"), sometimes removable, sometimes filterable. When it's removable or clickable, it's a Chip.
+*   **Chip** is interactive — it filters, selects, or dismisses (an `x` to remove). If it has an `onClick` or a delete affordance, it's a Chip, not a Badge.
+*   **Alert** is block-level, disruptive, and often live — a full-width banner or toast. A Badge is the quiet version of the same signal; an Alert is the version that interrupts.
+
+Rule of thumb: **if it does something when you click it, it's a Chip or a Button, not a Badge. If it's a paragraph of status the user must read, it's an Alert. A Badge is a glance, not a click and not a sentence.**
+
+---
+
+## 2\. Why It Matters
+A badge is three pixels of surface area with an outsized job: it's the interface's **peripheral vision**. Users don't read badges, they _register_ them at the edge of attention.
+
+*   **It drives return and re-engagement.** The unread count on an inbox, the red dot on a tab — these are the single most effective re-engagement mechanic in software. That's also why they're abused: a badge that lies ("1 new" that resolves to nothing) burns trust permanently. Badge integrity is a product-trust issue, not a cosmetic one.
+*   **It's an accessibility trap.** A count badge is the classic example of information that's obvious visually and _completely absent_ to assistive tech unless you engineer it. "3" floating next to a bell icon means nothing announced on its own. Getting the accessible name right ("Notifications, 3 unread") is the whole game.
+*   **It signals state at a glance for operators.** In dashboards and admin UIs, status dots are how humans triage — green/amber/red across a fleet. If that signal rides on color alone, roughly 1 in 12 men can't read it, and nobody can read it in grayscale or forced-colors mode.
+
+---
+
+## 3\. Anatomy
+The parts change by sub-type, so hold all three in view.
+
+**Count badge** attached to an icon:
+*   **Anchor:** the host element the badge decorates (a bell button, a cart icon, an avatar). The badge is positioned relative to _its_ box.
+*   **Wrapper:** a `position: relative` container that establishes the coordinate system. The badge is `position: absolute` inside it. Without the wrapper the badge floats to the nearest positioned ancestor — a classic bug.
+*   **Badge body:** the pill/circle carrying the number. Padding, `border-radius: 999px`, min-width so single digits stay circular.
+*   **Value + cap logic:** the number, capped ("99+") past a threshold so it never blows out the layout.
+*   **Offset:** the `top`/`right` (logical: `inset-block-start` / `inset-inline-end`) nudge that overlaps the badge onto the anchor's top-right corner. Usually a negative translate.
+*   **Accessible name:** lives on the _anchor_, not the badge (see §10).
+
+**Status dot:**
+*   **Dot:** small circle, semantic color.
+*   **Ring / halo (optional):** a contrasting border so the dot reads against any avatar photo.
+*   **Text alternative:** a visually-hidden label ("Online") or a paired visible label — never color alone.
+
+**Label pill:**
+*   **Container:** the pill. Padding-inline heavier than padding-block, rounded.
+*   **Optional leading dot/icon:** e.g. a small dot before "Active".
+*   **Label:** short, usually 1–2 words, often uppercase for PRO/BETA-type flags.
+
+---
+
+## 4\. Sizes & Scale
+Badges are small by definition, but "small" still needs a scale. Real values:
+
+| Type | Size | Font | Padding | Radius | Use |
+| ---| ---| ---| ---| ---| --- |
+| Dot (bare) | 8px | — | — | 50% | Presence, "has activity", no number |
+| Dot (bordered) | 10px + 2px ring | — | — | 50% | Dot on a photo/avatar |
+| Count SM | 16px min | 11px | 0 4px | 999px | Dense toolbars, tab counts |
+| Count MD | 20px min | 12px | 0 6px | 999px | Default icon badge |
+| Count LG | 24px min | 13px | 0 7px | 999px | Prominent nav, mobile |
+| Label pill SM | 20px h | 11px | 2px 8px | 999px / 6px | Inline "PRO", "New" |
+| Label pill MD | 24px h | 12px | 4px 10px | 999px / 8px | Table status cells |
+
+Rules that matter:
+*   **`min-width`** **\=** **`height`** **for count badges** so a single digit renders a perfect circle and double digits grow into a pill. Don't set a fixed width.
+*   **The badge does not carry a tap target.** A badge is non-interactive; the ≥44px target belongs to the _anchor_ (the bell button), not the badge. If the badge itself needs to be tapped, you've built a Chip — go re-read §1.
+*   **Font-size floors out around 11px.** Below that, digits are unreadable. If your count doesn't fit at 11px, cap it (99+) rather than shrinking the type.
+*   **Scale the badge with the anchor, not the page.** A 20px badge on a 24px icon looks right; the same badge on a 64px avatar looks lost. Tie badge size to a token relative to the host.
+
+---
+
+## 5\. States
+A badge has fewer interaction states than a button (it doesn't hover or press), but its _value_ and _visibility_ states are where the logic lives.
+
+1. **Default / present** — the badge is showing a value or status.
+2. **Zero / empty** — count is 0. **Hide the badge entirely** (don't render "0"); a zero badge is visual noise that trains users to ignore the signal. Exception: when "0" is meaningfully different from "nothing" (rare — e.g. a deliberate "0 errors" pass indicator).
+3. **Capped / overflow** — value exceeds the cap; render "99+" (or "9+", "999+" per density). See §9.3.
+4. **Updated / changed** — the value just changed. This is the state that needs `aria-live` so screen-reader users hear it (see §10). Visually, an optional subtle pulse — guarded by `prefers-reduced-motion`.
+5. **Status: semantic states** — for status badges the "states" _are_ the content: online / offline / away / busy; new / active / paused / archived; success / warning / error / info. Each gets a semantic color **and** a text alternative.
+6. **Loading / indeterminate** — the count isn't known yet (data in flight). Show a neutral dot or skeleton, never a stale number or a flash of "0".
+7. **Max-attention (dot-only)** — no count available or wanted, just "there is something new": a bare dot. Common on tabs and nav where a precise number would be noise.
+
+The junior tell here: rendering a "0" badge, and animating a count change with no reduced-motion guard and no live-region announcement.
+
+---
+
+## 6\. Types & Variants
+Two axes: **sub-type** (what it communicates) and **emphasis** (how loud).
+
+By sub-type (from §1): **count**, **status/dot**, **label/pill**.
+
+By emphasis / semantic color:
+*   **Neutral:** gray/tinted. "Draft", "12", low-stakes metadata.
+*   **Brand / accent:** the house color. "PRO", "New" as a positive flag.
+*   **Info (blue):** informational status.
+*   **Success (green):** online, active, passed, paid.
+*   **Warning (amber):** pending, needs attention, degraded.
+*   **Danger (red):** offline, error, unread-count on a bell (red is the universal "attention" count color).
+*   **Solid vs soft vs outline:** solid (filled, high contrast — count badges are almost always solid), soft (tinted background, colored text — the modern default for label pills), outline (border only — lowest emphasis).
+
+By shape:
+*   **Circle/pill** (count, dot).
+*   **Rounded rect** (label pills in dense tables sometimes read cleaner squared-off).
+
+One discipline: **semantic color must be backed by text.** Red-means-danger is a convention, not an accessibility mechanism. The word "Offline" carries the meaning; the red is reinforcement.
+
+---
+
+## 7\. When to Use One (and When Not To)
+Use a badge when a **secondary signal** needs to ride along with a primary element without stealing focus. Count on an icon, status on a row, category on a card.
+
+Don't use a badge when:
+*   **The information is the primary content.** If the count is the whole point of the screen (an inbox list showing "47 messages" as a heading), that's text/typography, not a badge.
+*   **It needs to be actionable.** Clickable/removable → Chip. Triggers an action → Button.
+*   **It must be read, not glanced.** A sentence of status → Alert or inline text.
+*   **You'd stack three badges on one element.** Three competing badges is three signals fighting; collapse to the single most important, or use a summary.
+*   **The state is transient and disruptive.** "Payment failed" that must be acknowledged → Alert/toast, not a quiet badge.
+
+Placement heuristics:
+*   **Count badges sit top-right of their anchor** (Western reading exits there; it's the corner the eye checks for "new"). RTL flips to top-left automatically with logical properties.
+*   **Status dots sit bottom-right of avatars** (top-right collides with the face/crop; bottom-right reads as "presence").
+*   **Label pills sit inline, trailing the thing they describe** ("Acme Corp `PRO`"), or in a dedicated status column in tables.
+
+---
+
+## 8\. Badges Across Design Systems
+Same marker, different house rules.
+*   **Material Design (Google):** `Badge` comes in two flavors — a small dot and a "large" numbered badge, designed to sit on nav icons and `BadgedBox`. Caps at a configurable max (default shows "999+"). Red is the default attention color.
+*   **Apple HIG (iOS/macOS):** the app-icon badge (red circle, white number) is an OS primitive, not something you style. In-app, SwiftUI's `.badge()` modifier drops a count onto `TabView` tabs, `List` rows, and toolbar items; the system handles positioning and capping.
+*   **Fluent (Microsoft):** `Badge`, `CounterBadge`, and `PresenceBadge` are separate components — a rare system that names the three sub-types explicitly. PresenceBadge encodes available/busy/away/offline/DND with both color _and_ a distinct glyph, which is the accessible way to do it.
+*   **Ant Design / enterprise:** `Badge` with `count`, `overflowCount` (the cap), `dot`, and `status` (a preset dot + text: success/error/default/processing/warning). The `status` variant ships the text-plus-color pairing correctly out of the box.
+*   **Tailwind / utility-first:** no component; you compose a pill from utilities and wrap it for positioning. Freedom plus the risk that every badge is slightly different — wrap it in one `Badge` component.
+*   **shadcn/Radix:** `Badge` is a styled `cva` variant component (default/secondary/destructive/outline). Deliberately non-interactive; if you need interaction you reach for a different primitive. No Radix behavior needed because a badge has no behavior — that's the tell that it's skin, not mechanism.
+*   **Bootstrap:** `.badge` + `.text-bg-*` contextual colors, plus `.rounded-pill`. Positioning on an icon uses the `position-absolute translate-middle` utility combo (see §9.10).
+
+---
+
+## 9\. The Code
+### 9.1 HTML (the foundation)
+The markup differs by sub-type. Get these three shapes right and everything else is styling.
+
+```plain
+<!-- COUNT badge on an icon button.
+     The accessible name lives on the BUTTON, not the number. -->
+<button type="button" class="icon-btn" aria-label="Notifications, 3 unread">
+  <svg class="icon" aria-hidden="true"><!-- bell --></svg>
+  <span class="badge badge--count" aria-hidden="true">3</span>
+</button>
+
+<!-- Capped count -->
+<button type="button" class="icon-btn" aria-label="Cart, 99 or more items">
+  <svg class="icon" aria-hidden="true"><!-- cart --></svg>
+  <span class="badge badge--count" aria-hidden="true">99+</span>
+</button>
+
+<!-- STATUS dot on an avatar. Color is reinforcement; the text carries meaning. -->
+<span class="avatar-wrap">
+  <img class="avatar" src="/omegea.jpg" alt="Omegea Hunter">
+  <span class="badge badge--dot badge--success">
+    <span class="sr-only">Online</span>
+  </span>
+</span>
+
+<!-- LABEL pill: standalone, inline, non-interactive -->
+<span class="badge badge--label badge--brand">PRO</span>
+
+<!-- DOT-only "something new", no number -->
+<button type="button" class="tab" aria-label="Messages, new activity">
+  Messages
+  <span class="badge badge--dot badge--danger" aria-hidden="true"></span>
+</button>
+```
+
+Key HTML rules:
+*   **The badge itself is** **`aria-hidden`** **when the anchor carries the name.** The floating "3" is decorative once "Notifications, 3 unread" is on the button. Announcing both gives "Notifications 3 unread, 3" — clumsy.
+*   **A standalone label pill is just text** — a `<span>`. It needs no role. It is _not_ a button and must not have `onClick`.
+*   **Never put a number inside an element with no accessible context.** A bare `<span class="badge">3</span>` with nothing around it is the #1 badge a11y bug.
+
+### 9.2 CSS (positioning + states done right)
+The heart of the count badge is the **wrapper + absolute + offset** pattern. This is the part people fumble.
+
+```css
+/* The anchor establishes the coordinate system. Without position:relative
+   here, the absolute badge escapes to the nearest positioned ancestor. */
+.icon-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 44px;         /* the tap target lives on the ANCHOR */
+  block-size: 44px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.badge--count {
+  position: absolute;
+  inset-block-start: 2px;              /* top, logical */
+  inset-inline-end: 2px;              /* right, flips in RTL */
+  transform: translate(50%, -50%);    /* nudge the badge to overlap the corner */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-inline-size: 20px;              /* == height, so 1 digit = circle */
+  block-size: 20px;
+  padding-inline: 6px;                /* only bites when 2+ digits widen it */
+  border-radius: 999px;
+  background: #E86100;                /* Spanish Orange = attention */
+  color: #fff;
+  font: 600 12px/1 system-ui, sans-serif;
+  font-variant-numeric: tabular-nums; /* digits don't jitter width as they change */
+  box-shadow: 0 0 0 2px var(--surface, #0A0A0A); /* cut-out ring off the icon */
+  pointer-events: none;               /* never intercept the button's click */
+}
+
+/* Status dot */
+.badge--dot {
+  position: absolute;
+  inset-block-end: 0;                 /* bottom-right on avatars */
+  inset-inline-end: 0;
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px var(--surface, #0A0A0A); /* reads on any photo */
+}
+.badge--success { background: #1a7f4b; }
+.badge--warning { background: #DCA424; }
+.badge--danger  { background: #c0362c; }
+
+/* Label pill (soft variant = tinted bg, colored text) */
+.badge--label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font: 600 11px/1.4 system-ui, sans-serif;
+  letter-spacing: .02em;
+}
+.badge--brand { background: rgba(95,44,130,.15); color: #5F2C82; }
+
+/* Screen-reader-only text alternative (for dots) */
+.sr-only {
+  position: absolute; width: 1px; height: 1px;
+  padding: 0; margin: -1px; overflow: hidden;
+  clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* Change pulse — motion is optional, always guarded */
+@media (prefers-reduced-motion: no-preference) {
+  .badge--count[data-bumped="true"] { animation: badge-pop .2s ease-out; }
+}
+@keyframes badge-pop {
+  0% { transform: translate(50%, -50%) scale(1); }
+  50% { transform: translate(50%, -50%) scale(1.25); }
+  100% { transform: translate(50%, -50%) scale(1); }
+}
+```
+
+Why the details matter:
+*   **`transform: translate(50%, -50%)`** overlaps the badge onto the corner so it sits _on_ the icon, not beside it. The `inset` gives the base position; the translate does the overlap.
+*   **`box-shadow`** **ring** in the surface color visually "cuts" the badge out of the icon so it doesn't smear into busy edges or a photo.
+*   **`tabular-nums`** stops the badge from twitching width as the digit changes (1→8), which reads as jank on a live counter.
+*   **`pointer-events: none`** guarantees the badge never eats the anchor's click — a real bug when the badge overlaps a hit target.
+
+### 9.3 The "99+" Cap Logic
+Small, easy to get subtly wrong. Cap, don't shrink; and remember the accessible truth is the _real_ number, not the capped string.
+
+```typescript
+/** Display string for a count badge. */
+export function formatCount(n: number, max = 99): string {
+  if (n <= 0) return "";          // caller should hide the badge entirely
+  if (n > max) return `${max}+`;  // "99+", never "100"
+  return String(n);
+}
+
+/** The spoken truth is different from the shown truth. */
+export function countLabel(n: number, noun = "notification", max = 99): string {
+  if (n <= 0) return `No ${noun}s`;
+  if (n > max) return `${noun}s, ${max} or more`;   // "99 or more", not "99 plus"
+  return `${n} ${noun}${n === 1 ? "" : "s"}`;         // singular/plural
+}
+```
+
+The subtlety: the visual caps at "99+", but a screen reader saying "ninety-nine plus" is awkward, and saying just "99" when there are 3,000 is a lie. "99 or more" is the honest, natural phrasing. And **zero returns empty for display but a real "No notifications" for the label** — so the button still has a name when the badge is gone.
+
+### 9.4 React + TypeScript (a proper reusable component)
+One component, three sub-types, positioned wrapper included. This is usually the longest block, and for Badge the interesting work is the API design, not the render.
+
+```typescript
+import { forwardRef, HTMLAttributes, ReactNode } from "react";
+
+type Tone = "neutral" | "brand" | "info" | "success" | "warning" | "danger";
+
+/* --- Standalone label pill --- */
+interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
+  tone?: Tone;
+  variant?: "solid" | "soft" | "outline";
+}
+export const Badge = forwardRef<HTMLSpanElement, BadgeProps>(
+  ({ tone = "neutral", variant = "soft", className = "", children, ...rest }, ref) => (
+    <span
+      ref={ref}
+      className={`badge badge--label badge--${tone} badge--${variant} ${className}`}
+      {...rest}
+    >
+      {children}
+    </span>
+  )
+);
+Badge.displayName = "Badge";
+
+/* --- Count badge that decorates an anchor (icon/avatar) --- */
+interface CountBadgeProps {
+  count: number;
+  max?: number;
+  /** Noun for the accessible label: "notification", "message", "item". */
+  noun?: string;
+  tone?: Tone;
+  /** The thing being decorated (a bell button, an avatar). */
+  children: ReactNode;
+  /** Announce changes to screen readers. Off by default — only the
+      user's OWN, foregrounded counters should be live. */
+  live?: boolean;
+}
+export function CountBadge({
+  count, max = 99, noun = "notification", tone = "danger", children, live = false,
+}: CountBadgeProps) {
+  const show = count > 0;
+  const shown = count > max ? `${max}+` : String(count);
+  const label =
+    count <= 0 ? `No ${noun}s`
+    : count > max ? `${noun}s, ${max} or more`
+    : `${count} ${noun}${count === 1 ? "" : "s"}`;
+
+  return (
+    <span className="badge-anchor" style={{ position: "relative", display: "inline-flex" }}>
+      {children}
+      {/* Visually-hidden LIVE truth for AT — only mounted when `live` is set.
+          role="status" is itself a polite live region, so gating aria-live
+          alone would still announce; the whole node must be gated on `live`
+          or a wall of badges floods the screen reader (see 9.6 and 10). */}
+      {live && (
+        <span className="sr-only" role="status" aria-live="polite">
+          {label}
+        </span>
+      )}
+      {show && (
+        <span className={`badge badge--count badge--${tone}`} aria-hidden="true">
+          {shown}
+        </span>
+      )}
+    </span>
+  );
+}
+
+/* --- Status dot with mandatory text alternative --- */
+interface StatusDotProps {
+  status: "online" | "offline" | "away" | "busy";
+  children: ReactNode; // the avatar
+}
+const STATUS_TONE: Record<StatusDotProps["status"], Tone> = {
+  online: "success", away: "warning", busy: "danger", offline: "neutral",
+};
+export function StatusDot({ status, children }: StatusDotProps) {
+  return (
+    <span className="badge-anchor" style={{ position: "relative", display: "inline-flex" }}>
+      {children}
+      <span className={`badge badge--dot badge--${STATUS_TONE[status]}`}>
+        <span className="sr-only">{status[0].toUpperCase() + status.slice(1)}</span>
+      </span>
+    </span>
+  );
+}
+```
+
+Why this is the senior version:
+*   **Three components, not one prop-soup.** A count badge and a label pill share CSS but almost no API — forcing them into one component means half the props are invalid for any given call. Splitting them is honest typing.
+*   **The accessible label is a separate visually-hidden node**, so the visual pill can be `aria-hidden` and capped ("99+") while AT hears the real, natural sentence ("99 or more").
+*   **`live`** **is opt-in and defaults off.** A live region that fires on every avatar in a list is an assistive-tech nightmare. Only the user's own foregrounded counter (their inbox bell) should announce changes.
+*   **Status → tone is a lookup, not a prop the caller passes**, so "online" is _always_ green everywhere and can never drift.
+
+Usage:
+
+```plain
+<CountBadge count={unread} noun="message" live>
+  <button className="icon-btn" aria-label={`Messages, ${unread} unread`}>
+    <BellIcon aria-hidden />
+  </button>
+</CountBadge>
+
+<StatusDot status="online"><Avatar src="/omegea.jpg" alt="Omegea" /></StatusDot>
+
+<Badge tone="brand" variant="soft">PRO</Badge>
+<Badge tone="success" variant="soft">Paid</Badge>
+```
+
+### 9.5 The Accessible-Count Pattern (the whole point)
+This deserves its own section because it's the thing that separates a real badge from a decorative one. Three valid strategies, in order of preference:
+
+**Strategy A — name the anchor (best for icon buttons).** The button already needs a label; fold the count into it. The visual badge is `aria-hidden`.
+
+```plain
+<button aria-label="Notifications, 3 unread">
+  <BellIcon aria-hidden="true" />
+  <span class="badge" aria-hidden="true">3</span>
+</button>
+```
+
+**Strategy B — visually-hidden live region (best when the count changes while visible).** Keep the pill decorative; put the truth in a `role="status"` `aria-live="polite"` node so a change is announced without stealing focus.
+
+```plain
+<span class="badge" aria-hidden="true">3</span>
+<span class="sr-only" role="status" aria-live="polite">3 unread notifications</span>
+```
+
+**Strategy C —** **`aria-label`** **on the badge itself (only for a truly standalone badge).** If the badge isn't decorating a named anchor, give _it_ the name and hide its inner text.
+
+```plain
+<span class="badge" role="status" aria-label="99 or more unread">99+</span>
+```
+
+The rules underneath all three:
+*   **Never announce a bare number.** "3" with no noun is noise. It's always "3 unread messages".
+*   **Say the real quantity, not the capped string.** "99 or more", never "99 plus".
+*   **Use** **`polite`****\*\*\*\*, never** **`assertive`****\*\*\*\*, for counts.** A count bump is not an emergency; `assertive` interrupts whatever the user is reading. Reserve `assertive` for genuine alerts (that's an Alert component, not a Badge).
+*   **One live region, updated in place** — don't spawn a new live node per change or the buffer floods.
+
+### 9.6 When a Badge Should Be `aria-live` (and when it must be static)
+This is the judgment call the emphasis note flags, so make it explicit.
+
+**Make it live (****`aria-live="polite"`****,** **`role="status"`****\*\*\*\*) when:**
+*   It's the user's _own_ counter and it changes _while the page is open_ (their inbox count ticks up as mail arrives).
+*   The change is meaningful on its own ("2 new" → "3 new" tells them something actionable).
+
+**Keep it static (no live region) when:**
+*   The value is set on load and doesn't change client-side (a "PRO" pill, a count rendered server-side that only updates on navigation).
+*   It's one of _many_ badges (every row in a table, every avatar in a list) — a live region on each would produce a torrent of announcements. Announce the aggregate elsewhere if it matters.
+*   The change is driven by the user's own action and already has other feedback (they marked one read; the list already reflects it).
+
+The failure mode of over-using live: a dashboard with 40 live status dots that re-announce on every poll, making the page unusable with a screen reader. Live is a scalpel, not a default.
+
+### 9.7 Tailwind CSS (utility-first)
+No badge primitive; compose it. The positioned wrapper is the only fiddly part.
+
+```plain
+<!-- Count badge on an icon button -->
+<span class="relative inline-flex">
+  <button type="button" aria-label="Notifications, 3 unread"
+          class="grid place-items-center size-11 rounded-full">
+    <svg class="size-6" aria-hidden="true"><!-- bell --></svg>
+  </button>
+  <span aria-hidden="true"
+        class="absolute -top-0.5 -right-0.5 min-w-5 h-5 px-1.5
+               inline-flex items-center justify-center rounded-full
+               bg-orange-600 text-white text-xs font-semibold
+               tabular-nums ring-2 ring-black pointer-events-none">
+    3
+  </span>
+</span>
+
+<!-- Soft label pill -->
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full
+             text-xs font-semibold bg-purple-500/15 text-purple-300">
+  PRO
+</span>
+
+<!-- Status dot on an avatar -->
+<span class="relative inline-flex">
+  <img class="size-10 rounded-full" src="/omegea.jpg" alt="Omegea">
+  <span class="absolute bottom-0 right-0 size-2.5 rounded-full
+               bg-emerald-500 ring-2 ring-black">
+    <span class="sr-only">Online</span>
+  </span>
+</span>
+```
+
+Teams wrap this in a component with `cva` rather than repeating the string — which is exactly shadcn's `Badge`.
+
+### 9.8 shadcn/ui
+shadcn ships a deliberately dumb `Badge`: a styled span with `cva` variants and no behavior, because a badge _has_ no behavior. You add the count/positioning yourself.
+
+```typescript
+import * as React from "react";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+const badgeVariants = cva(
+  "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs " +
+    "font-semibold transition-colors",
+  {
+    variants: {
+      variant: {
+        default: "border-transparent bg-primary text-primary-foreground",
+        secondary: "border-transparent bg-secondary text-secondary-foreground",
+        destructive: "border-transparent bg-destructive text-destructive-foreground",
+        outline: "text-foreground",
+      },
+    },
+    defaultVariants: { variant: "default" },
+  }
+);
+
+export interface BadgeProps
+  extends React.HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
+
+// Note: a <span>, not a <button>. No onClick, no role. If you find yourself
+// wanting those, you want a Chip/Toggle, not a Badge.
+export function Badge({ className, variant, ...props }: BadgeProps) {
+  return <span className={cn(badgeVariants({ variant }), className)} {...props} />;
+}
+```
+
+The instructive detail: shadcn's `Badge` is a `<span>` with no interaction hooks _on purpose_. It's the framework encoding the §1 rule — a badge is a marker, not a control.
+
+### 9.9 Next.js (App Router: server value, client liveness)
+The count usually _originates_ on the server. The badge can render server-side for the initial paint, and only the live-update layer needs `"use client"`.
+
+```typescript
+// app/components/NotificationBell.tsx  — SERVER component
+import { getUnreadCount } from "@/lib/notifications";
+import { LiveBell } from "./LiveBell";
+
+export default async function NotificationBell({ userId }: { userId: string }) {
+  const count = await getUnreadCount(userId);   // fetched on the server
+  return <LiveBell initialCount={count} userId={userId} />;
+}
+```
+
+```typescript
+// app/components/LiveBell.tsx  — CLIENT component (it subscribes to changes)
+"use client";
+import { useEffect, useState } from "react";
+import { CountBadge } from "@/components/CountBadge";
+
+export function LiveBell({ initialCount, userId }: { initialCount: number; userId: string }) {
+  const [count, setCount] = useState(initialCount);
+  useEffect(() => {
+    const es = new EventSource(`/api/notifications/stream?user=${userId}`);
+    es.onmessage = (e) => setCount(Number(e.data));   // server-sent events push new counts
+    return () => es.close();
+  }, [userId]);
+
+  return (
+    <CountBadge count={count} noun="notification" live>
+      <button className="icon-btn" aria-label={`Notifications, ${count} unread`}>
+        <BellIcon aria-hidden />
+      </button>
+    </CountBadge>
+  );
+}
+```
+
+The split is the lesson: the _value_ is server-authoritative (no flash of "0", correct on first paint, good for SEO/no-JS), and only the _liveness_ costs a client bundle. Don't make the whole bell a client component just to show a number.
+
+### 9.10 Bootstrap
+Ready-made classes; positioning uses the utility combo.
+
+```plain
+<!-- Contextual label badges -->
+<span class="badge text-bg-primary">New</span>
+<span class="badge text-bg-danger rounded-pill">99+</span>
+
+<!-- Count badge positioned on a button -->
+<button type="button" class="btn btn-dark position-relative"
+        aria-label="Notifications, 3 unread">
+  <svg aria-hidden="true"><!-- bell --></svg>
+  <span class="position-absolute top-0 start-100 translate-middle
+               badge rounded-pill text-bg-danger" aria-hidden="true">
+    3
+  </span>
+</button>
+
+<!-- Dot-only (visually-hidden text carries meaning) -->
+<button type="button" class="btn btn-dark position-relative" aria-label="Messages, new activity">
+  Messages
+  <span class="position-absolute top-0 start-100 translate-middle p-2
+               bg-danger border border-light rounded-circle">
+    <span class="visually-hidden">New activity</span>
+  </span>
+</button>
+```
+
+`top-0 start-100 translate-middle` is Bootstrap's canonical "pin to the top-right corner and center on it" recipe — the framework's version of the translate trick from §9.2.
+
+### 9.11 Vue, Svelte, Angular
+Same three shapes, different syntax. The positioned-wrapper pattern is identical; only the templating changes.
+
+**Vue 3 (SFC) — count badge:**
+
+```plain
+<script setup lang="ts">
+const props = defineProps<{ count: number; max?: number; noun?: string }>();
+const max = props.max ?? 99;
+const shown = () => (props.count > max ? `${max}+` : String(props.count));
+const label = () =>
+  props.count <= 0 ? `No ${props.noun ?? "item"}s`
+  : props.count > max ? `${props.noun ?? "item"}s, ${max} or more`
+  : `${props.count} ${props.noun ?? "item"}${props.count === 1 ? "" : "s"}`;
+</script>
+
+<template>
+  <span class="badge-anchor" style="position:relative;display:inline-flex">
+    <slot />
+    <span class="sr-only" role="status" aria-live="polite">{{ label() }}</span>
+    <span v-if="count > 0" class="badge badge--count" aria-hidden="true">{{ shown() }}</span>
+  </span>
+</template>
+```
+
+**Svelte — status dot:**
+
+```plain
+<script lang="ts">
+  export let status: "online" | "offline" | "away" | "busy" = "offline";
+  const tone = { online: "success", away: "warning", busy: "danger", offline: "neutral" };
+  const label = status[0].toUpperCase() + status.slice(1);
+</script>
+
+<span class="badge-anchor" style="position:relative;display:inline-flex">
+  <slot />
+  <span class="badge badge--dot badge--{tone[status]}">
+    <span class="sr-only">{label}</span>
+  </span>
+</span>
+```
+
+**Angular (standalone) — label pill:**
+
+```typescript
+import { Component, Input } from "@angular/core";
+
+@Component({
+  selector: "ui-badge",
+  standalone: true,
+  template: `<span class="badge badge--label" [class]="'badge--' + tone"><ng-content></ng-content></span>`,
+})
+export class BadgeComponent {
+  @Input() tone: "neutral" | "brand" | "success" | "warning" | "danger" = "neutral";
+}
+```
+
+### 9.12 Web Component (framework-agnostic)
+A count badge that works anywhere, keeping the accessible label in the light DOM so AT reliably sees it.
+
+```typescript
+class UiBadge extends HTMLElement {
+  static observedAttributes = ["count", "max", "noun"];
+  attributeChangedCallback() { this.render(); }
+  connectedCallback() { this.render(); }
+  render() {
+    const count = Number(this.getAttribute("count") ?? 0);
+    const max = Number(this.getAttribute("max") ?? 99);
+    const noun = this.getAttribute("noun") ?? "item";
+    const shown = count > max ? `${max}+` : String(count);
+    const label =
+      count <= 0 ? `No ${noun}s`
+      : count > max ? `${noun}s, ${max} or more`
+      : `${count} ${noun}${count === 1 ? "" : "s"}`;
+    this.style.position = "relative";
+    this.style.display = "inline-flex";
+    // `noun` is untrusted (a category/filename/username), so build with DOM
+    // APIs and textContent — never innerHTML — or it becomes stored XSS (15).
+    this.replaceChildren();
+    this.appendChild(document.createElement("slot"));
+    const status = document.createElement("span");
+    status.className = "sr-only";
+    status.setAttribute("role", "status");
+    status.setAttribute("aria-live", "polite");
+    status.textContent = label;
+    this.appendChild(status);
+    if (count > 0) {
+      const pill = document.createElement("span");
+      pill.className = "badge badge--count";
+      pill.setAttribute("aria-hidden", "true");
+      pill.textContent = shown;
+      this.appendChild(pill);
+    }
+  }
+}
+customElements.define("ui-badge", UiBadge);
+// <ui-badge count="3" noun="message"><button aria-label="Messages">…</button></ui-badge>
+```
+
+Note: this keeps light-DOM `<slot>` and the live region unencapsulated so screen readers and the `role="status"` announcement behave predictably — Shadow DOM can complicate live-region timing, so for a badge the simpler light-DOM approach is the pragmatic choice.
+
+### 9.13 Native Mobile (SwiftUI, Jetpack Compose, Flutter)
+Off the web, the badge is often a first-class OS primitive — you rarely hand-position it.
+
+**SwiftUI (iOS):**
+
+```plain
+TabView {
+    MessagesView().tabItem { Label("Messages", systemImage: "bell") }
+        .badge(unreadCount)          // system positions + caps it, red by default
+}
+// On a list row:
+Text("Notifications").badge(3)
+// Presence dot: overlay with an accessibility label
+Circle().fill(.green).frame(width: 10, height: 10)
+    .accessibilityLabel("Online")
+```
+
+**Jetpack Compose (Android):**
+
+```kotlin
+BadgedBox(badge = {
+    if (unread > 0) Badge { Text(if (unread > 99) "99+" else "$unread") }
+}) {
+    Icon(Icons.Default.Notifications, contentDescription = "Notifications, $unread unread")
+}
+```
+
+**Flutter (Dart):**
+
+```plain
+Badge.count(
+  count: unread,               // auto-hides at 0, shows "999+" past its max
+  child: const Icon(Icons.notifications),
+)
+// Dot form: Badge(child: Avatar()), with a Semantics(label: 'Online') wrapper
+```
+
+The through-line: every platform gives you (1) a count badge that auto-caps and auto-hides at zero, (2) a bare dot, and (3) a way to attach an accessibility label to the anchor. Learn the concept once; the `contentDescription` / `accessibilityLabel` / `Semantics` slot is where the a11y spine lives on each.
+
+### 9.14 Testing the Badge
+Test the _meaning_, not the pixels. For a badge that means: does the count show, does it cap, does it hide at zero, and — the one that matters most — **is it announced accessibly**.
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import { axe } from "jest-axe";
+import { CountBadge } from "./CountBadge";
+import { formatCount, countLabel } from "./formatCount";
+import { describe, it, expect } from "vitest";
+
+describe("formatCount", () => {
+  it("caps past the max", () => expect(formatCount(150)).toBe("99+"));
+  it("hides at zero", () => expect(formatCount(0)).toBe(""));
+  it("passes small counts through", () => expect(formatCount(7)).toBe("7"));
+});
+
+describe("countLabel (the spoken truth)", () => {
+  it("says the real quantity, not the capped string", () =>
+    expect(countLabel(3000, "message")).toBe("messages, 99 or more"));
+  it("is singular for one", () => expect(countLabel(1, "message")).toBe("1 message"));
+  it("names zero for the empty anchor", () =>
+    expect(countLabel(0, "message")).toBe("No messages"));
+});
+
+describe("CountBadge", () => {
+  it("exposes an accessible status, not a bare number", () => {
+    render(
+      <CountBadge count={3} noun="message" live>
+        <button aria-label="Messages, 3 unread"><span aria-hidden>🔔</span></button>
+      </CountBadge>
+    );
+    // With live on, the status region carries meaning; the visual "3" is aria-hidden.
+    expect(screen.getByRole("status")).toHaveTextContent("3 messages");
+    expect(screen.getByText("3")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("renders nothing visual at zero", () => {
+    render(<CountBadge count={0}><button aria-label="Messages">🔔</button></CountBadge>);
+    expect(screen.queryByText("0")).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <CountBadge count={5} noun="alert">
+        <button aria-label="Alerts, 5 unread">🔔</button>
+      </CountBadge>
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+```
+
+What to assert (and skip):
+*   **Do test:** the cap boundary (99 vs 100), zero hides the visual, the accessible label says the real quantity with a noun, and the visual number is `aria-hidden`.
+*   **Don't test:** exact `top`/`right` offsets, hex colors, the ring shadow. Those are skin and break tests without catching real bugs.
+*   **Bonus:** a colorblind-safety check — assert the status dot has a text alternative present, so "green = online" isn't the only signal.
+
+---
+
+## 10\. Accessibility (non-negotiable)
+The badge is where "looks fine" and "actually works" diverge most sharply. The whole a11y spine:
+
+*   **A count badge must be announced meaningfully.** Never a floating "3". The anchor carries the name ("Notifications, 3 unread"), or a visually-hidden `role="status"` node carries it. The visual pill is `aria-hidden` once its meaning lives elsewhere.
+*   **A dot badge needs a text alternative.** Color and shape alone fail colorblind users, grayscale, and forced-colors mode. Pair every status dot with visually-hidden text ("Online") or a visible label. This is the WCAG 1.4.1 "use of color" rule, exactly.
+*   **Semantic color is reinforcement, not the message.** Red/amber/green must be backed by words or an icon shape. ~8% of men can't distinguish red from green; nobody can in a grayscale printout.
+*   **Live vs static (see §9.6).** `aria-live="polite"` + `role="status"` only for the user's own, changing, foregrounded counter. Never `assertive` for a count. Never live on dozens of badges at once.
+*   **Contrast still applies to tiny text.** A count badge's digits vs its background must clear ≥4.5:1 (it's text, and small text at that). Soft-tinted label pills are the usual offenders — a pale tint with pale text fails.
+*   **The badge holds no tap target and no focus.** It's `pointer-events: none` and not focusable. Focus and the ≥44px target belong to the anchor. A badge that grabs focus or intercepts clicks is a bug.
+*   **Don't hide meaning in a superscript.** Assistive tech reads DOM order; make sure the label reads naturally in sequence ("Messages, 3 unread"), not "3, Messages".
+
+Keyboard map: a badge has **no keyboard interaction of its own** — it's decoration. If yours needs Tab/Enter, it's a Chip or Button; go build that instead.
+
+---
+
+## 11\. Innovative & Emerging Ideas
+The badge looks trivial but is quietly evolving:
+*   **Server-driven, streaming counts:** SSE/WebSocket counts that update the badge live without a poll, paired with an in-place live region (§9.9). The 2026 default for real-time inboxes.
+*   **`useOptimistic`** **badges:** the count decrements the instant a user marks-as-read, before the server confirms, then reconciles — the badge feels weightless.
+*   **App-icon & OS-level badges from the web:** the Badging API (`navigator.setAppBadge(n)` / `clearAppBadge()`) lets an installed PWA put a count on its home-screen/dock icon like a native app. Real, shipping, underused.
+*   **Notification-fatigue-aware badges:** products increasingly let the badge express "something" (a dot) rather than an anxiety-inducing precise number, or batch/suppress counts to protect attention. A design/ethics trend, not just a visual one.
+*   **Container queries for badge scale:** the badge sizes relative to its _anchor's_ container, not the viewport, so the same component looks right on a 24px icon and a 64px avatar without variants.
+*   **`prefers-reduced-motion`****\*\*\*\*-aware bumps:** the count-change pop animation is becoming standard — and standard to guard.
+
+---
+
+## 12\. Conversion & Trust Killers
+None of these throw an error. They quietly erode trust or attention.
+*   **The lying badge.** "1 new" that resolves to nothing, or a count that never clears. This is the fastest way to train users to _ignore_ your badges entirely — and once ignored, they're dead weight forever. Badge integrity is sacred.
+*   **The permanent red dot.** A badge that can't be cleared (or clears and instantly returns) reads as nagging, not helpful. Users mute the whole app.
+*   **The "0" badge.** Rendering a zero count is visual noise that dilutes every real signal. Hide at zero.
+*   **Color-only status.** Green/red dots with no text: invisible to colorblind users and in grayscale. Silent accessibility failure and a support-ticket generator in ops dashboards.
+*   **The floating number.** A count with no accessible name — the screen-reader user hears "three" and has no idea three of _what_. Silent for the ~majority of users, catastrophic for AT users.
+*   **Badge over the tap target.** A badge with `pointer-events` on, sitting over a button, eats clicks near the corner. Rage-inducing and hard to diagnose.
+*   **Over-badging.** Three badges on one avatar (online + PRO + "3") is three signals canceling each other. Pick the one that matters.
+*   **Layout shift from a growing count.** A badge that resizes 1→99+ and shoves neighbors around each tick. `tabular-nums` + reserved min-width fixes it.
+
+The through-line: badges fail _quietly_ and erode a compounding asset — user attention. A badge users trust is worth more than any banner; a badge they've learned to ignore is worse than none.
+
+---
+
+## 13\. Advanced Patterns
+*   **Design tokens for the whole set.** Drive tone via three-tier tokens so a rebrand touches one line: `--badge-bg-danger: var(--color-danger)`, `--color-danger: var(--red-600)`. The badge never hardcodes a hex; dark mode is a token swap.
+*   **TS-enforced a11y.** A discriminated union that _requires_ a text alternative on a dot badge, so `<StatusDot>` can't compile without a status that maps to a label. The type system enforces "no color-only status" before runtime.
+*   **`font-variant-numeric: tabular-nums`** on every count so digits share width and the badge never jitters as the number ticks.
+*   **`@container`** **queries** to scale the badge to its anchor (§11) instead of shipping SM/MD/LG variants.
+*   **Forced-colors mode:** in Windows High Contrast, `background` can vanish. Keep a real `border` and lean on system color keywords so the badge doesn't disappear: `@media (forced-colors: active) { .badge { border: 1px solid CanvasText; } }`.
+*   **RTL by default:** author with logical properties (`inset-inline-end`, `padding-inline`) so the badge auto-flips to the top-left corner in Arabic/Hebrew with zero extra CSS.
+*   **The Badging API bridge:** mirror your in-app count to the installed PWA icon (`navigator.setAppBadge(unread)`), clearing on read — one number, two surfaces, in sync.
+
+---
+
+## 14\. Performance & Bundle Cost
+A badge is cheap, but at list scale the cheap things add up.
+*   **Don't put a live region on every row.** A table of 500 rows each with a live status dot is 500 live regions the AT tree must watch — and a re-render storm on every poll. One aggregate region, or none.
+*   **Animate** **`transform`****/****`opacity`** **only.** The count-change bump should scale via `transform`, never animate `width`/`height` (which reflows every frame). Keep the badge on the compositor.
+*   **`contain: layout style`** on the badge isolates its reflow so a count change doesn't recalc the whole icon row.
+*   **Tree-shake the icon**, not the badge — the badge is a span; the expensive import is usually the bell/cart glyph next to it. Named imports (`import { Bell }`), never `import * as Icons`.
+*   **Debounce rapid count updates.** A firehose of SSE count events shouldn't trigger a render per event; coalesce to animation-frame or a short debounce so the badge doesn't thrash.
+
+---
+
+## 15\. Security
+A badge is mostly display — a count, a dot, a word — so its own attack surface is close to zero, but the _data_ it reflects is where the real exposure lives. The one surface that matters is the count: an unread, pending-approval, or "needs review" number almost always mirrors sensitive server state, so it must come from a server-side query already scoped to the current user and tenant — never a client-side filter of a fuller list, because that ships every record to the browser and leaks the magnitude and even the existence of things across the boundary you meant to enforce. Treat label and status text as untrusted content too: a status string is frequently a filename, username, or system message, so render it as text and never through `innerHTML`, or a decorative pill becomes a stored-XSS vector. And a badge that encodes a role or tier — "ADMIN", "PRO", "Verified" — is a _reflection_ of state, not a grant of it; never gate behavior on the badge's presence, because it's client-rendered display that anyone can forge in devtools — authorize every action on the server regardless of what the badge shows. Past those three — server-scoped counts, escaped text, no badge-as-authorization — the component is honestly low-risk.
+
+---
+
+## 16\. Senior-Level Checklist (ship-ready)
+- [ ] Right sub-type chosen: count vs status/dot vs label pill — and it's non-interactive (else it's a Chip).
+- [ ] Count badge hides entirely at zero (no "0").
+- [ ] Cap logic renders "99+" but the accessible label says the _real_ quantity ("99 or more").
+- [ ] Count is announced with a noun ("3 unread messages"), never a bare number; the visual pill is `aria-hidden`.
+- [ ] Status dot has a text alternative — never color/shape alone.
+- [ ] Semantic color is backed by a word or icon (passes grayscale + colorblind).
+- [ ] `aria-live="polite"` only on the user's own, changing, foregrounded counter — not on dozens at once, never `assertive`.
+- [ ] Positioned with wrapper + absolute + translate; `pointer-events: none` so it never eats the anchor's click.
+- [ ] Digits use `tabular-nums`; min-width reserved so a growing count causes no layout shift.
+- [ ] Contrast ≥ 4.5:1 for the digits/label (soft-tinted pills checked).
+- [ ] Logical properties for RTL; a real border for forced-colors mode.
+- [ ] Change animation guarded by `prefers-reduced-motion`.
+
+---
+
+## 17\. Visual Styles (the same badge, eleven skins)
+Style is skin; the semantics, the accessible name, the text alternative, and `pointer-events: none` never change across any of these. See the Design Styles gallery for the full set.
+
+*   **Flat:** solid fill, crisp circle/pill, no shadow. The default count badge. Reads instantly at 20px.
+*   **Material:** the numbered badge with a subtle elevation, red attention color, system-capped. Sits on `BadgedBox`.
+*   **Glassmorphism:** translucent pill with `backdrop-filter: blur()`. Risky at badge size — tiny translucent text fails contrast fast; use for label pills over a controlled background only.
+*   **Liquid Glass (the 2026 trend):** Apple's iOS 26 / macOS Tahoe material — the badge refracts what's behind it with a specular rim and a faint moving sheen instead of a flat blur. Gorgeous on a status pill over a deep Eminence surface; on a 20px count badge the effect is nearly invisible, so reserve it for larger label pills. Web = honest approximation; SwiftUI emits native `.glassEffect()`. Guard for contrast and `prefers-reduced-motion`.
+*   **Neumorphism:** dual-shadow same-color badge. Contrast-poor by nature — actively wrong for a count badge that must pop. Avoid for anything carrying urgent meaning.
+*   **Skeuomorphism:** glossy bevel, inner highlight — the old "unread jewel" look. Nostalgic; heavy for a marker this small.
+*   **Neo-Brutalism:** hard 2px offset shadow, thick black border, zero-to-tight radius, clashing color. High personality, great for a loud "NEW" pill.
+*   **Claymorphism:** puffy, big-radius, soft inner light. Friendly label pills; too soft to read as an urgent count.
+*   **Aurora / Gradient:** animated multi-hue fill on a dark badge. Premium "PRO" pill energy; honor `prefers-reduced-motion` and keep text contrast on the gradient.
+*   **Minimal / Swiss:** a bare dot or a hairline-outline pill, near-zero decoration. Often the most tasteful choice for status.
+*   **UJG Brand:** Goldenrod digits or a Goldenrod dot on deep Eminence/Night, with a subtle warm glow ring cutting the badge out of the icon. For counts, Spanish Orange (`#E86100`) reads as "attention" against the dark house palette better than red; reserve red for genuine error. The status dot uses the same semantic set, always paired with a visually-hidden label.
+
+**Rule that never changes:** every skin above renders the same accessible, non-interactive marker. If switching the skin changes what a screen reader hears or whether the dot has a text alternative, the skin broke the component.
+
+---
+
+**Bottom line:** a badge is the smallest thing you'll build and the one most likely to lie — to the user when it says "1 new" and there's nothing there, and to a screen reader when it floats a bare "3". Nail the three sub-types, hide at zero, cap the display while speaking the truth, back every color with a word, and reserve `aria-live` for the one counter that's genuinely the user's own. Get that right and the tiniest component in your system becomes one of the most trusted.

@@ -1,0 +1,1214 @@
+---
+name: Spinner / Loading Indicator
+slug: spinner
+category: Feedback & Status
+status: built
+summary: "A visual signal that a process is running but its duration is unknown — the indeterminate counterpart to a progress bar."
+clickup_page_id: 838qa-217171
+tags: [spinner, loading, indicator, status]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <div class="spinner" role="status" aria-label="Loading">
+        <svg viewBox="0 0 24 24" class="spinner__svg">
+          <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3" />
+          <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+                  stroke-linecap="round" stroke-dasharray="60 200" />
+        </svg>
+      </div>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import { HTMLAttributes } from "react";
+
+      type SpinnerType = "circular" | "dots" | "bar";
+      type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
+
+      interface SpinnerProps extends HTMLAttributes<HTMLDivElement> {
+        type?: SpinnerType;
+        size?: SpinnerSize;
+        label?: string;
+        showLabel?: boolean;
+        color?: string;
+      }
+
+      const SIZES: Record<SpinnerSize, number> = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+
+      export function Spinner({
+        type = "circular", size = "md", label = "Loading",
+        showLabel = false, color, className = "", ...rest
+      }: SpinnerProps) {
+        const px = SIZES[size];
+
+        return (
+          <div className={`spinner spinner--${size} ${className}`} role="status" aria-label={label}
+               style={color ? { '--spinner-color': color } as React.CSSProperties : undefined} {...rest}>
+            {type === "circular" && (
+              <svg viewBox="0 0 24 24" width={px} height={px} className="spinner__svg">
+                <circle className="spinner__track" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />
+                <circle className="spinner__arc" cx="12" cy="12" r="10" fill="none" strokeWidth="3"
+                        strokeLinecap="round" strokeDasharray="60 200" />
+              </svg>
+            )}
+            {type === "dots" && (
+              <div className="spinner-dots">
+                <span className="spinner-dots__dot" />
+                <span className="spinner-dots__dot" />
+                <span className="spinner-dots__dot" />
+              </div>
+            )}
+            {type === "bar" && (
+              <div className="spinner-bar"><div className="spinner-bar__fill" /></div>
+            )}
+            {showLabel && <span className="spinner__label">{label}</span>}
+          </div>
+        );
+      }
+  - language: vue
+    label: Vue
+    code: |
+      <script setup lang="ts">
+      defineProps<{
+        type?: 'circular' | 'dots' | 'bar';
+        size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+        label?: string;
+        showLabel?: boolean;
+      }>();
+
+      const sizes = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+      </script>
+
+      <template>
+        <div :class="['spinner', `spinner--${size ?? 'md'}`]" role="status" :aria-label="label ?? 'Loading'">
+          <!-- Circular -->
+          <svg v-if="(type ?? 'circular') === 'circular'" viewBox="0 0 24 24"
+               :width="sizes[size ?? 'md']" :height="sizes[size ?? 'md']" class="spinner__svg">
+            <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3"/>
+            <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+                    stroke-linecap="round" stroke-dasharray="60 200"/>
+          </svg>
+          <!-- Dots -->
+          <div v-else-if="type === 'dots'" class="spinner-dots">
+            <span v-for="i in 3" :key="i" class="spinner-dots__dot"/>
+          </div>
+          <!-- Bar -->
+          <div v-else class="spinner-bar"><div class="spinner-bar__fill"/></div>
+
+          <span v-if="showLabel" class="spinner__label">{{ label ?? 'Loading...' }}</span>
+        </div>
+      </template>
+---
+
+## 1\. What a Spinner Actually Is
+A **spinner** (loading indicator) is a visual signal that a process is running but its duration is unknown. It's the _indeterminate_ counterpart to a Progress Bar (which shows _how far_ along you are).
+
+The distinction matters:
+
+**Spinner (this doc):** indeterminate. "Something is loading, I can't tell you when." Circular rotation, pulsing dots, bouncing bars.
+**Progress Bar:** determinate. "You're 45% done." A filling bar with a known endpoint.
+**Skeleton:** structural placeholder. "Here's what the content will look like when it arrives." Shows the _shape_ of the result.
+
+All three are loading patterns but each carries different information. A spinner says "wait"; a progress bar says "wait X more"; a skeleton says "this is coming."
+
+---
+
+## 2\. Why It Matters
+**Perceived performance.** A spinner doesn't make the load faster, but it prevents the user from thinking the app is broken. The absence of a spinner (a frozen screen) feels like a crash. Its presence says "I heard you, working on it."
+
+**Trust maintenance.** Users will wait 3-10 seconds with a spinner before abandoning. Without one, they bail at 1-2 seconds. The spinner buys you time.
+
+**Accessibility.** Screen-reader users need the equivalent signal: `aria-busy="true"` on the region, or an `aria-live` announcement ("Loading"). A purely visual spinner is invisible to them.
+
+---
+
+## 3\. Anatomy
+**Animated element:** the visual moving part (rotating arc, pulsing dots, bouncing bars).
+**Track (optional):** a static circle/bar behind the animated element showing the full path.
+**Label (optional):** text like "Loading..." beneath or beside. Helpful for long waits and always good for accessibility.
+**Container/region:** the area being loaded, marked with `aria-busy="true"` while the spinner is active.
+
+---
+
+## 4\. Sizes / Scale
+
+| Token | Diameter | Stroke | Use |
+| ---| ---| ---| --- |
+| XS | 16px | 2px | Inline in buttons, inputs |
+| S | 20px | 2.5px | Table cells, small cards |
+| M | 24px | 3px | Default standalone |
+| L | 32px | 3.5px | Section-level loading |
+| XL | 48px | 4px | Full-page/centered loading |
+| XXL | 64px | 5px | Initial app load, splash |
+
+The spinner inside a button replaces the label text and inherits the button's size constraints.
+
+---
+
+## 5\. States
+**Spinning (active):** the default. Continuously animating.
+**Appear:** fade/scale in when loading begins. Delay 200-400ms before showing to avoid flash for fast loads.
+**Disappear:** fade out when loading completes. Transition to content.
+**Hidden:** `display: none` or unmounted. The region's `aria-busy` flips to `false`.
+
+The single most important timing rule: **never show a spinner for loads under 200ms.** A flash of spinner for an instant load feels janky. Use a minimum delay before mounting.
+
+---
+
+## 6\. Types / Variants
+**Circular (ring):** the classic. A rotating arc on a circular track. Universal recognition.
+**Dots (pulse):** 3-4 dots that pulse in sequence. Used in chat ("typing...") and messaging.
+**Bar (linear indeterminate):** a bar that slides back and forth along a track. Material's linear progress in indeterminate mode.
+**Bounce:** elements that bounce vertically in sequence. Playful.
+**Fade:** segments of a circle that fade in sequence (iOS classic style).
+**Orbital:** multiple elements rotating around a center. Premium/complex.
+
+Functional variants:
+**Inline:** inside a button, input, or table cell.
+**Overlay:** centered over a dimmed content area.
+**Full-page:** centered in the viewport with a backdrop.
+**Skeleton companion:** spinner shown briefly before skeleton appears.
+
+---
+
+## 7\. When to Use (and When Not To)
+**Use a spinner when:**
+*   The operation is indeterminate (you don't know how long)
+*   The wait is 1-10 seconds
+*   The content shape isn't known (can't use skeleton)
+*   Inside a button or small container where skeleton doesn't fit
+
+**Use something else when:**
+*   You know the progress → Progress Bar
+*   You know the content shape → Skeleton
+*   The load is < 200ms → show nothing (avoid spinner flash)
+*   The load is > 10s → add a progress bar or status text; spinner alone loses trust
+*   The whole page is loading → consider skeleton or progressive rendering
+
+---
+
+## 8\. Across Design Systems
+**Material:** `CircularProgress` (indeterminate mode) and `LinearProgress`. Determinate and indeterminate share the same component with a `variant` prop.
+**Apple HIG:** `UIActivityIndicatorView` (the classic gray fan), `ProgressView` with no value. iOS 26 adds Liquid Glass treatment.
+**Fluent:** `Spinner` component with sizes and label position options.
+**Ant Design:** `<Spin>` wraps content and overlays a spinner. `tip` prop for the label.
+**Chakra:** `<Spinner>` with size, color, speed, emptyColor props.
+**shadcn/Radix:** no built-in spinner; community snippets use SVG animation.
+
+---
+
+## 9\. The Code
+### 9.1 HTML + CSS (SVG approach)
+
+```html
+<div class="spinner" role="status" aria-label="Loading">
+  <svg viewBox="0 0 24 24" class="spinner__svg">
+    <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3" />
+    <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+            stroke-linecap="round" stroke-dasharray="60 200" />
+  </svg>
+</div>
+```
+
+```css
+.spinner { display: inline-flex; width: 24px; height: 24px; }
+.spinner__svg { animation: spin 1.4s linear infinite; }
+.spinner__track { stroke: var(--spinner-track, #e0e0e0); }
+.spinner__arc { stroke: var(--spinner-color, #5F2C82); animation: dash 1.4s ease-in-out infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes dash {
+  0% { stroke-dasharray: 1 200; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 100 200; stroke-dashoffset: -35; }
+  100% { stroke-dasharray: 100 200; stroke-dashoffset: -125; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .spinner__svg { animation: spin 3s linear infinite; }
+  .spinner__arc { animation: none; stroke-dasharray: 60 200; }
+}
+```
+
+### 9.2 CSS (full, with all variants)
+
+```css
+/* === Circular Spinner === */
+.spinner { display: inline-flex; align-items: center; justify-content: center; }
+.spinner__svg { animation: spin 1.4s linear infinite; }
+.spinner__track { stroke: var(--spinner-track, oklch(30% 0.02 305)); }
+.spinner__arc {
+  stroke: var(--spinner-color, oklch(42% 0.14 305));
+  stroke-linecap: round;
+  animation: dash 1.4s ease-in-out infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes dash {
+  0% { stroke-dasharray: 1 200; stroke-dashoffset: 0; }
+  50% { stroke-dasharray: 100 200; stroke-dashoffset: -35; }
+  100% { stroke-dasharray: 100 200; stroke-dashoffset: -125; }
+}
+
+/* === Dot Spinner === */
+.spinner-dots { display: inline-flex; gap: 4px; align-items: center; }
+.spinner-dots__dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--spinner-color, oklch(42% 0.14 305));
+  animation: dot-pulse 1.4s ease-in-out infinite;
+}
+.spinner-dots__dot:nth-child(2) { animation-delay: 0.16s; }
+.spinner-dots__dot:nth-child(3) { animation-delay: 0.32s; }
+@keyframes dot-pulse {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+/* === Bar Spinner (linear indeterminate) === */
+.spinner-bar {
+  width: 100%; height: 4px;
+  background: var(--spinner-track, oklch(30% 0.02 305));
+  border-radius: 2px; position: relative; overflow: hidden;
+}
+.spinner-bar__fill {
+  position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
+  background: var(--spinner-color, oklch(42% 0.14 305));
+  border-radius: inherit;
+  animation: bar-slide 1.6s ease-in-out infinite;
+}
+@keyframes bar-slide { 0% { left: -40%; } 100% { left: 100%; } }
+
+/* === Sizes === */
+.spinner--xs { width: 16px; height: 16px; }
+.spinner--sm { width: 20px; height: 20px; }
+.spinner--md { width: 24px; height: 24px; }
+.spinner--lg { width: 32px; height: 32px; }
+.spinner--xl { width: 48px; height: 48px; }
+
+/* === Label === */
+.spinner__label { font-size: 0.8rem; color: var(--text-muted); margin-top: 8px; }
+
+/* === Reduced motion === */
+@media (prefers-reduced-motion: reduce) {
+  .spinner__svg { animation: spin 3s linear infinite; }
+  .spinner__arc { animation: none; stroke-dasharray: 60 200; }
+  .spinner-dots__dot { animation: none; opacity: 0.7; }
+  .spinner-bar__fill { animation: none; left: 30%; width: 40%; opacity: 0.7; }
+}
+```
+
+### 9.3 React + TypeScript
+
+```typescript
+import { HTMLAttributes } from "react";
+
+type SpinnerType = "circular" | "dots" | "bar";
+type SpinnerSize = "xs" | "sm" | "md" | "lg" | "xl";
+
+interface SpinnerProps extends HTMLAttributes<HTMLDivElement> {
+  type?: SpinnerType;
+  size?: SpinnerSize;
+  label?: string;
+  showLabel?: boolean;
+  color?: string;
+}
+
+const SIZES: Record<SpinnerSize, number> = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+
+export function Spinner({
+  type = "circular", size = "md", label = "Loading",
+  showLabel = false, color, className = "", ...rest
+}: SpinnerProps) {
+  const px = SIZES[size];
+
+  return (
+    <div className={`spinner spinner--${size} ${className}`} role="status" aria-label={label}
+         style={color ? { '--spinner-color': color } as React.CSSProperties : undefined} {...rest}>
+      {type === "circular" && (
+        <svg viewBox="0 0 24 24" width={px} height={px} className="spinner__svg">
+          <circle className="spinner__track" cx="12" cy="12" r="10" fill="none" strokeWidth="3" />
+          <circle className="spinner__arc" cx="12" cy="12" r="10" fill="none" strokeWidth="3"
+                  strokeLinecap="round" strokeDasharray="60 200" />
+        </svg>
+      )}
+      {type === "dots" && (
+        <div className="spinner-dots">
+          <span className="spinner-dots__dot" />
+          <span className="spinner-dots__dot" />
+          <span className="spinner-dots__dot" />
+        </div>
+      )}
+      {type === "bar" && (
+        <div className="spinner-bar"><div className="spinner-bar__fill" /></div>
+      )}
+      {showLabel && <span className="spinner__label">{label}</span>}
+    </div>
+  );
+}
+```
+
+### 9.4 In a Button (pattern)
+
+```typescript
+<Button disabled={isLoading}>
+  {isLoading ? <Spinner size="xs" label="Submitting" /> : "Submit"}
+</Button>
+```
+
+### 9.5 Accessible region pattern
+
+```html
+<!-- The region that's loading -->
+<div aria-busy="true" aria-describedby="load-status">
+  <div id="load-status" class="spinner" role="status">
+    <span class="sr-only">Loading results...</span>
+    <!-- SVG spinner -->
+  </div>
+</div>
+
+<!-- When loading completes: aria-busy="false", remove spinner, optionally announce -->
+```
+
+### 9.6 Tailwind CSS
+
+```html
+<!-- Circular spinner -->
+<div role="status" aria-label="Loading">
+  <svg class="animate-spin h-6 w-6 text-purple-600" viewBox="0 0 24 24" fill="none">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+    <path class="opacity-75" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"
+          stroke-dasharray="60 200" d="M12 2a10 10 0 0 1 10 10"/>
+  </svg>
+  <span class="sr-only">Loading...</span>
+</div>
+
+<!-- Dot spinner -->
+<div class="flex gap-1 items-center" role="status" aria-label="Loading">
+  <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse [animation-delay:0ms]"></span>
+  <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse [animation-delay:150ms]"></span>
+  <span class="w-1.5 h-1.5 rounded-full bg-purple-600 animate-pulse [animation-delay:300ms]"></span>
+  <span class="sr-only">Loading...</span>
+</div>
+
+<!-- In a button -->
+<button disabled class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-700 text-white opacity-80">
+  <svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"/>
+    <path class="opacity-75" fill="none" stroke="currentColor" stroke-width="3"
+          stroke-linecap="round" stroke-dasharray="60 200" d="M12 2a10 10 0 0 1 10 10"/>
+  </svg>
+  Submitting...
+</button>
+```
+
+### 9.7 Next.js (App Router with Suspense)
+
+```typescript
+// app/components/spinner.tsx
+"use client";
+export { Spinner } from "./spinner-base"; // Re-export the React component above
+
+// app/loading.tsx — automatic route-level loading UI
+import { Spinner } from "@/components/spinner";
+export default function Loading() {
+  return (
+    <div className="flex items-center justify-center min-h-[200px]">
+      <Spinner size="lg" showLabel label="Loading page..." />
+    </div>
+  );
+}
+
+// In a Server Component with Suspense boundary:
+import { Suspense } from "react";
+import { Spinner } from "@/components/spinner";
+
+export default function Page() {
+  return (
+    <Suspense fallback={<Spinner size="md" label="Loading data..." />}>
+      <AsyncDataComponent />
+    </Suspense>
+  );
+}
+
+// Delayed spinner (avoid flash for fast loads):
+"use client";
+import { useState, useEffect } from "react";
+
+export function DelayedSpinner({ delay = 200, ...props }: SpinnerProps & { delay?: number }) {
+  const [show, setShow] = useState(false);
+  useEffect(() => {
+    const timer = setTimeout(() => setShow(true), delay);
+    return () => clearTimeout(timer);
+  }, [delay]);
+  if (!show) return null;
+  return <Spinner {...props} />;
+}
+```
+
+### 9.8 shadcn/ui
+
+```typescript
+// components/ui/spinner.tsx
+import { cn } from "@/lib/utils";
+import { cva, type VariantProps } from "class-variance-authority";
+
+const spinnerVariants = cva("inline-flex items-center justify-center", {
+  variants: {
+    size: {
+      xs: "h-4 w-4",
+      sm: "h-5 w-5",
+      md: "h-6 w-6",
+      lg: "h-8 w-8",
+      xl: "h-12 w-12",
+    },
+  },
+  defaultVariants: { size: "md" },
+});
+
+interface SpinnerProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof spinnerVariants> {
+  label?: string;
+}
+
+export function Spinner({ size, label = "Loading", className, ...props }: SpinnerProps) {
+  return (
+    <div role="status" aria-label={label} className={cn(spinnerVariants({ size }), className)} {...props}>
+      <svg className="animate-spin" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+        <path className="opacity-75" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
+              strokeDasharray="60 200" d="M12 2a10 10 0 0 1 10 10" />
+      </svg>
+      <span className="sr-only">{label}</span>
+    </div>
+  );
+}
+```
+
+### 9.9 Vue 3
+
+```html
+<script setup lang="ts">
+defineProps<{
+  type?: 'circular' | 'dots' | 'bar';
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  label?: string;
+  showLabel?: boolean;
+}>();
+
+const sizes = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+</script>
+
+<template>
+  <div :class="['spinner', `spinner--${size ?? 'md'}`]" role="status" :aria-label="label ?? 'Loading'">
+    <!-- Circular -->
+    <svg v-if="(type ?? 'circular') === 'circular'" viewBox="0 0 24 24"
+         :width="sizes[size ?? 'md']" :height="sizes[size ?? 'md']" class="spinner__svg">
+      <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3"/>
+      <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+              stroke-linecap="round" stroke-dasharray="60 200"/>
+    </svg>
+    <!-- Dots -->
+    <div v-else-if="type === 'dots'" class="spinner-dots">
+      <span v-for="i in 3" :key="i" class="spinner-dots__dot"/>
+    </div>
+    <!-- Bar -->
+    <div v-else class="spinner-bar"><div class="spinner-bar__fill"/></div>
+
+    <span v-if="showLabel" class="spinner__label">{{ label ?? 'Loading...' }}</span>
+  </div>
+</template>
+```
+
+### 9.10 Svelte
+
+```svelte
+<script lang="ts">
+  export let type: 'circular' | 'dots' | 'bar' = 'circular';
+  export let size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md';
+  export let label = 'Loading';
+  export let showLabel = false;
+
+  const sizes: Record<string, number> = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+</script>
+
+<div class="spinner spinner--{size}" role="status" aria-label={label}>
+  {#if type === 'circular'}
+    <svg viewBox="0 0 24 24" width={sizes[size]} height={sizes[size]} class="spinner__svg">
+      <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3"/>
+      <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+              stroke-linecap="round" stroke-dasharray="60 200"/>
+    </svg>
+  {:else if type === 'dots'}
+    <div class="spinner-dots">
+      <span class="spinner-dots__dot"></span>
+      <span class="spinner-dots__dot"></span>
+      <span class="spinner-dots__dot"></span>
+    </div>
+  {:else}
+    <div class="spinner-bar"><div class="spinner-bar__fill"></div></div>
+  {/if}
+  {#if showLabel}<span class="spinner__label">{label}</span>{/if}
+</div>
+```
+
+### 9.11 Angular (standalone)
+
+```typescript
+import { Component, Input } from '@angular/core';
+import { CommonModule } from '@angular/common';
+
+@Component({
+  selector: 'app-spinner',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div [class]="'spinner spinner--' + size" role="status" [attr.aria-label]="label">
+      <!-- Circular -->
+      <svg *ngIf="type === 'circular'" viewBox="0 0 24 24"
+           [attr.width]="sizes[size]" [attr.height]="sizes[size]" class="spinner__svg">
+        <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3"/>
+        <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+                stroke-linecap="round" stroke-dasharray="60 200"/>
+      </svg>
+      <!-- Dots -->
+      <div *ngIf="type === 'dots'" class="spinner-dots">
+        <span *ngFor="let d of [1,2,3]" class="spinner-dots__dot"></span>
+      </div>
+      <!-- Bar -->
+      <div *ngIf="type === 'bar'" class="spinner-bar"><div class="spinner-bar__fill"></div></div>
+      <span *ngIf="showLabel" class="spinner__label">{{ label }}</span>
+    </div>
+  `,
+  styleUrls: ['./spinner.component.css']
+})
+export class SpinnerComponent {
+  @Input() type: 'circular' | 'dots' | 'bar' = 'circular';
+  @Input() size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md';
+  @Input() label = 'Loading';
+  @Input() showLabel = false;
+  sizes: Record<string, number> = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+}
+```
+
+### 9.12 Bootstrap 5
+
+```html
+<!-- Bootstrap's built-in spinner -->
+<div class="spinner-border text-primary" role="status" style="width: 1.5rem; height: 1.5rem;">
+  <span class="visually-hidden">Loading...</span>
+</div>
+
+<!-- Growing variant -->
+<div class="spinner-grow text-primary" role="status" style="width: 1.5rem; height: 1.5rem;">
+  <span class="visually-hidden">Loading...</span>
+</div>
+
+<!-- In a button -->
+<button class="btn btn-primary" type="button" disabled>
+  <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+  <span>Submitting...</span>
+</button>
+
+<!-- Size variants via style -->
+<div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+  <span class="visually-hidden">Loading...</span>
+</div>
+```
+
+### 9.13 Web Components
+
+```typescript
+class UiSpinner extends HTMLElement {
+  static observedAttributes = ['type', 'size', 'label', 'show-label'];
+
+  connectedCallback() { this.attachShadow({ mode: 'open' }); this.render(); }
+  attributeChangedCallback() { if (this.shadowRoot) this.render(); }
+
+  render() {
+    const type = this.getAttribute('type') || 'circular';
+    const size = this.getAttribute('size') || 'md';
+    const label = this.getAttribute('label') || 'Loading';
+    const showLabel = this.hasAttribute('show-label');
+    const sizes: Record<string, number> = { xs: 16, sm: 20, md: 24, lg: 32, xl: 48 };
+    const px = sizes[size] || 24;
+
+    let visual = '';
+    if (type === 'circular') {
+      visual = `<svg viewBox="0 0 24 24" width="${px}" height="${px}" class="svg">
+        <circle class="track" cx="12" cy="12" r="10" fill="none" stroke-width="3"/>
+        <circle class="arc" cx="12" cy="12" r="10" fill="none" stroke-width="3" stroke-linecap="round" stroke-dasharray="60 200"/>
+      </svg>`;
+    } else if (type === 'dots') {
+      visual = `<div class="dots"><span></span><span></span><span></span></div>`;
+    } else {
+      visual = `<div class="bar"><div class="bar-fill"></div></div>`;
+    }
+
+    this.shadowRoot!.innerHTML = `
+      <style>
+        :host { display: inline-flex; flex-direction: column; align-items: center; }
+        .svg { animation: spin 1.4s linear infinite; }
+        .track { stroke: var(--spinner-track, #333); }
+        .arc { stroke: var(--spinner-color, #5F2C82); animation: dash 1.4s ease-in-out infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        @keyframes dash {
+          0% { stroke-dasharray: 1 200; stroke-dashoffset: 0; }
+          50% { stroke-dasharray: 100 200; stroke-dashoffset: -35; }
+          100% { stroke-dasharray: 100 200; stroke-dashoffset: -125; }
+        }
+        .dots { display: flex; gap: 4px; }
+        .dots span { width: 6px; height: 6px; border-radius: 50%; background: var(--spinner-color, #5F2C82); animation: pulse 1.4s ease-in-out infinite; }
+        .dots span:nth-child(2) { animation-delay: 0.16s; }
+        .dots span:nth-child(3) { animation-delay: 0.32s; }
+        @keyframes pulse { 0%,80%,100% { transform: scale(0.6); opacity: 0.4; } 40% { transform: scale(1); opacity: 1; } }
+        .bar { width: 100px; height: 4px; background: var(--spinner-track, #333); border-radius: 2px; position: relative; overflow: hidden; }
+        .bar-fill { position: absolute; top: 0; bottom: 0; left: -40%; width: 40%; background: var(--spinner-color, #5F2C82); border-radius: inherit; animation: slide 1.6s ease-in-out infinite; }
+        @keyframes slide { 0% { left: -40%; } 100% { left: 100%; } }
+        .label { font: 400 12px system-ui; color: #888; margin-top: 8px; }
+        @media (prefers-reduced-motion: reduce) {
+          .svg { animation-duration: 3s; } .arc { animation: none; stroke-dasharray: 60 200; }
+          .dots span { animation: none; opacity: 0.7; } .bar-fill { animation: none; left: 30%; }
+        }
+      </style>
+      <div role="status" aria-label="${label}">
+        ${visual}
+        ${showLabel ? `<span class="label">${label}</span>` : ''}
+      </div>`;
+  }
+}
+customElements.define('ui-spinner', UiSpinner);
+// <ui-spinner type="circular" size="lg" label="Fetching data" show-label></ui-spinner>
+```
+
+### 9.14 Python (server-side rendering)
+
+```python
+# Jinja2 macro for rendering a spinner (Django/Flask)
+{% macro spinner(size='md', type='circular', label='Loading', show_label=False) %}
+{% set sizes = {'xs': 16, 'sm': 20, 'md': 24, 'lg': 32, 'xl': 48} %}
+{% set px = sizes.get(size, 24) %}
+<div class="spinner spinner--{{ size }}" role="status" aria-label="{{ label }}">
+  {% if type == 'circular' %}
+    <svg viewBox="0 0 24 24" width="{{ px }}" height="{{ px }}" class="spinner__svg">
+      <circle class="spinner__track" cx="12" cy="12" r="10" fill="none" stroke-width="3"/>
+      <circle class="spinner__arc" cx="12" cy="12" r="10" fill="none" stroke-width="3"
+              stroke-linecap="round" stroke-dasharray="60 200"/>
+    </svg>
+  {% elif type == 'dots' %}
+    <div class="spinner-dots">
+      <span class="spinner-dots__dot"></span>
+      <span class="spinner-dots__dot"></span>
+      <span class="spinner-dots__dot"></span>
+    </div>
+  {% else %}
+    <div class="spinner-bar"><div class="spinner-bar__fill"></div></div>
+  {% endif %}
+  {% if show_label %}<span class="spinner__label">{{ label }}</span>{% endif %}
+</div>
+{% endmacro %}
+
+{# Usage: #}
+{{ spinner(size='lg', type='circular', label='Loading results', show_label=True) }}
+
+{# HTMX: show spinner while request is in-flight #}
+<button hx-get="/api/data" hx-target="#results" hx-indicator="#my-spinner">
+  Load Data
+</button>
+<div id="my-spinner" class="htmx-indicator">
+  {{ spinner(size='sm', label='Fetching') }}
+</div>
+# FastAPI: endpoint that might use a loading state
+from fastapi import FastAPI
+from fastapi.responses import HTMLResponse
+
+app = FastAPI()
+
+@app.get("/api/data", response_class=HTMLResponse)
+async def get_data():
+    """Returns HTML fragment (for HTMX). The spinner shows during the request."""
+    data = await slow_database_query()
+    return render_template("partials/data_list.html", data=data)
+
+# The spinner is client-side only. Server's job: respond as fast as possible.
+# If you MUST indicate server-side progress (streaming), use SSE:
+from fastapi.responses import StreamingResponse
+
+@app.get("/api/export")
+async def export_data():
+    async def generate():
+        yield "data: {\"status\": \"processing\", \"progress\": 0}\n\n"
+        # ... process ...
+        yield "data: {\"status\": \"complete\", \"url\": \"/exports/123.csv\"}\n\n"
+    return StreamingResponse(generate(), media_type="text/event-stream")
+```
+
+### 9.15 SwiftUI
+
+```swift
+import SwiftUI
+
+struct SpinnerView: View {
+    enum SpinnerType { case circular, dots, bar }
+    enum SpinnerSize: CGFloat { case xs = 16, sm = 20, md = 24, lg = 32, xl = 48 }
+
+    var type: SpinnerType = .circular
+    var size: SpinnerSize = .md
+    var label: String = "Loading"
+    var showLabel: Bool = false
+    var color: Color = .purple
+
+    @State private var isAnimating = false
+
+    var body: some View {
+        VStack(spacing: 8) {
+            switch type {
+            case .circular:
+                Circle()
+                    .trim(from: 0.0, to: 0.7)
+                    .stroke(color, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                    .frame(width: size.rawValue, height: size.rawValue)
+                    .rotationEffect(.degrees(isAnimating ? 360 : 0))
+                    .animation(.linear(duration: 1.4).repeatForever(autoreverses: false), value: isAnimating)
+
+            case .dots:
+                HStack(spacing: 4) {
+                    ForEach(0..<3) { index in
+                        Circle()
+                            .fill(color)
+                            .frame(width: size.rawValue / 4, height: size.rawValue / 4)
+                            .scaleEffect(isAnimating ? 1.0 : 0.5)
+                            .opacity(isAnimating ? 1.0 : 0.4)
+                            .animation(
+                                .easeInOut(duration: 0.6)
+                                .repeatForever()
+                                .delay(Double(index) * 0.15),
+                                value: isAnimating
+                            )
+                    }
+                }
+
+            case .bar:
+                GeometryReader { geo in
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(color.opacity(0.2))
+                        .frame(height: 4)
+                        .overlay(alignment: .leading) {
+                            RoundedRectangle(cornerRadius: 2)
+                                .fill(color)
+                                .frame(width: geo.size.width * 0.4)
+                                .offset(x: isAnimating ? geo.size.width : -geo.size.width * 0.4)
+                                .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: false), value: isAnimating)
+                        }
+                }
+                .frame(width: 100, height: 4)
+            }
+
+            if showLabel {
+                Text(label)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(label)
+        .accessibilityAddTraits(.updatesFrequently)
+        .onAppear { isAnimating = true }
+    }
+}
+
+// Native alternative (simpler):
+struct NativeSpinner: View {
+    var body: some View {
+        ProgressView()
+            .progressViewStyle(.circular)
+            .accessibilityLabel("Loading")
+    }
+}
+```
+
+### 9.16 Jetpack Compose (Android)
+
+```kotlin
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.semantics.*
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun Spinner(
+    type: SpinnerType = SpinnerType.Circular,
+    size: SpinnerSize = SpinnerSize.Md,
+    label: String = "Loading",
+    showLabel: Boolean = false,
+    color: Color = MaterialTheme.colorScheme.primary
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.semantics {
+            contentDescription = label
+            liveRegion = LiveRegionMode.Polite
+        }
+    ) {
+        when (type) {
+            SpinnerType.Circular -> {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(size.dp),
+                    color = color,
+                    strokeWidth = 3.dp
+                )
+            }
+            SpinnerType.Dots -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    repeat(3) { index ->
+                        val infiniteTransition = rememberInfiniteTransition(label = "dot-$index")
+                        val scale by infiniteTransition.animateFloat(
+                            initialValue = 0.5f, targetValue = 1f,
+                            animationSpec = infiniteRepeatable(
+                                animation = tween(600, delayMillis = index * 150),
+                                repeatMode = RepeatMode.Reverse
+                            ), label = "dot-scale-$index"
+                        )
+                        Box(
+                            modifier = Modifier
+                                .size((size.dp.value / 4).dp)
+                                .scale(scale)
+                                .background(color, CircleShape)
+                        )
+                    }
+                }
+            }
+            SpinnerType.Bar -> {
+                LinearProgressIndicator(
+                    modifier = Modifier
+                        .width(100.dp)
+                        .height(4.dp),
+                    color = color
+                )
+            }
+        }
+        if (showLabel) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+enum class SpinnerType { Circular, Dots, Bar }
+enum class SpinnerSize(val dp: Int) { Xs(16), Sm(20), Md(24), Lg(32), Xl(48) }
+
+// Usage:
+// Spinner(type = SpinnerType.Circular, size = SpinnerSize.Lg, showLabel = true)
+// In a button:
+// Button(onClick = {}, enabled = !isLoading) {
+//     if (isLoading) Spinner(size = SpinnerSize.Xs) else Text("Submit")
+// }
+```
+
+### 9.17 Flutter (Dart)
+
+```dart
+import 'package:flutter/material.dart';
+
+enum SpinnerType { circular, dots, bar }
+enum SpinnerSize { xs, sm, md, lg, xl }
+
+class SpinnerWidget extends StatelessWidget {
+  final SpinnerType type;
+  final SpinnerSize size;
+  final String label;
+  final bool showLabel;
+  final Color? color;
+
+  const SpinnerWidget({
+    super.key,
+    this.type = SpinnerType.circular,
+    this.size = SpinnerSize.md,
+    this.label = 'Loading',
+    this.showLabel = false,
+    this.color,
+  });
+
+  double get _size {
+    switch (size) {
+      case SpinnerSize.xs: return 16;
+      case SpinnerSize.sm: return 20;
+      case SpinnerSize.md: return 24;
+      case SpinnerSize.lg: return 32;
+      case SpinnerSize.xl: return 48;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final spinnerColor = color ?? Theme.of(context).colorScheme.primary;
+
+    return Semantics(
+      label: label,
+      liveRegion: true,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildSpinner(spinnerColor),
+          if (showLabel) ...[
+            const SizedBox(height: 8),
+            Text(label, style: Theme.of(context).textTheme.bodySmall),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSpinner(Color c) {
+    switch (type) {
+      case SpinnerType.circular:
+        return SizedBox(
+          width: _size, height: _size,
+          child: CircularProgressIndicator(
+            strokeWidth: 3,
+            color: c,
+          ),
+        );
+      case SpinnerType.dots:
+        return _DotsSpinner(size: _size / 4, color: c);
+      case SpinnerType.bar:
+        return SizedBox(
+          width: 100, height: 4,
+          child: LinearProgressIndicator(color: c),
+        );
+    }
+  }
+}
+
+class _DotsSpinner extends StatefulWidget {
+  final double size;
+  final Color color;
+  const _DotsSpinner({required this.size, required this.color});
+
+  @override
+  State<_DotsSpinner> createState() => _DotsSpinnerState();
+}
+
+class _DotsSpinnerState extends State<_DotsSpinner> with TickerProviderStateMixin {
+  late final List<AnimationController> _controllers;
+
+  @override
+  void initState() {
+    super.initState();
+    _controllers = List.generate(3, (i) =>
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 600))
+        ..repeat(reverse: true)
+        ..addStatusListener((_) {})
+    );
+    for (var i = 0; i < 3; i++) {
+      Future.delayed(Duration(milliseconds: i * 150), () {
+        if (mounted) _controllers[i].repeat(reverse: true);
+      });
+    }
+  }
+
+  @override
+  void dispose() { for (var c in _controllers) c.dispose(); super.dispose(); }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(3, (i) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: ScaleTransition(
+          scale: Tween(begin: 0.5, end: 1.0).animate(_controllers[i]),
+          child: Container(
+            width: widget.size, height: widget.size,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: widget.color),
+          ),
+        ),
+      )),
+    );
+  }
+}
+
+// Usage:
+// SpinnerWidget(type: SpinnerType.circular, size: SpinnerSize.lg, showLabel: true)
+// In a button:
+// ElevatedButton(
+//   onPressed: isLoading ? null : onSubmit,
+//   child: isLoading
+//     ? const SpinnerWidget(size: SpinnerSize.xs, label: 'Submitting')
+//     : const Text('Submit'),
+// )
+```
+
+### 9.18 Testing (comprehensive)
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import { axe } from "jest-axe";
+import { Spinner } from "./Spinner";
+
+describe("Spinner", () => {
+  // Semantics
+  it("has role=status", () => {
+    render(<Spinner />);
+    expect(screen.getByRole("status")).toBeInTheDocument();
+  });
+
+  it("has an accessible label", () => {
+    render(<Spinner label="Fetching results" />);
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Fetching results");
+  });
+
+  it("defaults label to 'Loading'", () => {
+    render(<Spinner />);
+    expect(screen.getByRole("status")).toHaveAttribute("aria-label", "Loading");
+  });
+
+  // Types
+  it("renders circular SVG by default", () => {
+    const { container } = render(<Spinner type="circular" />);
+    expect(container.querySelector("svg")).toBeInTheDocument();
+    expect(container.querySelector(".spinner__arc")).toBeInTheDocument();
+  });
+
+  it("renders dots variant", () => {
+    const { container } = render(<Spinner type="dots" />);
+    expect(container.querySelectorAll(".spinner-dots__dot")).toHaveLength(3);
+  });
+
+  it("renders bar variant", () => {
+    const { container } = render(<Spinner type="bar" />);
+    expect(container.querySelector(".spinner-bar__fill")).toBeInTheDocument();
+  });
+
+  // Sizes
+  it("applies size class", () => {
+    const { container } = render(<Spinner size="lg" />);
+    expect(container.querySelector(".spinner--lg")).toBeInTheDocument();
+  });
+
+  it("renders SVG at correct pixel size", () => {
+    const { container } = render(<Spinner size="xl" />);
+    const svg = container.querySelector("svg");
+    expect(svg).toHaveAttribute("width", "48");
+    expect(svg).toHaveAttribute("height", "48");
+  });
+
+  // Label
+  it("shows visible label when showLabel is true", () => {
+    render(<Spinner showLabel label="Loading data" />);
+    expect(screen.getByText("Loading data")).toBeInTheDocument();
+  });
+
+  it("hides label by default", () => {
+    render(<Spinner label="Hidden" />);
+    expect(screen.queryByText("Hidden")).not.toBeInTheDocument();
+  });
+
+  // Accessibility
+  it("does NOT use role=alert (too aggressive)", () => {
+    render(<Spinner />);
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(<Spinner />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("has no axe violations with visible label", async () => {
+    const { container } = render(<Spinner showLabel label="Loading" />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  // Custom color
+  it("applies custom color via CSS variable", () => {
+    const { container } = render(<Spinner color="#DCA424" />);
+    const spinner = container.querySelector(".spinner");
+    expect(spinner).toHaveStyle({ '--spinner-color': '#DCA424' });
+  });
+});
+```
+
+---
+
+## 10\. Accessibility
+**`role="status"`** on the spinner container announces to screen readers politely. Don't use `role="alert"` (that's assertive/interruptive).
+
+**`aria-busy="true"`** on the region being loaded tells AT that content is not yet ready. Flip to `false` when done.
+
+**Visible or sr-only label:** "Loading" text either visible below the spinner or as `aria-label`. The animation alone is invisible to screen readers.
+
+**`prefers-reduced-motion`****\*\*\*\*:** slow the rotation dramatically or switch to a static pulsing opacity. Never remove the indicator entirely.
+
+**Minimum display time:** show for at least 500ms even if the load finishes faster, to avoid a confusing flash of spinner + content.
+
+---
+
+## 11\. Innovative / Emerging Ideas
+*   **Branded spinners:** custom SVG animations that reinforce brand identity
+*   **Progress-aware spinners:** start indeterminate, switch to determinate as data arrives
+*   **AI streaming indicators:** pulsing dots for LLM generation, transitioning to skeleton as structure emerges
+*   **Haptic feedback:** on mobile, a subtle vibration when loading completes
+
+---
+
+## 12\. Conversion / UX Killers
+*   **Spinner for sub-200ms loads:** a flash of spinner makes fast things feel slow
+*   **No minimum display:** spinner appears for 50ms and vanishes, feels glitchy
+*   **Spinner without context:** users don't know _what_ is loading. Add a label.
+*   **Infinite spinner (no timeout):** if the request fails silently, the spinner spins forever. Always have a timeout + error state.
+*   **Full-page spinner blocking interaction:** users can't navigate away or cancel
+*   **Animation janking the main thread:** complex JS animations during a heavy load
+
+---
+
+## 13\. Advanced Patterns
+**Delayed appearance:** mount the spinner with `opacity: 0`, transition to visible after 200-400ms. If loading completes before the delay, the spinner never shows.
+
+**Skeleton → Spinner fallback:** show skeleton immediately; if load exceeds 5s, overlay a spinner to signal "still working" since a frozen skeleton looks broken.
+
+**Button loading state:** replace label with spinner, disable the button, keep the button width stable (min-width or fixed width) to prevent layout shift.
+
+---
+
+## 14\. Performance & Bundle Cost
+*   **CSS animation over JS.** CSS `@keyframes` runs on the compositor thread and won't jank during heavy main-thread work. requestAnimationFrame-driven spinners will freeze during the exact moments you need them most.
+*   **SVG over GIF.** SVGs are resolution-independent, stylable, and tiny. GIFs are fixed-size, can't be themed, and are often 5-20KB.
+*   **Avoid layout thrash on mount/unmount.** Reserve the spinner's space in layout so content doesn't jump.
+
+---
+
+## 15\. Security
+Minimal security surface. The only concern: if the spinner's `aria-label` is dynamically generated from server content, sanitize it to prevent XSS.
+
+---
+
+## 16\. Senior-Level Checklist
+*   `role="status"` on the spinner (polite announcement)
+*   `aria-busy="true"` on the loading region
+*   Visible or sr-only label ("Loading...")
+*   `prefers-reduced-motion` honored (slow/pause animation)
+*   Delayed appearance (no flash for fast loads, ≥200ms delay)
+*   Minimum display time (≥500ms to avoid flicker)
+*   Timeout + error state (never spin forever)
+*   CSS animation, not JS (compositor thread)
+*   Button loading state keeps stable width
+
+---
+
+## 17\. Visual Styles
+**Flat:** simple arc rotation, solid color on light track.
+**Material:** Material's signature stretch-and-rotate (dasharray animation). Tonal color roles.
+**Glassmorphism:** translucent spinner over blurred content. Track barely visible.
+**Liquid Glass:** refractive arc with specular highlights. Gorgeous but ensure the spinner remains visible on any background.
+**Neumorphism:** spinner appears inset into the soft surface. Track is the "groove."
+**Skeuomorphism:** the classic iOS "fan" with radial fading segments.
+**Neo-Brutalism:** thick black arc, hard edges, no antialiasing.
+**Claymorphism:** puffy, rounded stroke ends, bouncy easing.
+**Aurora/Gradient:** the arc itself is an animated gradient. Honor reduced-motion.
+**Minimal/Swiss:** thin, single-weight arc. No track. Just the moving line.
+**UJG Brand:** Eminence arc on Goldenrod track, warm glow pulse. The house default.
+
+Full style definitions on the 🎨 Design Styles (visual languages).

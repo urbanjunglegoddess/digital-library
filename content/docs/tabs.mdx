@@ -1,0 +1,1203 @@
+---
+name: Tabs
+slug: tabs
+category: Navigation
+status: built
+summary: "A set of layered content panels where only one shows at a time, with a row of tabs to pick which — an in-page content switcher, not navigation."
+clickup_page_id: 838qa-216711
+tags: [tabs, panels, content, navigation]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- The tablist names itself and its orientation -->
+      <div class="tabs">
+        <div role="tablist" aria-label="Account settings" class="tablist">
+          <button role="tab" id="tab-profile"  aria-selected="true"
+                  aria-controls="panel-profile" tabindex="0" class="tab">
+            Profile
+          </button>
+          <button role="tab" id="tab-security" aria-selected="false"
+                  aria-controls="panel-security" tabindex="-1" class="tab">
+            Security
+          </button>
+          <button role="tab" id="tab-billing"  aria-selected="false"
+                  aria-controls="panel-billing" tabindex="-1" class="tab">
+            Billing
+          </button>
+        </div>
+
+        <!-- Exactly one panel visible; the rest are hidden in the DOM -->
+        <div role="tabpanel" id="panel-profile"  aria-labelledby="tab-profile"  tabindex="0" class="panel">
+          <h3>Profile</h3> …
+        </div>
+        <div role="tabpanel" id="panel-security" aria-labelledby="tab-security" tabindex="0" class="panel" hidden>
+          <h3>Security</h3> …
+        </div>
+        <div role="tabpanel" id="panel-billing"  aria-labelledby="tab-billing"  tabindex="0" class="panel" hidden>
+          <h3>Billing</h3> …
+        </div>
+      </div>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import {
+        createContext, useContext, useId, useRef, useState,
+        KeyboardEvent, ReactNode, useCallback,
+      } from "react";
+
+      type Activation = "automatic" | "manual";
+      type Orientation = "horizontal" | "vertical";
+
+      interface TabsCtx {
+        value: string;
+        setValue: (v: string) => void;
+        activation: Activation;
+        orientation: Orientation;
+        register: (v: string) => void;
+        order: React.MutableRefObject<string[]>;
+        baseId: string;
+      }
+      const Ctx = createContext<TabsCtx | null>(null);
+      const useTabs = () => {
+        const c = useContext(Ctx);
+        if (!c) throw new Error("Tabs.* must render inside <Tabs>");
+        return c;
+      };
+
+      export function Tabs({
+        defaultValue, value: controlled, onValueChange,
+        activation = "automatic", orientation = "horizontal", children,
+      }: {
+        defaultValue?: string;
+        value?: string;
+        onValueChange?: (v: string) => void;
+        activation?: Activation;
+        orientation?: Orientation;
+        children: ReactNode;
+      }) {
+        const [uncontrolled, setUncontrolled] = useState(defaultValue ?? "");
+        const value = controlled ?? uncontrolled;
+        const order = useRef<string[]>([]);
+        const baseId = useId();
+
+        const setValue = useCallback((v: string) => {
+          if (controlled === undefined) setUncontrolled(v);
+          onValueChange?.(v);
+        }, [controlled, onValueChange]);
+
+        const register = useCallback((v: string) => {
+          if (!order.current.includes(v)) order.current.push(v);
+        }, []);
+
+        return (
+          <Ctx.Provider value={{ value, setValue, activation, orientation, register, order, baseId }}>
+            {children}
+          </Ctx.Provider>
+        );
+      }
+
+      export function TabList({ children, "aria-label": label }: { children: ReactNode; "aria-label": string }) {
+        const { orientation } = useTabs();
+        return (
+          <div role="tablist" aria-label={label} aria-orientation={orientation} className="tablist">
+            {children}
+          </div>
+        );
+      }
+
+      export function Tab({ value, children, disabled }: { value: string; children: ReactNode; disabled?: boolean }) {
+        const { value: active, setValue, activation, orientation, register, order, baseId } = useTabs();
+        register(value);
+        const selected = active === value;
+
+        const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+          const list = order.current;
+          const i = list.indexOf(value);
+          const next = orientation === "vertical" ? "ArrowDown" : "ArrowRight";
+          const prev = orientation === "vertical" ? "ArrowUp" : "ArrowLeft";
+          let ni: number | null = null;
+          if (e.key === next) ni = (i + 1) % list.length;
+          else if (e.key === prev) ni = (i - 1 + list.length) % list.length;
+          else if (e.key === "Home") ni = 0;
+          else if (e.key === "End") ni = list.length - 1;
+          else return;
+          e.preventDefault();
+          const target = list[ni];
+          document.getElementById(`${baseId}-tab-${target}`)?.focus();  // move focus
+          if (activation === "automatic") setValue(target);             // ...and maybe select
+        };
+
+        return (
+          <button
+            role="tab"
+            id={`${baseId}-tab-${value}`}
+            aria-selected={selected}
+            aria-controls={`${baseId}-panel-${value}`}
+            aria-disabled={disabled || undefined}
+            tabIndex={selected ? 0 : -1}                 // roving tabindex
+            className="tab"
+            onKeyDown={onKeyDown}
+            onClick={() => !disabled && setValue(value)}
+          >
+            {children}
+          </button>
+        );
+      }
+
+      export function TabPanel({ value, children, keepMounted = false }:
+        { value: string; children: ReactNode; keepMounted?: boolean }) {
+        const { value: active, baseId } = useTabs();
+        const selected = active === value;
+        // Lazy by default: don't render until first selected. keepMounted preserves it after.
+        const mounted = useRef(false);
+        if (selected) mounted.current = true;
+        return (
+          <div
+            role="tabpanel"
+            id={`${baseId}-panel-${value}`}
+            aria-labelledby={`${baseId}-tab-${value}`}
+            tabIndex={0}
+            hidden={!selected}
+            className="panel"
+          >
+            {(selected || (keepMounted && mounted.current)) ? children : null}
+          </div>
+        );
+      }
+  - language: html
+    label: Tailwind
+    code: |
+      <div role="tablist" aria-label="Sections"
+           class="flex gap-1 border-b border-slate-700">
+        <button role="tab" id="tab-overview" aria-selected="true" aria-controls="p1" tabindex="0"
+          class="min-h-11 px-4 text-sm font-medium text-slate-400 border-b-2 border-transparent
+                 hover:text-slate-100 transition-colors
+                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400
+                 aria-selected:text-slate-100 aria-selected:border-amber-400">
+          Overview
+        </button>
+        <!-- more tabs, tabindex="-1" -->
+      </div>
+      <div role="tabpanel" id="p1" aria-labelledby="tab-overview" tabindex="0" class="py-5">…</div>
+---
+
+## 1\. What a Tabs Widget Actually Is
+A tabs widget is a set of layered content panels — the **tab panels** — where only **one panel is visible at a time**, and a row of **tabs** lets the user pick which. Think of a physical filing cabinet: many folders, one pulled forward. That's it. But this simple picture hides four very different things people constantly conflate:
+
+* **Tabs (this doc — an ARIA widget):** an _in-page content switcher_. Nothing navigates. The URL does not change (unless you choose to sync it). One `tabpanel` shows, the rest are hidden in the DOM. Semantics are `role="tablist"` / `role="tab"` / `role="tabpanel"`. It is a **widget**, operated with arrow keys.
+* **Tab Navigation (its own sibling doc):** looks identical — a row of tab-shaped links across the top of a page — but each "tab" is an `<a href>` that **navigates to a different URL / route**. It's a `<nav>` full of links, not a `tablist`. Back button works, links are shareable, each destination is its own document. **Do not** put `role="tab"` on navigation. This is the single most common tabs mistake on the web.
+* **Accordion:** vertically stacked headers, each expanding a panel _in place_, and **multiple panels can be open at once** (usually). Tabs are horizontal-first and mutually exclusive; accordions are vertical and often multi-select. On narrow screens a tabset frequently _becomes_ an accordion ("tabcordion").
+* **Segmented control:** a compact row of mutually-exclusive options that filters or switches a _view_ (Day / Week / Month). Semantically it's usually a `radiogroup`, not a `tablist`. The tell: a segmented control changes _data or mode_ in one region; tabs reveal _distinct pre-authored panels of content_.
+
+The rule of thumb that keeps you out of trouble: **if it changes the URL, it's navigation (links) — not a tabs widget. If it reveals one of several sibling content panels on the same page without navigating, it's a tabs widget.** A "tab" that goes somewhere is a link wearing a costume.
+
+One more distinction juniors miss: tabs are for **peer content of equal importance** that the user chooses between (Description / Reviews / Shipping). They are _not_ a wizard (ordered steps with a required sequence — that's a stepper) and _not_ a way to hide your primary content behind a click (if 90% of users need panel one, it shouldn't be a tab).
+
+---
+
+## 2\. Why It Matters
+Tabs look decorative. They're actually a load-bearing information-architecture decision with real stakes:
+
+* **They ration attention.** Tabs let you present a lot of content in a small space by trading visibility for a click. Done well, they reduce cognitive load; done badly, they _bury_ the thing users came for. Every tab is a bet that the content behind it is secondary. Bet wrong and your conversion path is one click deeper than it should be.
+* **They're an accessibility cliff.** The tabs widget is one of the most-faked components on the web — a pile of `<div>`s with click handlers and no roving tabindex, no `aria-selected`, no `tabpanel` wiring. To a screen-reader user that's not a tabset, it's noise: they can't tell how many tabs exist, which is selected, or that a panel is associated with a tab. Get the ARIA pattern right and an entire class of users can actually use your product.
+* **They shape perceived performance and trust.** A tab that flashes empty, reflows the page, or loses your scroll position on every switch feels broken. Lazy-loaded panels, stable panel height, and a smooth (but reduced-motion-aware) indicator are the difference between "snappy app" and "janky website."
+* **They're an SEO and shareability trap.** Content hidden in inactive tab panels is still in the DOM and indexable — but it's not linkable unless you sync state to the URL. Teams routinely hide important content in tab three and wonder why nobody sees it. If a panel deserves its own shareable link, that's a signal you wanted **Tab Navigation**, not a widget.
+
+---
+
+## 3\. Anatomy of a Tabs Widget
+Every correctly-built tabset is composed of predictable parts, each with a required role:
+
+* **Tablist container** (`role="tablist"`): the wrapper around the row of tabs. Optionally `aria-label` or `aria-labelledby` to name the whole set ("Account settings sections"). Carries `aria-orientation` when vertical.
+* **Tab** (`role="tab"`): the clickable label. Each has `aria-selected` (true on exactly one), `aria-controls` pointing at its panel's `id`, and participates in **roving tabindex** (`tabindex="0"` on the active tab, `-1` on the rest). Must be a real `<button>` underneath.
+* **Tab panel** (`role="tabpanel"`): the content region. Has `aria-labelledby` pointing back at its tab's `id`, and `tabindex="0"` **only when it holds no focusable children** (so keyboard users can reach the content). The inactive ones are `hidden`.
+* **Active indicator:** the visual mark of the selected tab — an underline bar, a filled pill, a border. Often animated to slide between tabs. Pure decoration; the _real_ selected state is `aria-selected`, never color alone.
+* **Overflow affordance (optional):** when tabs exceed the width — a horizontal scroll region with edge fades, or a "More ▾" dropdown that holds the tabs that don't fit.
+* **Focus ring:** the keyboard-focus outline on the currently-focused tab. Distinct from the _selected_ indicator (in manual-activation mode, focus and selection can be on different tabs).
+
+The mental model that makes the rest of this doc click: there are **two independent pointers** in a tabset — which tab has **focus** (moved by arrow keys) and which tab is **selected** (whose panel is shown). In _automatic_ activation they're always the same. In _manual_ activation they can diverge. Hold that idea.
+
+---
+
+## 4\. Sizes, Density & Layout Scale
+Tabs inherit the type scale but have their own density knobs. Real values you can ship:
+
+| Density | Tab height | Padding (H) | Font | Gap | Use |
+| ---| ---| ---| ---| ---| --- |
+| Compact | 32px | 12px | 13px | 4px | Dense dashboards, side panels, IDE-like UIs |
+| Default | 40px | 16px | 14px | 8px | Most product UIs |
+| Comfortable | 48px | 20px | 15px | 12px | Marketing, settings, touch-first |
+| Large | 56px+ | 24px | 16px | 16px | Mobile top tabs, hero sections |
+
+Rules that matter:
+
+* **Tap target ≥ 44px even when the visual tab is 32–40px** — expand the hit area with padding, not by inflating the label. Crowded mobile tabs are a mis-tap generator.
+* **The indicator thickness scales with density** — a 2px underline at compact, 3px at large. Keep it a token, not a magic number.
+* **Full-bleed vs. inline-hug.** Tabs can stretch to fill the tablist width (equal-width, good for ≤4 tabs on mobile) or hug their labels and left-align (scales to many tabs). Equal-width tabs with long labels truncate ugly — pick hug + scroll past ~4 tabs.
+* **Vertical tabs** trade height for width: a left rail of tabs, panels to the right. Great for settings with many sections; needs `aria-orientation="vertical"` and remapped arrow keys (see §10).
+
+---
+
+## 5\. States (the part juniors forget)
+A production tab has more states than a button, because it carries the selected/focused split. Missing states are the #1 tell of a faked tabset.
+
+1. **Default (unselected, rest)** — a tab that isn't current. Muted color, no indicator.
+2. **Selected (active)** — the current tab. `aria-selected="true"`, full-contrast label, visible indicator. Exactly **one** per tablist.
+3. **Hover** — pointer over an unselected tab. Subtle background or label shift. (Doesn't exist on touch — never the only signal.)
+4. **Focus** — reachable by keyboard. Visible `:focus-visible` ring. In manual activation this can sit on a tab that is _not_ selected — the design must make "focused but not selected" legible.
+5. **Active (pressed)** — the moment of click/tap. Momentary.
+6. **Disabled** — a tab that exists but can't be selected right now. `aria-disabled="true"` (keep it focusable so users can discover _why_) rather than removing it. Reduced opacity, skipped by activation.
+7. **Loading (panel)** — the tab is selected but its panel content is still fetching (lazy load). Show a skeleton/spinner _inside the panel_, keep the tablist responsive.
+8. **Error (panel)** — the panel's data failed to load. Show a retry affordance in the panel; the tab itself may carry a small error badge.
+9. **Selected + focused** — the common case in automatic activation; style focus ring _and_ indicator together without them fighting.
+10. **Overflowed / hidden** — a tab pushed into the "More" menu or scrolled out of view. If the _selected_ tab is in overflow, the trigger must reflect it (show its label / a dot).
+11. **Badged** — a tab carrying a count or dot ("Inbox 3", unsaved-changes dot). The count must be in the accessible name, not just a colored pip.
+
+Bonus for validated flows (settings with unsaved edits): a tab can show a **dirty** indicator so users know which section has unsaved changes before they switch away.
+
+---
+
+## 6\. Types & Variants
+Tabs come in emphasis variants (a look) and structural variants (a behavior). Don't confuse the two.
+
+**By visual emphasis:**
+* **Underline tabs:** the web default. Text labels with an animated underline bar under the selected one. Low chrome, scales well, reads as "sections."
+* **Enclosed / folder tabs:** each tab is a bordered card that visually connects to the panel below (the literal manila-folder metaphor). Heavier; good when the panel needs a strong boundary.
+* **Pill / segmented tabs:** rounded filled background slides to the selected tab. Compact, modern, common in mobile and shadcn. Watch: at a glance this reads like a _segmented control_ — keep the semantics `tablist`, not `radiogroup`, when it reveals panels.
+* **Ghost / text tabs:** no indicator but color/weight change. Minimal; risky for a11y because "selected" leans on contrast alone — always back it with `aria-selected` and a non-color cue.
+
+**By structure/behavior:**
+* **Horizontal (default):** tabs in a row above the panel. `aria-orientation` defaults to horizontal; Left/Right arrows move.
+* **Vertical:** tabs in a column beside the panel. `aria-orientation="vertical"`; Up/Down arrows move.
+* **Scrollable:** more tabs than fit; the tablist scrolls horizontally with edge affordances. The active tab auto-scrolls into view.
+* **Overflow-menu ("More"):** tabs that don't fit collapse into a dropdown. Higher complexity, better for many peer tabs.
+* **Tabcordion (responsive):** horizontal tabs on wide screens, accordion on narrow. One content model, two presentations.
+* **Automatic vs. manual activation:** the biggest behavioral fork (see §7 and §10). Automatic = focus a tab and its panel shows immediately. Manual = arrow to focus, press Enter/Space to activate.
+
+---
+
+## 7\. When to Use Tabs (and When Not To)
+Use a tabs widget when you have **a handful of peer sections of equal-ish importance**, on **one page**, where the user benefits from seeing one at a time and switching is cheap. Product detail (Overview / Specs / Reviews), a settings screen (Profile / Security / Billing), a dashboard's chart-vs-table toggle — all good tabs.
+
+**Don't use a tabs widget when:**
+* **The sections are actually separate pages.** If each deserves a URL, back-button support, and a shareable link, you want **Tab Navigation** (links + `<nav>`), not this widget. Ask: "should refresh land me back here, and should I be able to send someone this exact view?" If yes → navigation.
+* **Users need to compare panels side by side.** Tabs hide all but one. If comparison is the job, show them together (columns, an accordion left open, a table).
+* **There are more than ~7 peer sections.** Past that, a tab row overflows and scanning breaks down. Use a nav list, a menu, or vertical tabs.
+* **The content is sequential and required.** Ordered steps with a "next" gate is a **stepper/wizard**, not tabs. Tabs imply free, non-linear access.
+* **One panel holds 90% of the value.** Don't bury your primary content behind a tab to look tidy. Show it; demote the rest.
+* **It's really one region whose** **_data_** **changes.** Day/Week/Month over the _same_ chart is a **segmented control** (`radiogroup`), not distinct authored panels.
+
+**Placement heuristics:** tabs sit directly above (or left of) the panel they control, visually attached, so the relationship is obvious. Keep the **default/first tab as the most important** section. Never make the selected tab ambiguous — indicator _plus_ weight/contrast, never one alone.
+
+---
+
+## 8\. Tabs Across Design Systems
+Same widget, different house rules. Knowing these makes you fluent anywhere.
+
+* **Material Design (Google):** Primary and secondary tabs, fixed vs. scrollable, an animated ink-bar indicator, optional icons above/beside labels, ripple on press. Strong support for scrollable tab rows on mobile. Material 3 "Expressive" adds springier indicator motion.
+* **Apple HIG (iOS/macOS):** On iOS the top pattern is often a **segmented control** (picker) rather than ARIA tabs; true tab bars live at the _bottom_ for app-level navigation (that's closer to Tab Navigation). macOS has a genuine tab view for preference-style panes. Restraint and SF Symbols throughout.
+* **Fluent (Microsoft):** A `TabList` / `Tab` pair, subtle indicator, sizes and vertical orientation first-class, designed for dense productivity UIs (Office, Teams). Clear disabled and selected tokens.
+* **Ant Design / enterprise:** Feature-dense — line/card/editable-card types, closable & addable tabs (browser-style), position on any edge, extra content slots, built-in overflow dropdown. Built for admin consoles.
+* **Tailwind / utility-first:** No prescribed look; you compose it and, crucially, wire the ARIA/keyboard yourself or via Headless UI. Freedom + the risk of shipping a `<div>` tabset with no roving tabindex.
+* **Radix / shadcn (2024+ web standard):** Headless behavior (Radix `Tabs` primitive: full keyboard, roving tabindex, `orientation`, `activationMode`) + styled variants. Accessibility baked in, appearance fully yours. The de-facto correct-by-default choice on React (see §9.7).
+* **Bootstrap:** `nav nav-tabs` / `nav-pills` plus a `tab-content` / `tab-pane` pair and a small JS plugin. Ships `role="tablist"` and keyboard support if you follow their markup — but it's easy to use the _look_ for navigation and mislabel it.
+
+---
+
+## 9\. The Code
+This is the biggest section. The through-line: **the accessible skeleton (roles, roving tabindex, panel wiring) is identical everywhere — only the syntax and styling change.** Learn it once; remap per stack.
+
+### 9.1 HTML (the foundation everyone should master first)
+The full, correct, framework-free tabs widget. If you can write this from memory, you understand the pattern.
+
+```plain
+<!-- The tablist names itself and its orientation -->
+<div class="tabs">
+  <div role="tablist" aria-label="Account settings" class="tablist">
+    <button role="tab" id="tab-profile"  aria-selected="true"
+            aria-controls="panel-profile" tabindex="0" class="tab">
+      Profile
+    </button>
+    <button role="tab" id="tab-security" aria-selected="false"
+            aria-controls="panel-security" tabindex="-1" class="tab">
+      Security
+    </button>
+    <button role="tab" id="tab-billing"  aria-selected="false"
+            aria-controls="panel-billing" tabindex="-1" class="tab">
+      Billing
+    </button>
+  </div>
+
+  <!-- Exactly one panel visible; the rest are hidden in the DOM -->
+  <div role="tabpanel" id="panel-profile"  aria-labelledby="tab-profile"  tabindex="0" class="panel">
+    <h3>Profile</h3> …
+  </div>
+  <div role="tabpanel" id="panel-security" aria-labelledby="tab-security" tabindex="0" class="panel" hidden>
+    <h3>Security</h3> …
+  </div>
+  <div role="tabpanel" id="panel-billing"  aria-labelledby="tab-billing"  tabindex="0" class="panel" hidden>
+    <h3>Billing</h3> …
+  </div>
+</div>
+```
+
+The non-negotiable HTML rules, each of which a fake tabset gets wrong:
+* **Tabs are real** \*\*`<button>`\*\***s.** Not `<div>`, not `<a>` (an `<a>` navigates — wrong element; that's Tab Navigation). `<button type="button">` gets you Enter/Space and focus for free.
+* **`aria-controls`** **and** **`aria-labelledby`** **point at each other.** Tab → panel via `aria-controls`; panel → tab via `aria-labelledby`. This is what makes them a _pair_ to assistive tech.
+* **Exactly one** **`aria-selected="true"`**, and that same tab is the only `tabindex="0"`. Every other tab is `tabindex="-1"`. This is roving tabindex — the whole tablist is **one Tab stop**.
+* **Inactive panels use** **`hidden`** (removes them from the a11y tree and layout), not `display:none` via a class you might forget, and not merely visually hidden.
+* **`tabindex="0"`** **on panels** so keyboard users can scroll/read a panel that has no focusable child. (If the panel starts with a focusable element, you can drop it — but 0 is the safe default.)
+
+### 9.2 CSS (states done right, plus the animated indicator)
+
+```css
+.tablist {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #2a2340;
+  position: relative;
+}
+.tab {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 10px 16px;
+  min-height: 44px;               /* target size regardless of visual height */
+  font: 500 14px/1 system-ui, sans-serif;
+  color: #a99fc4;                 /* unselected */
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tab:hover { color: #e8e6e1; }
+
+/* SELECTED is driven by the ARIA attribute, not a JS-only class */
+.tab[aria-selected="true"] {
+  color: #e8e6e1;
+  border-bottom-color: #DCA424;   /* Goldenrod indicator */
+}
+
+/* Keyboard focus only — and note it can differ from selection in manual mode */
+.tab:focus-visible {
+  outline: 2px solid #DCA424;
+  outline-offset: -2px;
+  border-radius: 6px 6px 0 0;
+}
+.tab[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+
+.panel { padding: 20px 4px; }
+.panel:focus-visible { outline: 2px solid #DCA424; outline-offset: 4px; }
+.panel[hidden] { display: none; }
+```
+
+**The sliding/animated indicator** — a single shared bar that moves rather than a per-tab border. The senior approach uses a CSS custom property set from JS (indicator `left` + `width`), animating only `transform`/`width` (compositor-friendly):
+
+```css
+.tablist { --indicator-x: 0px; --indicator-w: 0px; }
+.tablist::after {
+  content: "";
+  position: absolute;
+  bottom: -1px; left: 0;
+  height: 2px;
+  width: var(--indicator-w);
+  transform: translateX(var(--indicator-x));
+  background: #DCA424;
+  transition: transform .2s ease, width .2s ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tablist::after { transition: none; }   /* no sliding for motion-sensitive users */
+}
+```
+
+Styling the ARIA attribute directly (`[aria-selected="true"]`) instead of a `.is-active` class is the pro move: the selected _look_ can never drift out of sync with the selected _state_, because they're the same source of truth.
+
+### 9.3 Vanilla JavaScript (the full keyboard model — no framework)
+This is the reference implementation. Everything below (React, Vue, Web Components) is this logic re-expressed. Master it once.
+
+```javascript
+class Tabs {
+  constructor(root, { activation = "automatic", orientation = "horizontal" } = {}) {
+    this.root = root;
+    this.activation = activation;          // "automatic" | "manual"
+    this.orientation = orientation;        // "horizontal" | "vertical"
+    this.tabs = [...root.querySelectorAll('[role="tab"]')];
+    this.panels = this.tabs.map(t => document.getElementById(t.getAttribute("aria-controls")));
+    root.querySelector('[role="tablist"]')
+        .setAttribute("aria-orientation", orientation);
+
+    this.tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => this.select(i));
+      tab.addEventListener("keydown", (e) => this.onKeydown(e, i));
+    });
+  }
+
+  onKeydown(e, i) {
+    const next = this.orientation === "vertical" ? "ArrowDown" : "ArrowRight";
+    const prev = this.orientation === "vertical" ? "ArrowUp"   : "ArrowLeft";
+    let target = null;
+
+    switch (e.key) {
+      case next: target = (i + 1) % this.tabs.length; break;
+      case prev: target = (i - 1 + this.tabs.length) % this.tabs.length; break;
+      case "Home": target = 0; break;
+      case "End":  target = this.tabs.length - 1; break;
+      case "Enter":
+      case " ":                            // manual mode activates on Enter/Space
+        if (this.activation === "manual") { e.preventDefault(); this.select(i); }
+        return;
+      default: return;
+    }
+    e.preventDefault();
+    this.focusTab(target);
+    if (this.activation === "automatic") this.select(target);  // focus === selection
+  }
+
+  focusTab(i) {
+    // Roving tabindex: only the focused tab is tabbable
+    this.tabs.forEach((t, j) => t.setAttribute("tabindex", j === i ? "0" : "-1"));
+    this.tabs[i].focus();
+  }
+
+  select(i) {
+    this.tabs.forEach((tab, j) => {
+      const selected = j === i;
+      tab.setAttribute("aria-selected", String(selected));
+      tab.setAttribute("tabindex", selected ? "0" : "-1");
+      this.panels[j].hidden = !selected;
+    });
+    this.moveIndicator(i);
+  }
+
+  moveIndicator(i) {
+    const tab = this.tabs[i], list = tab.parentElement;
+    list.style.setProperty("--indicator-x", `${tab.offsetLeft}px`);
+    list.style.setProperty("--indicator-w", `${tab.offsetWidth}px`);
+  }
+}
+new Tabs(document.querySelector(".tabs"), { activation: "manual" });
+```
+
+The two subtleties that separate this from a toy:
+* **Roving tabindex, not a loop of listeners:** arrow keys move focus _and_ the single `tabindex="0"`, so the tablist is one Tab stop and `Tab` from a focused tab jumps to the **panel**, not the next tab. That's the whole keyboard contract.
+* **Activation mode is a first-class option.** In `automatic`, arrowing selects instantly (`focus === selection`). In `manual`, arrowing only _focuses_; the user presses Enter/Space to commit — which is why focus and selection can diverge and must be styled distinctly.
+
+### 9.4 Automatic vs. Manual Activation (the decision that trips people up)
+The WAI-ARIA pattern supports two activation models, and picking the wrong one causes real pain:
+
+* **Automatic activation:** moving focus with an arrow key _immediately_ selects that tab and shows its panel. Fewer keystrokes; great when panels are cheap (already-rendered text). This is the ARIA default recommendation for simple content.
+* **Manual activation:** arrow keys move focus only; the user presses **Enter** or **Space** to activate. The selected panel doesn't change until they commit.
+
+**Why manual is safer for expensive panels:** with automatic activation, a keyboard user arrowing _through_ five tabs to reach the sixth triggers **five panel loads** they never wanted to see — five data fetches, five re-renders, five screen-reader context switches. If each panel lazy-loads data or is heavy to render, automatic activation turns "navigate to the last tab" into a storm of wasted work and confusing announcements. Manual activation lets them scan the tabs and load exactly one. **Rule: cheap static panels → automatic; lazy-loaded or expensive panels → manual.** Radix exposes this as `activationMode="automatic" | "manual"`; roll-your-own must implement both.
+
+### 9.5 React + TypeScript (a headless compound component)
+The production shape: a **compound component** (`Tabs` / `TabList` / `Tab` / `TabPanel`) that owns state via context and bakes in roving tabindex, activation mode, and orientation. Headless — no styling opinions, fully typed, reusable across the whole app. This is the longest block on purpose; it's the heart of the doc.
+
+```typescript
+import {
+  createContext, useContext, useId, useRef, useState,
+  KeyboardEvent, ReactNode, useCallback,
+} from "react";
+
+type Activation = "automatic" | "manual";
+type Orientation = "horizontal" | "vertical";
+
+interface TabsCtx {
+  value: string;
+  setValue: (v: string) => void;
+  activation: Activation;
+  orientation: Orientation;
+  register: (v: string) => void;
+  order: React.MutableRefObject<string[]>;
+  baseId: string;
+}
+const Ctx = createContext<TabsCtx | null>(null);
+const useTabs = () => {
+  const c = useContext(Ctx);
+  if (!c) throw new Error("Tabs.* must render inside <Tabs>");
+  return c;
+};
+
+export function Tabs({
+  defaultValue, value: controlled, onValueChange,
+  activation = "automatic", orientation = "horizontal", children,
+}: {
+  defaultValue?: string;
+  value?: string;
+  onValueChange?: (v: string) => void;
+  activation?: Activation;
+  orientation?: Orientation;
+  children: ReactNode;
+}) {
+  const [uncontrolled, setUncontrolled] = useState(defaultValue ?? "");
+  const value = controlled ?? uncontrolled;
+  const order = useRef<string[]>([]);
+  const baseId = useId();
+
+  const setValue = useCallback((v: string) => {
+    if (controlled === undefined) setUncontrolled(v);
+    onValueChange?.(v);
+  }, [controlled, onValueChange]);
+
+  const register = useCallback((v: string) => {
+    if (!order.current.includes(v)) order.current.push(v);
+  }, []);
+
+  return (
+    <Ctx.Provider value={{ value, setValue, activation, orientation, register, order, baseId }}>
+      {children}
+    </Ctx.Provider>
+  );
+}
+
+export function TabList({ children, "aria-label": label }: { children: ReactNode; "aria-label": string }) {
+  const { orientation } = useTabs();
+  return (
+    <div role="tablist" aria-label={label} aria-orientation={orientation} className="tablist">
+      {children}
+    </div>
+  );
+}
+
+export function Tab({ value, children, disabled }: { value: string; children: ReactNode; disabled?: boolean }) {
+  const { value: active, setValue, activation, orientation, register, order, baseId } = useTabs();
+  register(value);
+  const selected = active === value;
+
+  const onKeyDown = (e: KeyboardEvent<HTMLButtonElement>) => {
+    const list = order.current;
+    const i = list.indexOf(value);
+    const next = orientation === "vertical" ? "ArrowDown" : "ArrowRight";
+    const prev = orientation === "vertical" ? "ArrowUp" : "ArrowLeft";
+    let ni: number | null = null;
+    if (e.key === next) ni = (i + 1) % list.length;
+    else if (e.key === prev) ni = (i - 1 + list.length) % list.length;
+    else if (e.key === "Home") ni = 0;
+    else if (e.key === "End") ni = list.length - 1;
+    else return;
+    e.preventDefault();
+    const target = list[ni];
+    document.getElementById(`${baseId}-tab-${target}`)?.focus();  // move focus
+    if (activation === "automatic") setValue(target);             // ...and maybe select
+  };
+
+  return (
+    <button
+      role="tab"
+      id={`${baseId}-tab-${value}`}
+      aria-selected={selected}
+      aria-controls={`${baseId}-panel-${value}`}
+      aria-disabled={disabled || undefined}
+      tabIndex={selected ? 0 : -1}                 // roving tabindex
+      className="tab"
+      onKeyDown={onKeyDown}
+      onClick={() => !disabled && setValue(value)}
+    >
+      {children}
+    </button>
+  );
+}
+
+export function TabPanel({ value, children, keepMounted = false }:
+  { value: string; children: ReactNode; keepMounted?: boolean }) {
+  const { value: active, baseId } = useTabs();
+  const selected = active === value;
+  // Lazy by default: don't render until first selected. keepMounted preserves it after.
+  const mounted = useRef(false);
+  if (selected) mounted.current = true;
+  return (
+    <div
+      role="tabpanel"
+      id={`${baseId}-panel-${value}`}
+      aria-labelledby={`${baseId}-tab-${value}`}
+      tabIndex={0}
+      hidden={!selected}
+      className="panel"
+    >
+      {(selected || (keepMounted && mounted.current)) ? children : null}
+    </div>
+  );
+}
+```
+
+Why this is the senior version, not the junior one:
+* **Compound + context** so consumers write declarative JSX (`<Tabs><TabList>…</TabList><TabPanel/></Tabs>`) and never wire ARIA by hand.
+* **Controlled** **_and_** **uncontrolled** via the `value`/`defaultValue`/`onValueChange` triad — the same contract as native inputs and Radix, so it drops into forms and URL-sync.
+* **Roving tabindex and activation mode are in the primitive**, not each screen. `Tab` computes `tabIndex={selected ? 0 : -1}` and the keyboard handler respects `activation`.
+* **Lazy panels by default,** **`keepMounted`** **opt-out.** A panel isn't rendered until first selected (cheap initial paint); `keepMounted` keeps expensive-to-rebuild panels alive after first view. This is the lazy-loading lever most hand-rolled tabsets lack.
+
+Usage:
+
+```typescript
+<Tabs defaultValue="profile" activation="manual">
+  <TabList aria-label="Account settings">
+    <Tab value="profile">Profile</Tab>
+    <Tab value="security">Security</Tab>
+    <Tab value="billing" disabled>Billing</Tab>
+  </TabList>
+  <TabPanel value="profile"><ProfileForm /></TabPanel>
+  <TabPanel value="security"><SecurityForm /></TabPanel>
+  <TabPanel value="billing"><BillingForm /></TabPanel>
+</Tabs>
+```
+
+### 9.6 Lazy-Loading Panels & Data Fetching
+The panel is where the cost lives. Two independent laziness levers, often combined:
+
+* **Lazy render:** don't mount an inactive panel's React tree at all (the `mounted.current` gate above). Cuts initial JS/DOM work when tab one is all most users see.
+* **Lazy data:** fetch a panel's data only when it's first selected, then cache. With React Query this is a one-liner and pairs perfectly with **manual activation** so arrowing past a tab doesn't fire its query.
+
+```typescript
+function ReviewsPanel({ productId, active }: { productId: string; active: boolean }) {
+  const { data, isLoading, error, refetch } = useQuery({
+    queryKey: ["reviews", productId],
+    queryFn: () => fetchReviews(productId),
+    enabled: active,               // only fetch once this tab is actually selected
+    staleTime: 60_000,             // don't refetch on every re-select
+  });
+  if (isLoading) return <PanelSkeleton />;      // panel-level loading state (§5)
+  if (error) return <PanelError onRetry={refetch} />;  // panel-level error state
+  return <ReviewList reviews={data} />;
+}
+```
+
+The senior detail: `enabled: active` means the fetch is tied to selection, not mount. Combined with `keepMounted` you get "load once when first opened, then instant on re-select" — the behavior users expect from native apps. And this is precisely _why_ manual activation matters for heavy tabs (§9.4): each selection is a fetch, so you don't want to fire five while arrowing.
+
+### 9.7 Radix / shadcn Tabs (the 2024+ standard)
+Not a dependency you fight — you copy shadcn's component into your repo and own the styling; Radix supplies the behavior (full keyboard, roving tabindex, `orientation`, `activationMode`, controlled/uncontrolled). This is the correct-by-default path on React.
+
+```typescript
+import * as TabsPrimitive from "@radix-ui/react-tabs";
+import { cn } from "@/lib/utils";
+
+export function Tabs(props: React.ComponentProps<typeof TabsPrimitive.Root>) {
+  return <TabsPrimitive.Root {...props} />;
+}
+
+export function TabsList({ className, ...props }:
+  React.ComponentProps<typeof TabsPrimitive.List>) {
+  return (
+    <TabsPrimitive.List
+      className={cn("inline-flex items-center gap-1 border-b border-border", className)}
+      {...props}
+    />
+  );
+}
+
+export function TabsTrigger({ className, ...props }:
+  React.ComponentProps<typeof TabsPrimitive.Trigger>) {
+  return (
+    <TabsPrimitive.Trigger
+      className={cn(
+        "inline-flex min-h-11 items-center px-4 text-sm font-medium text-muted-foreground",
+        "border-b-2 border-transparent transition-colors hover:text-foreground",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+        "data-[state=active]:border-amber-400 data-[state=active]:text-foreground",
+        "disabled:pointer-events-none disabled:opacity-50",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+export function TabsContent({ className, ...props }:
+  React.ComponentProps<typeof TabsPrimitive.Content>) {
+  return (
+    <TabsPrimitive.Content
+      className={cn("py-5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring", className)}
+      {...props}
+    />
+  );
+}
+```
+
+Usage — note `activationMode="manual"` for expensive panels and `orientation="vertical"` for a side rail:
+
+```typescript
+<Tabs defaultValue="profile" activationMode="manual" orientation="vertical">
+  <TabsList aria-label="Account settings">
+    <TabsTrigger value="profile">Profile</TabsTrigger>
+    <TabsTrigger value="security">Security</TabsTrigger>
+  </TabsList>
+  <TabsContent value="profile" forceMount={undefined}>…</TabsContent>
+  <TabsContent value="security">…</TabsContent>
+</Tabs>
+```
+
+Radix drives selection with `data-[state=active]` (style off that, exactly like styling `aria-selected` in §9.2), and by default it **unmounts inactive content** — pass `forceMount` only when you need the panel to persist (form state, a media element that shouldn't reset). That default _is_ lazy rendering for free.
+
+### 9.8 Next.js (App Router: URL-synced tabs without becoming navigation)
+The nuance that trips people up: an interactive tabset needs `"use client"`, but you can **sync the selected tab to a search param** so it's deep-linkable and survives refresh — _without_ turning it into route navigation. The panels still render on one page; only a `?tab=` query updates.
+
+```typescript
+"use client";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+
+export function SettingsTabs() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useSearchParams();
+  const value = params.get("tab") ?? "profile";
+
+  function setTab(next: string) {
+    const p = new URLSearchParams(params);
+    p.set("tab", next);
+    router.replace(`${pathname}?${p}`, { scroll: false });  // no scroll jump, no history spam
+  }
+
+  return (
+    <Tabs value={value} onValueChange={setTab} activationMode="manual">
+      <TabsList aria-label="Settings">
+        <TabsTrigger value="profile">Profile</TabsTrigger>
+        <TabsTrigger value="security">Security</TabsTrigger>
+      </TabsList>
+      <TabsContent value="profile"><ProfileForm /></TabsContent>
+      <TabsContent value="security"><SecurityForm /></TabsContent>
+    </Tabs>
+  );
+}
+```
+
+`router.replace` with `scroll: false` updates the URL (shareable, refresh-safe) without a scroll jump or a history entry per keystroke. **This is the honest boundary between the two patterns:** it's still a tabs _widget_ (one page, `role="tablist"`, arrow-key operated) that happens to persist state in the URL. If instead each tab should be its own server-rendered route with its own `page.tsx`, that's **Tab Navigation** — use `<Link>` in a `<nav>`, and see that sibling doc.
+
+### 9.9 Tailwind CSS (utility-first, headless behavior still required)
+Tailwind styles the tabs; it does **not** give you the keyboard model. You must supply roving tabindex + ARIA yourself (or via Headless UI / Radix). Styling the ARIA attribute with an arbitrary variant keeps look and state in sync:
+
+```plain
+<div role="tablist" aria-label="Sections"
+     class="flex gap-1 border-b border-slate-700">
+  <button role="tab" id="tab-overview" aria-selected="true" aria-controls="p1" tabindex="0"
+    class="min-h-11 px-4 text-sm font-medium text-slate-400 border-b-2 border-transparent
+           hover:text-slate-100 transition-colors
+           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-400
+           aria-selected:text-slate-100 aria-selected:border-amber-400">
+    Overview
+  </button>
+  <!-- more tabs, tabindex="-1" -->
+</div>
+<div role="tabpanel" id="p1" aria-labelledby="tab-overview" tabindex="0" class="py-5">…</div>
+```
+
+The `aria-selected:` variant (Tailwind supports `aria-*` variants natively) is the clean way to style selection off the real attribute. But remember: **the classes are skin; the roving-tabindex JS is the skeleton.** Utilities can't replace it.
+
+### 9.10 Vue, Svelte, Angular
+Same skeleton, different syntax. The `<button role="tab">` and roving tabindex never change.
+
+**Vue 3 (Composition API):**
+
+```plain
+<script setup lang="ts">
+import { ref } from "vue";
+const props = defineProps<{ tabs: { id: string; label: string }[] }>();
+const active = ref(props.tabs[0].id);
+function onKey(e: KeyboardEvent, i: number) {
+  const n = props.tabs.length;
+  if (e.key === "ArrowRight") active.value = props.tabs[(i + 1) % n].id;
+  else if (e.key === "ArrowLeft") active.value = props.tabs[(i - 1 + n) % n].id;
+  else return;
+  e.preventDefault();
+}
+</script>
+<template>
+  <div role="tablist" aria-label="Sections" class="tablist">
+    <button v-for="(t, i) in tabs" :key="t.id" role="tab"
+      :id="`tab-${t.id}`" :aria-selected="active === t.id"
+      :aria-controls="`panel-${t.id}`" :tabindex="active === t.id ? 0 : -1"
+      @click="active = t.id" @keydown="onKey($event, i)">
+      {{ t.label }}
+    </button>
+  </div>
+  <div v-for="t in tabs" :key="t.id" role="tabpanel"
+    :id="`panel-${t.id}`" :aria-labelledby="`tab-${t.id}`"
+    tabindex="0" :hidden="active !== t.id">
+    <slot :name="t.id" />
+  </div>
+</template>
+```
+
+**Svelte:**
+
+```plain
+<script lang="ts">
+  export let tabs: { id: string; label: string }[];
+  let active = tabs[0].id;
+  function onKey(e: KeyboardEvent, i: number) {
+    const n = tabs.length;
+    if (e.key === "ArrowRight") active = tabs[(i + 1) % n].id;
+    else if (e.key === "ArrowLeft") active = tabs[(i - 1 + n) % n].id;
+    else return;
+    e.preventDefault();
+  }
+</script>
+
+<div role="tablist" aria-label="Sections">
+  {#each tabs as t, i}
+    <button role="tab" id="tab-{t.id}" aria-selected={active === t.id}
+      aria-controls="panel-{t.id}" tabindex={active === t.id ? 0 : -1}
+      on:click={() => (active = t.id)} on:keydown={(e) => onKey(e, i)}>
+      {t.label}
+    </button>
+  {/each}
+</div>
+{#each tabs as t}
+  <div role="tabpanel" id="panel-{t.id}" aria-labelledby="tab-{t.id}"
+       tabindex="0" hidden={active !== t.id}>
+    <slot name={t.id} />
+  </div>
+{/each}
+```
+
+**Angular (standalone, using the CDK):** Angular's most robust route is Angular Material's `MatTabGroup` (accessible tabs out of the box) or the CDK's `FocusKeyManager` for a hand-rolled roving-tabindex tablist. Material in one line:
+
+```typescript
+// <mat-tab-group> handles roles, roving tabindex, keyboard, and the ink-bar indicator.
+@Component({
+  standalone: true,
+  imports: [MatTabsModule],
+  template: `
+    <mat-tab-group [selectedIndex]="0">
+      <mat-tab label="Profile"><app-profile /></mat-tab>
+      <mat-tab label="Security"><app-security /></mat-tab>
+    </mat-tab-group>`,
+})
+export class SettingsTabs {}
+```
+
+### 9.11 Bootstrap (component classes + JS plugin)
+Bootstrap ships the markup contract and a small JS plugin that wires selection and (with the right roles) keyboard support.
+
+```plain
+<ul class="nav nav-tabs" role="tablist">
+  <li class="nav-item" role="presentation">
+    <button class="nav-link active" id="profile-tab" data-bs-toggle="tab"
+            data-bs-target="#profile" role="tab" aria-selected="true"
+            aria-controls="profile" type="button">Profile</button>
+  </li>
+  <li class="nav-item" role="presentation">
+    <button class="nav-link" id="security-tab" data-bs-toggle="tab"
+            data-bs-target="#security" role="tab" aria-selected="false"
+            aria-controls="security" type="button" tabindex="-1">Security</button>
+  </li>
+</ul>
+<div class="tab-content">
+  <div class="tab-pane fade show active" id="profile" role="tabpanel"
+       aria-labelledby="profile-tab" tabindex="0">…</div>
+  <div class="tab-pane fade" id="security" role="tabpanel"
+       aria-labelledby="security-tab" tabindex="0">…</div>
+</div>
+```
+
+**When Bootstrap wins:** you're already on it and want accessible tabs fast. **The trap:** `nav-tabs`/`nav-pills` are _also_ Bootstrap's look for real navigation — it's one line to point `data-bs-target` at a panel (widget) vs. an `href` at a page (navigation). Same classes, opposite semantics. Choose deliberately.
+
+### 9.12 Web Component (framework-agnostic)
+A tabs widget usable in any framework or none, with the keyboard model encapsulated in the shadow DOM:
+
+```typescript
+class UITabs extends HTMLElement {
+  connectedCallback() {
+    this.tabs = [...this.querySelectorAll('[role="tab"]')];
+    this.panels = this.tabs.map(t => this.querySelector(`#${t.getAttribute("aria-controls")}`));
+    this.tabs.forEach((tab, i) => {
+      tab.addEventListener("click", () => this.select(i));
+      tab.addEventListener("keydown", (e) => {
+        const n = this.tabs.length;
+        let t = null;
+        if (e.key === "ArrowRight") t = (i + 1) % n;
+        else if (e.key === "ArrowLeft") t = (i - 1 + n) % n;
+        else if (e.key === "Home") t = 0;
+        else if (e.key === "End") t = n - 1;
+        else return;
+        e.preventDefault();
+        this.tabs[t].focus();
+        this.select(t);
+      });
+    });
+  }
+  select(i) {
+    this.tabs.forEach((tab, j) => {
+      tab.setAttribute("aria-selected", String(j === i));
+      tab.tabIndex = j === i ? 0 : -1;
+      this.panels[j].hidden = j !== i;
+    });
+  }
+}
+customElements.define("ui-tabs", UITabs);
+// Usage: <ui-tabs> with role="tablist"/tab/tabpanel light-DOM markup inside.
+```
+
+### 9.13 Native Mobile (SwiftUI, Jetpack Compose, Flutter)
+Off the web, the concept survives with platform-native APIs. Note the platform vocabulary difference: a "tab bar" at the _bottom_ is app navigation; the in-content switcher is often a segmented picker or a top tab row.
+
+**SwiftUI (in-content switcher = segmented Picker; bottom TabView = navigation):**
+
+```plain
+@State private var selection = "profile"
+Picker("Section", selection: $selection) {
+    Text("Profile").tag("profile")
+    Text("Security").tag("security")
+}
+.pickerStyle(.segmented)          // in-content, one region visible at a time
+
+switch selection {                // swap the panel
+case "profile":  ProfileView()
+default:         SecurityView()
+}
+```
+
+**Jetpack Compose (Android):**
+
+```kotlin
+var selected by remember { mutableStateOf(0) }
+TabRow(selectedTabIndex = selected) {           // draws the indicator for you
+    titles.forEachIndexed { i, title ->
+        Tab(selected = selected == i, onClick = { selected = i },
+            text = { Text(title) })
+    }
+}
+when (selected) {                               // render the active panel
+    0 -> ProfilePanel()
+    else -> SecurityPanel()
+}
+```
+
+**Flutter (Dart):**
+
+```plain
+DefaultTabController(
+  length: 2,
+  child: Column(children: [
+    const TabBar(tabs: [Tab(text: 'Profile'), Tab(text: 'Security')]),
+    Expanded(child: TabBarView(children: [ProfilePanel(), SecurityPanel()])),
+  ]),
+)
+```
+
+The through-line: every platform gives you a **tab strip that draws its own indicator**, a **selected index**, and a **panel/view region** it swaps. Learn the pattern once; remap the syntax. On all three the accessibility (roles, focus order) is handled by the framework widget — which is exactly why you should reach for `TabRow`/`TabBar`/segmented `Picker` instead of hand-building from tap targets.
+
+### 9.14 Testing the Tabs Widget (keyboard + axe)
+Tabs are _behavior_, so test behavior — the roles, the roving tabindex, the arrow keys, the panel wiring — not class names.
+
+**Component (Vitest + React Testing Library + jest-axe):**
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
+import { describe, it, expect } from "vitest";
+import { Tabs, TabList, Tab, TabPanel } from "./Tabs";
+
+function Fixture(props: { activation?: "automatic" | "manual" }) {
+  return (
+    <Tabs defaultValue="a" activation={props.activation}>
+      <TabList aria-label="Demo">
+        <Tab value="a">Alpha</Tab>
+        <Tab value="b">Beta</Tab>
+        <Tab value="c">Gamma</Tab>
+      </TabList>
+      <TabPanel value="a">Panel A</TabPanel>
+      <TabPanel value="b">Panel B</TabPanel>
+      <TabPanel value="c">Panel C</TabPanel>
+    </Tabs>
+  );
+}
+
+describe("Tabs", () => {
+  it("exposes correct roles and a single selected tab", () => {
+    render(<Fixture />);
+    expect(screen.getByRole("tablist", { name: "Demo" })).toBeInTheDocument();
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs).toHaveLength(3);
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Alpha");
+    // only the active panel is in the a11y tree
+    expect(screen.getAllByRole("tabpanel")).toHaveLength(1);
+  });
+
+  it("is one tab stop with roving tabindex", () => {
+    render(<Fixture />);
+    const [a, b, c] = screen.getAllByRole("tab");
+    expect(a).toHaveAttribute("tabindex", "0");
+    expect(b).toHaveAttribute("tabindex", "-1");
+    expect(c).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("automatic activation: arrow moves focus AND selects", async () => {
+    const user = userEvent.setup();
+    render(<Fixture activation="automatic" />);
+    await user.tab();                              // focus the tablist's active tab
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Beta");
+    expect(screen.getByRole("tabpanel")).toHaveTextContent("Panel B");
+  });
+
+  it("manual activation: arrow moves focus only until Enter", async () => {
+    const user = userEvent.setup();
+    render(<Fixture activation="manual" />);
+    await user.tab();
+    await user.keyboard("{ArrowRight}");
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Alpha"); // not yet
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Beta");  // now
+  });
+
+  it("Home/End jump to first/last", async () => {
+    const user = userEvent.setup();
+    render(<Fixture activation="automatic" />);
+    await user.tab();
+    await user.keyboard("{End}");
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Gamma");
+    await user.keyboard("{Home}");
+    expect(screen.getByRole("tab", { selected: true })).toHaveTextContent("Alpha");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(<Fixture />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+```
+
+**End-to-end (Playwright):** prove Tab (the key) escapes the tablist into the panel — the contract that distinguishes tabs from a plain button row.
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test("Tab key leaves the tablist and enters the panel", async ({ page }) => {
+  await page.goto("/settings");
+  await page.getByRole("tab", { name: "Profile" }).focus();
+  await page.keyboard.press("Tab");                       // should exit the tablist
+  await expect(page.getByRole("tab", { name: "Security" })).not.toBeFocused();
+  // focus is now inside the active tabpanel, not on the next tab
+});
+```
+
+What to assert (and skip):
+* **Do test:** roles (`tablist`/`tab`/`tabpanel`), exactly one `selected` tab, roving tabindex (`0`/`-1`), Arrow/Home/End behavior, the automatic-vs-manual difference, that inactive panels are absent from the tree, and `axe` clean.
+* **Don't test:** the indicator's pixel position, exact class names, transition timing. Those break tests without catching real bugs.
+
+---
+
+## 10\. Accessibility (non-negotiable)
+The tabs widget lives or dies here. The full WAI-ARIA Authoring Practices Tabs pattern:
+
+**Roles & structure:**
+* `role="tablist"` wraps the tabs; give it an accessible name via `aria-label` or `aria-labelledby`.
+* `role="tab"` on each tab (a real `<button>`), with `aria-selected="true"` on exactly one and `false` on the rest.
+* `role="tabpanel"` on each panel, with `aria-labelledby` pointing at its controlling tab's `id`.
+* `aria-controls` on each tab points at its panel's `id`. (Support for `aria-controls` is uneven across screen readers, but it's still correct to include.)
+
+**Roving tabindex (the keyboard contract):**
+* The tablist is **one Tab stop**. The selected tab has `tabindex="0"`; all others `tabindex="-1"`.
+* **Arrow keys move between tabs** — Left/Right for horizontal, Up/Down for vertical (`aria-orientation="vertical"`). **Home** → first tab, **End** → last. Wrapping from last to first is optional but common.
+* **Tab (the key) moves** **_out_** **of the tablist to the tab panel** (or the next focusable element after it), never to the next tab. This is the single behavior that separates a real tabset from a row of buttons.
+* The active `tabpanel` gets `tabindex="0"` **only if it has no focusable children**, so keyboard users can reach and scroll the content. If it starts with a focusable element, that element receives focus instead.
+
+**Activation model:**
+* **Automatic:** focus a tab (arrow) and its panel shows immediately. Use for cheap panels.
+* **Manual:** arrow to focus, **Enter or Space** to activate. Use for expensive/lazy panels so arrowing past tabs doesn't trigger loads or spam screen-reader announcements (see §9.4). In manual mode, style "focused but not selected" distinctly.
+
+**States & visuals:**
+* **Never signal selection with color alone.** Pair the indicator with weight/contrast, and rely on `aria-selected` for assistive tech. Contrast ≥ 4.5:1 for labels, ≥ 3:1 for the indicator against its background.
+* **Focus visible always** — `:focus-visible` ring on the focused tab, distinct from the selected indicator.
+* **Disabled tabs** use `aria-disabled="true"` and stay focusable (so users learn they exist and why they're off), rather than being removed from the DOM.
+* **Touch target ≥ 44px** even when the visual tab is shorter.
+
+**Orientation:** set `aria-orientation` on the tablist (`horizontal` default, `vertical` for a side rail) so assistive tech announces the right arrow-key expectation, and remap the handler keys to match.
+
+---
+
+## 11\. Innovative & Emerging Ideas
+The tabs widget looks solved but keeps evolving, and 2026 brings real platform movement:
+
+* **CSS-only tabs, honestly.** The `:target` and hidden-radio ("checkbox hack") techniques have always let you switch panels with zero JS — but they don't emit `role="tab"`/roving tabindex, so they're **not** an accessible tabs widget on their own. The genuinely new lever is the **CSS Overflow-5** **`::scroll-button`** **and** **`::scroll-marker`** **/** **`scroll-marker-group`** primitives landing in Chromium: a scroll-snap carousel of panels that generates real, focusable tab markers in CSS, with keyboard support the browser provides. It's the first credible path to a low-JS accessible tabset — still maturing, so progressively enhance.
+* **`hidden="until-found"`** **\+ scroll-to-text.** Panels hidden with `until-found` stay findable by in-page Find (Ctrl/⌘-F) and reveal themselves when matched — so content in an inactive tab is no longer invisible to search. A quiet fix for the "buried in tab three" problem.
+* **View Transitions API for the indicator.** The sliding indicator and panel crossfade can be driven by native `startViewTransition` instead of hand-tuned CSS — smoother, less JS, and it respects `prefers-reduced-motion` when you gate it.
+* **Anchor positioning for the indicator.** CSS anchor positioning lets the indicator element be positioned _relative to the selected tab_ declaratively, killing the JS that measures `offsetLeft`/`offsetWidth` on every switch and resize.
+* **Container queries for tabcordion.** Tabs-to-accordion at a _container_ breakpoint (not the viewport) so the same component adapts correctly inside a narrow sidebar or a wide main column without media-query guesswork.
+* **AI-native panels:** a "Summarize this tab" affordance or a generated panel that streams — the loading/skeleton state (§5) becomes a first-class streaming surface.
+
+---
+
+## 12\. Conversion & UX Killers (the silent bleeders)
+None of these throw an error. They just quietly cost you engagement and trust.
+
+* **Burying primary content in a tab.** If most users need it, it shouldn't be one click deep. Tabs demote everything behind them — demote deliberately, never by accident.
+* **Faking the widget with** \*\*`<div>`\*\***s.** No roles, no roving tabindex, no `aria-selected`. It looks fine and is completely unusable to keyboard and screen-reader users — an invisible exclusion (and a legal exposure).
+* **Automatic activation on expensive panels.** A keyboard user arrowing to the last tab triggers every panel's fetch on the way. Manual activation fixes it; most teams never think about it.
+* **Layout shift on switch.** Panels of different heights make the page jump on every tab change, throwing away scroll position and feeling broken. Reserve a min-height or animate height deliberately.
+* **Selection by color alone.** A slightly-bolder blue "selected" tab is invisible to color-blind users and to anyone glancing quickly. Add an indicator bar and weight.
+* **Too many tabs.** Past ~7 peer tabs, the row overflows and scanning collapses. Switch to vertical tabs, a menu, or reconsider the IA.
+* **Losing state on switch.** A half-filled form in tab one that resets when the user peeks at tab two, then returns, is infuriating. Keep panel state (`keepMounted`) for anything with input.
+* **Confusing tabs with navigation (both directions).** Widget tabs that should be shareable pages (no deep link, back button does nothing) frustrate users; and route links dressed as `role="tab"` break the back button and screen-reader expectations. Pick the right pattern — this doc for widgets, **Tab Navigation** for routes.
+
+The through-line: every one of these fails _quietly_. No crash, just a lower number and a subset of users locked out.
+
+---
+
+## 13\. Advanced Patterns
+* **Overflow: scroll vs. "More ▾".** Two honest strategies when tabs exceed the width. **Scroll:** the tablist becomes a horizontal scroll region; keep the selected tab auto-scrolled into view and add edge fades so users know there's more. **Dropdown "More":** tabs that don't fit collapse into a menu button; the trigger must reflect selection when the active tab is inside it. Measure fit with a `ResizeObserver`, not a fixed count, so it adapts to font size and container width. Both are more accessible than truncating labels.
+* **Design tokens for the whole system.** Drive tabs from three token tiers so a rebrand touches one line: primitive (`--gold-500`), semantic (`--color-accent`), component (`--tab-indicator: var(--color-accent)`, `--tab-fg-selected`, `--tab-fg-rest`). The tab CSS references only component tokens; dark mode and reskin become token swaps, not new CSS.
+* **TS-enforced correctness.** Type the `Tabs` API so a `TabPanel`'s `value` must be one of the `Tab` values (a union), and so `orientation="vertical"` is a first-class prop — catching "panel with no matching tab" at compile time instead of as a silent broken pair.
+* **Reduced-motion & forced-colors.** Gate the sliding indicator behind `prefers-reduced-motion` (jump instead of slide). In `forced-colors: active`, keep a real border on the selected tab (`border`, `Highlight`) so selection survives when your palette is overridden.
+* **RTL orientation.** In right-to-left layouts, Left/Right arrow semantics mirror (Right = previous). Use logical properties and test the arrow mapping — a common bug is arrows moving the "wrong" way in Arabic/Hebrew.
+* **Scroll & selection persistence.** Remember each panel's scroll position and restore it on re-select; combined with `keepMounted`, this makes tab switching feel like flipping between saved views rather than reloading.
+
+---
+
+## 14\. Performance & Bundle Cost
+A tabset feels free; at scale it isn't.
+
+* **Lazy-render inactive panels.** The biggest win: don't mount panels the user hasn't opened. Radix unmounts inactive content by default; the headless component in §9.5 gates on first-select. This shrinks initial DOM, JS execution, and image/data loads to the one visible panel.
+* **Lazy-fetch tied to selection.** `enabled: active` (React Query) fetches a panel's data only when it's actually selected, cached thereafter (`staleTime`). Paired with manual activation, arrowing costs nothing.
+* **Animate only** **`transform`****/****`width`** **on the indicator.** Never animate `left`/`margin` (reflow every frame). The `translateX(var(--indicator-x))` approach in §9.2 stays on the compositor.
+* **Measure with** **`ResizeObserver`****\*\*\*\*, not resize listeners,** for overflow detection, and debounce indicator re-measurement so a window drag doesn't thrash layout.
+* **`content-visibility: auto`** on offscreen or inactive panels lets the browser skip rendering work for content that isn't visible — a cheap win for heavy panels you keep mounted.
+* **CSS containment** (`contain: layout style` on the panel) isolates a panel's reflow from the rest of the page, so a re-render inside one panel doesn't recalc the whole document.
+
+---
+
+## 15\. Security
+A tabs widget's honest attack surface is small, but the panel _content_ is where it bites. Tab-panel bodies are frequently user- or CMS-authored, so treat them as untrusted: escape text and render through a sanitizer (or your framework's text bindings), and never assign author-supplied markup straight to `innerHTML` — that's a stored-XSS pipe into every viewer of the page. Lazily-loaded panels that fetch on activation get no security discount for being deferred: the endpoint behind them owes the same authorization checks and output escaping as any first-class route, and a raw panel id interpolated into the fetch URL (`/api/panel/${id}`) is a textbook IDOR vector — authorize the _record_, not the _tab_. Remember that a hidden (inactive) panel is still fully present in the DOM; `hidden` and `display:none` are presentation, not access control, so never ship content the viewer isn't entitled to and lean on an inactive tab to conceal it — if it's authorization-gated, it must not reach the client at all. The same rule governs deep-linking: a `?tab=billing` query or `#security` hash must resolve through the same permission check as everything else, so a crafted URL can't surface a panel the viewer was never cleared to see. In short — the tabs are chrome, the panels are the app; put your trust boundary at the data, not the visible tab.
+
+---
+
+## 16\. Senior-Level Checklist (ship-ready)
+Before a tabset is "done":
+- [ ] It's a **widget**, not navigation — no URL change on switch (or URL synced via `?tab=` on one page, not per-route). If it should be routes, it's **Tab Navigation**.
+- [ ] `role="tablist"` with an accessible name; `role="tab"` on real `<button>`s; `role="tabpanel"` per panel.
+- [ ] `aria-controls` (tab→panel) and `aria-labelledby` (panel→tab) point at each other.
+- [ ] Exactly one `aria-selected="true"`, and that same tab is the only `tabindex="0"` (roving tabindex).
+- [ ] Arrow keys move between tabs (L/R horizontal, U/D vertical); Home/End jump to ends; **Tab exits to the panel**.
+- [ ] Activation mode chosen deliberately: automatic for cheap panels, **manual for lazy/expensive** ones.
+- [ ] `aria-orientation` set to match layout; arrow keys remapped for vertical.
+- [ ] Inactive panels use `hidden`; active panel is `tabindex="0"` when it has no focusable child.
+- [ ] Selection shown by indicator **plus** weight/contrast, never color alone; contrast ≥ 4.5:1 labels, ≥ 3:1 indicator.
+- [ ] Visible `:focus-visible` ring, distinct from the selected indicator (matters in manual mode).
+- [ ] Touch target ≥ 44px; no layout shift on switch (reserve height).
+- [ ] Overflow handled (scroll with in-view active tab, or "More" menu) — labels never truncated to fit.
+- [ ] Lazy render + lazy fetch for heavy panels; panel state preserved (`keepMounted`) for forms/media.
+- [ ] Indicator animation gated behind `prefers-reduced-motion`; selection survives `forced-colors`.
+- [ ] Tested: roles, roving tabindex, arrow/Home/End, automatic-vs-manual, and `axe` clean.
+
+---
+
+## 17\. Visual Styles (the same tabset, eleven skins)
+Design systems are _whose_ rules; visual styles are _which look_. The same semantic tabs widget can wear any of these. **The rule that never changes:** style is skin, behavior is the skeleton — roles, roving tabindex, `aria-selected`, focus ring, and the 44px target are identical across all eleven. Guard glass/liquid-glass/neu for contrast; guard aurora/liquid-glass for `prefers-reduced-motion`. Full guidance on the 🎨 Design Styles (visual languages).
+
+* **Flat:** solid labels, a crisp 2px underline indicator, no shadow. Reads instantly, scales fast. The safe default.
+* **Material:** an animated ink-bar indicator that slides between tabs, ripple on press, optional icons above labels, uppercase optional. Elevation on the panel below.
+* **Glassmorphism:** a translucent, `backdrop-filter: blur` tablist over a vivid background; the selected pill is frosted. Watch label contrast against whatever shows through.
+* **Liquid Glass (the 2026 trend):** Apple's iOS 26 / macOS Tahoe language. The selected-tab pill is a refractive translucent lozenge with a specular rim and a sheen that shifts as it slides between tabs — glassmorphism grown up. On deep Eminence surfaces the refraction sings. Web = honest approximation with layered highlights; SwiftUI emits native `.glassEffect`. Gate the sheen behind reduced-motion.
+* **Neumorphism:** the selected tab appears _pressed into_ the same-color surface (inset dual shadow); unselected tabs sit raised. Pretty, contrast-poor — accent use only, never the sole selection cue.
+* **Skeuomorphism:** literal manila-folder tabs with bevels, gradient fill, and the selected folder connecting seamlessly to the panel body. The original tab metaphor, made tactile.
+* **Neo-Brutalism:** thick black borders, hard offset shadow on the selected tab, zero radius, clashing fills. High personality; keep the selected/unselected contrast unmistakable.
+* **Claymorphism:** puffy rounded pill tabs with soft inner top-light and bottom-shadow; the selected pill glows. Friendly, big-radius, playful.
+* **Aurora / Gradient:** an animated multi-hue gradient underline or a glowing selected pill on dark. Premium; honor `prefers-reduced-motion` by freezing the gradient.
+* **Minimal / Swiss:** typography and a hairline indicator do all the work; near-zero decoration, generous whitespace, sharp corners. Selection is weight + a thin rule.
+* **UJG Brand:** Goldenrod (`#DCA424`) indicator and selected-label color over deep Eminence (`#5F2C82`) / Night (`#0A0A0A`) surfaces, confident radius on pill variants, a warm glow on the active tab. Purple-tinted neutrals for unselected labels. The house default — lean the selected pill toward a Liquid Glass accent over the dark field for 2026 moments, and keep Flat/Swiss for dense dashboards.
+
+---
+
+**Bottom line:** a tabs widget is a small component built on a strict contract — `tablist`/`tab`/`tabpanel`, roving tabindex, one selected pointer and one focused pointer, arrow keys to move and Tab to escape into the panel. Get that skeleton right and the skin is free; get the widget-vs-navigation distinction right and you'll never ship a `role="tab"` that breaks the back button or a route link that traps a screen reader. Master the activation modes, the lazy panels, and the overflow story, and you've mastered the difference between a decorative row of divs and a real, accessible content switcher.

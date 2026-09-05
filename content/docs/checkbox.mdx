@@ -1,0 +1,1014 @@
+---
+name: Checkbox
+slug: checkbox
+category: Inputs & Forms
+status: built
+summary: "A control for a single binary, independent choice: one thing is either included or not, used in multi-selects or as a solo boolean gate."
+clickup_page_id: 838qa-215091
+tags: [form, checkbox, selection, boolean]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- Single boolean gate: label is associated, so clicking text toggles the box -->
+      <div class="field">
+        <input type="checkbox" id="terms" name="terms" value="agreed">
+        <label for="terms">I agree to the Terms of Service</label>
+      </div>
+
+      <!-- Pre-checked, benign default (NEVER do this for consent) -->
+      <input type="checkbox" id="remember" name="remember" checked>
+      <label for="remember">Remember me on this device</label>
+
+      <!-- A group: fieldset names the whole question once -->
+      <fieldset>
+        <legend>Which alerts do you want?</legend>
+        <label><input type="checkbox" name="alerts" value="product"> Product news</label>
+        <label><input type="checkbox" name="alerts" value="security"> Security alerts</label>
+        <label><input type="checkbox" name="alerts" value="billing"> Billing</label>
+      </fieldset>
+
+      <!-- Disabled -->
+      <input type="checkbox" id="pro" name="pro" disabled>
+      <label for="pro">Pro-only feature</label>
+
+      <!-- Required consent with error wiring -->
+      <input type="checkbox" id="consent" name="consent" required
+             aria-describedby="consent-err" aria-invalid="false">
+      <label for="consent">I consent to data processing</label>
+      <p id="consent-err" role="alert" hidden>You must agree to continue.</p>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import { forwardRef, useEffect, useId, useRef, InputHTMLAttributes, Ref } from "react";
+
+      type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+        label: string;
+        indeterminate?: boolean;
+        error?: string;
+      };
+
+      // Merge a forwarded ref and a local ref onto one node (React has no built-in for this)
+      function mergeRefs<T>(...refs: Array<Ref<T>>) {
+        return (node: T | null) => {
+          for (const r of refs) {
+            if (typeof r === "function") r(node);
+            else if (r) (r as { current: T | null }).current = node;
+          }
+        };
+      }
+
+      export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+        ({ label, indeterminate = false, error, id, className = "", ...rest }, ref) => {
+          const innerRef = useRef<HTMLInputElement>(null);
+          const autoId = useId();
+          const fieldId = id ?? autoId;
+          const errId = `${fieldId}-err`;
+
+          // indeterminate is a DOM property, not an attribute — must set it imperatively
+          useEffect(() => {
+            const node = innerRef.current;
+            if (node) node.indeterminate = indeterminate;
+          }, [indeterminate]);
+
+          return (
+            <div className="cb-field">
+              <label className="cb-wrap">
+                <input
+                  type="checkbox"
+                  id={fieldId}
+                  ref={mergeRefs(ref, innerRef)}
+                  aria-invalid={error ? true : undefined}
+                  aria-describedby={error ? errId : undefined}
+                  className={`cb ${className}`}
+                  {...rest}
+                />
+                <span>{label}</span>
+              </label>
+              {error && (
+                <p id={errId} role="alert" className="cb-error">{error}</p>
+              )}
+            </div>
+          );
+        }
+      );
+      Checkbox.displayName = "Checkbox";
+  - language: vue
+    label: Vue
+    code: |
+      <script setup lang="ts">
+      import { ref, watch } from "vue";
+      const alerts = ref<string[]>(["security"]);   // array => group binding
+      const parent = ref<HTMLInputElement>();
+      const indeterminate = ref(true);
+      watch(indeterminate, (v) => { if (parent.value) parent.value.indeterminate = v; });
+      </script>
+
+      <template>
+        <fieldset>
+          <legend>Alerts</legend>
+          <label><input type="checkbox" value="product" v-model="alerts"> Product</label>
+          <label><input type="checkbox" value="security" v-model="alerts"> Security</label>
+        </fieldset>
+      </template>
+---
+
+## 1\. What a Checkbox Actually Is
+A checkbox is a control for a **binary, independent choice**: this one thing is either included or not. That sounds obvious until you watch how often it's confused with the two controls it lives next to. The single biggest competence tell in form design is knowing which of these three you actually need:
+
+* **Checkbox — multi-select of independents.** A list of options where _each_ is on or off, and choosing one says nothing about the others. "Email me about: \[ \] product news \[ \] security alerts \[ \] billing." Zero, one, or all can be checked. Also used solo for a single boolean gate: "\[ \] I agree to the terms."
+* **Radio — single-of-many (mutually exclusive).** Pick _exactly one_ from a set; choosing one un-chooses the rest. "Shipping: Standard Express Overnight." If the choices are exclusive, a checkbox group is the wrong tool — you'd be letting the user pick "Standard AND Overnight," which is nonsense.
+* **Switch (toggle) — binary on/off that takes effect** **_immediately_****\*\*\*\*.** "Wi-Fi: on/off," "Dark mode: on/off." A switch implies the change happens _now_, live, with no submit. A checkbox implies the value is collected and applied later, usually on form submit.
+
+The rules of thumb, drawn hard:
+* **More than one can be true at once? → checkbox.** Exactly one of a set? → radio. Only ever one thing, and it flips a live setting on the spot? → switch.
+* **Switch vs checkbox is about** **_timing and directness_****\*\*\*\*, not shape.** "Save changes on submit" = checkbox. "Apply this instantly" = switch. Putting a Save button under a row of switches is a smell — you've mixed deferred and immediate models.
+* **Radio vs checkbox is about** **_exclusivity_****\*\*\*\*.** The moment two selections can coexist, radios are wrong.
+
+Two more distinctions people get wrong:
+* **A checkbox is not a toggle button.** A toggle _button_ (`aria-pressed`) is a button that stays pressed — think a bold/italic button in a text editor. It has button semantics. A checkbox has `role="checkbox"` and lives in forms, carrying a value that gets submitted. Screen readers announce them differently ("checkbox, checked" vs "button, pressed").
+* **A "checkbox" that navigates or fires an action on click is a bug.** If clicking it should _do_ something immediately rather than record a choice, you wanted a switch or a button.
+
+Get this one decision right and half of form UX is already correct.
+
+---
+
+## 2\. Why It Matters
+The checkbox looks like the cheapest component in the box. It is quietly one of the highest-stakes.
+
+* **Consent and legal exposure live here.** "I agree to the terms," "I consent to data processing" (GDPR), marketing opt-ins — these are checkboxes, and getting them wrong is a compliance problem, not a styling nit. **Pre-checked consent boxes are illegal in the EU** (GDPR requires active opt-in; a pre-ticked box is not consent). A pre-checked marketing box can cost real money in fines and trust.
+* **Conversion and cart abandonment.** The "I agree" gate is often the last thing between a user and a purchase. A confusing, un-clickable, or error-prone checkbox at checkout is a silent revenue leak. Tiny tap targets on mobile — where most commerce happens — turn a one-second action into a rage-tap.
+* **It's an accessibility frontier.** Custom-styled checkboxes are the single most common place teams accidentally ship an inaccessible control, because the native box is "ugly" and someone rebuilds it out of a `<div>` and an SVG, throwing away keyboard support, focus, and screen-reader state in the process. Get the checkbox right and you've learned the pattern (visually-hidden native input) that fixes radios, switches, and half your form.
+* **Data integrity.** Checkboxes populate the filters, preferences, and permissions that drive real logic. An unchecked box that silently submits `"false"` instead of nothing — or a group that loses a selection on validation error — corrupts data quietly.
+
+---
+
+## 3\. Anatomy of a Checkbox
+Every well-built checkbox is composed of predictable parts:
+
+* **Native input:** `<input type="checkbox">` — the engine. Carries the checked state, the value, keyboard support, focus, and the `role="checkbox"` for assistive tech. Even when invisible, this should exist.
+* **The box (visual indicator):** the square the user sees. Border when unchecked, filled with a checkmark when checked, a dash/line when indeterminate.
+* **The check/indicator glyph:** the ✓ (checked) or – (indeterminate) drawn inside the box. Often an inline SVG or a CSS-drawn mark.
+* **Label:** the text naming the choice. **Must be associated** with the input (`<label for>` or wrapping) so clicking the words toggles the box — and so screen readers announce the box's purpose.
+* **Hit target:** the actual clickable area. The visible box is often ~16–20px; the _target_ must be ≥44×44px, extended via the label and padding.
+* **Focus ring:** the outline on keyboard focus. Rendered on the box (or its wrapper), never removed without a replacement.
+* **Helper / error text:** optional description or validation message, wired to the input via `aria-describedby`.
+* **Group container (for multiple):** a `<fieldset>` with a `<legend>` naming what the whole set of checkboxes is asking.
+
+---
+
+## 4\. Sizes & Density
+Checkboxes are small by nature, which is exactly why the target trap (§12) bites. Real values across common scales:
+
+| Size | Box | Check glyph | Label font | Min tap target | Use |
+| ---| ---| ---| ---| ---| --- |
+| SM | 16px | 10px | 13px | 44px (via padding) | Dense tables, multi-column filter lists |
+| MD | 20px | 12px | 14px | 44px | Default forms |
+| LG | 24px | 16px | 16px | 48px | Mobile-first, touch, consent gates |
+
+Rules that matter:
+* **The visible box can be 16px; the** **_target_** **cannot.** The gap between visual size and hit size is bridged by the label and surrounding padding, not by growing the square. This is the checkbox's defining sizing challenge — see §12.
+* **Box size should track the label's line-height** so the box optically centers with the first line of text. A 20px box next to 14px/1.5 text aligns cleanly; a 16px box against 18px text looks like it's sinking.
+* **Gap between box and label** ~8–12px. Too tight reads as cramped; too loose breaks the visual association.
+* **Border radius:** 2–4px is the modern default (a hint of softness). 0px reads Swiss/brutalist; a fully round box reads like a radio and will confuse users — **keep checkboxes squared, radios round.** That shape convention is doing real communication work; don't break it for aesthetics.
+
+---
+
+## 5\. States (the part juniors forget)
+A production checkbox has far more than "checked / unchecked." Missing states are the amateur tell.
+
+1. **Unchecked (default)** — empty box, visible border. The rest state.
+2. **Checked** — filled box + checkmark. `checked` attribute present; property `true`.
+3. **Indeterminate (tri-state)** — the box shows a dash, meaning "partially selected" (some children on, some off). **Critical detail: this is a JavaScript-only property, not an HTML attribute.** You cannot write `<input type="checkbox" indeterminate>` — it does nothing. You must set `el.indeterminate = true` in script. It's purely visual + `aria-checked="mixed"`; it does **not** change the submitted value (an indeterminate box submits as if checked/unchecked per its actual `checked` value). See §9 for the parent/child tree pattern where this earns its keep.
+4. **Hover** — subtle border/background shift on the box or row. Doesn't exist on touch, so never rely on it alone.
+5. **Focus** — keyboard reachable, visible ring via `:focus-visible`. Non-negotiable.
+6. **Active (pressed)** — the moment of click/tap. Slight scale or fill flash sells the toggle.
+7. **Disabled** — not currently changeable. Reduced opacity, `cursor: not-allowed`, `disabled` attribute (which also removes it from tab order and stops it submitting). Explain _why_ nearby.
+8. **Read-only-ish** — checkboxes have no true `readonly` (a documented HTML quirk: `readonly` does nothing on checkboxes). To show a fixed value that still submits, use `disabled` plus a hidden input, or `aria-disabled` + JS-prevented change. See §9.
+9. **Error / invalid** — required box not checked (the "you must agree" gate). Red border, `aria-invalid="true"`, error text wired via `aria-describedby`.
+10. **Loading / pending** — async-persisted setting saving. Rare on checkboxes; usually a spinner near the label + `aria-busy`.
+
+The three that separate a real build from a toy: **indeterminate** (JS-only, `aria-checked="mixed"`), **focus-visible** (survives custom styling), and **error** on a required single checkbox.
+
+---
+
+## 6\. Types & Variants
+By function, not just looks:
+
+* **Single checkbox (boolean gate):** one box, one decision. Terms agreement, "remember me," "subscribe." Stands alone; its label _is_ the question.
+* **Checkbox group (multi-select):** several independent boxes under one `<fieldset>`/`<legend>`. Notification preferences, filter facets, feature toggles collected for submit.
+* **Tri-state / parent-child (indeterminate):** a parent box that reflects its children — checked (all on), unchecked (all off), indeterminate (some). "Select all" over a list is the canonical case. Requires the JS `indeterminate` property.
+* **Selection tree:** nested parent-child checkboxes several levels deep (permission trees, file pickers, category taxonomies). Indeterminate propagates up; checking a parent cascades down.
+* **Checkbox card / tile:** the whole card is the target, the box is a visual anchor (plan pickers, multi-select galleries). Still backed by a real input; the card is the label.
+* **Toggle-styled checkbox:** a checkbox _skinned_ to look like a switch. **Only legitimate when the value is still deferred to submit** — if it applies instantly, it should semantically be a switch. Cosmetic overlap, different meaning.
+* **Indeterminate "select all":** the header box in a data table selecting all rows. The most common real-world indeterminate.
+
+---
+
+## 7\. When to Use One (and When Not To)
+Use a checkbox when the user makes a **binary, independent choice that's collected and applied on submit**, or when several such choices sit side by side. Don't use one when:
+
+* **The choices are mutually exclusive** → radio group. (Exactly one shipping speed, one payment plan.)
+* **The setting applies instantly and live** → switch. (Dark mode, notifications on/off in settings.)
+* **There are many options and space is tight** → multi-select combobox or a menu of checkboxes. Twenty checkboxes in a column is a wall; collapse it.
+* **It's really an action** → button. If clicking "does" rather than "records," it's not a checkbox.
+* **A single yes/no where "no" is the safe, common default and the question is a live setting** → switch reads better than a lone checkbox in modern settings UIs.
+
+Placement & pattern heuristics:
+* **Label to the** **_right_** **of the box** for LTR languages — that's the scan direction, and the whole label becomes clickable. (Switches often flip this; checkboxes don't.)
+* **Never pre-check consent or marketing boxes.** Legal exposure aside, it erodes trust. Optional, benign defaults (e.g., "remember me") can be pre-checked; anything with legal or financial weight cannot.
+* **Group related boxes under a** **`<legend>`** so the question ("Which alerts?") is announced once, not implied.
+* **Keep the required consent box visible** near the submit button, not buried above the fold, so users aren't blocked by something they can't find.
+
+---
+
+## 8\. Checkboxes Across Design Systems
+Same control, different philosophies. Knowing these makes you fluent in any codebase.
+
+* **Material Design (Google):** Square box, animated checkmark draw-in, ripple on the surrounding target. Explicit indeterminate state. Ships `MDCCheckbox` / Compose `Checkbox` with `TriStateCheckbox` for parent-child. Strong emphasis on the 48dp touch target around a 18dp box.
+* **Apple HIG (iOS/macOS):** On macOS, a classic square checkbox. On **iOS there is historically no system checkbox** — Apple pushes switches for settings and checkmark rows in lists/tables instead. This is why iOS forms feel switch-heavy; the web checkbox often has to be hand-built for iOS web views.
+* **Fluent (Microsoft):** Compact square with a clean check, indeterminate as a filled dash, tight density for data-heavy enterprise UIs. Mixed (indeterminate) state is first-class.
+* **Ant Design / enterprise:** `Checkbox` + `Checkbox.Group` with a value array, and a dedicated indeterminate prop for "check all" table headers — the most polished tree/select-all story of the big systems. Built for admin dashboards.
+* **Tailwind / utility-first:** No prescribed look; `accent-color` + `@tailwindcss/forms` gets you a usable native box fast, or you hand-roll the visually-hidden-input pattern for full control.
+* **shadcn/Radix (2024+ web standard):** Headless `@radix-ui/react-checkbox` handles state, keyboard, and `aria-checked="mixed"` for you; you style the indicator. Accessibility baked in, appearance fully yours — the sane default for new React work.
+* **Bootstrap:** `.form-check` + `.form-check-input`; indeterminate still requires JS (`el.indeterminate = true`). Ready-made, consistent, overridable via Sass.
+
+---
+
+## 9\. The Code
+### 9.1 HTML (the foundation everyone should master first)
+
+```plain
+<!-- Single boolean gate: label is associated, so clicking text toggles the box -->
+<div class="field">
+  <input type="checkbox" id="terms" name="terms" value="agreed">
+  <label for="terms">I agree to the Terms of Service</label>
+</div>
+
+<!-- Pre-checked, benign default (NEVER do this for consent) -->
+<input type="checkbox" id="remember" name="remember" checked>
+<label for="remember">Remember me on this device</label>
+
+<!-- A group: fieldset names the whole question once -->
+<fieldset>
+  <legend>Which alerts do you want?</legend>
+  <label><input type="checkbox" name="alerts" value="product"> Product news</label>
+  <label><input type="checkbox" name="alerts" value="security"> Security alerts</label>
+  <label><input type="checkbox" name="alerts" value="billing"> Billing</label>
+</fieldset>
+
+<!-- Disabled -->
+<input type="checkbox" id="pro" name="pro" disabled>
+<label for="pro">Pro-only feature</label>
+
+<!-- Required consent with error wiring -->
+<input type="checkbox" id="consent" name="consent" required
+       aria-describedby="consent-err" aria-invalid="false">
+<label for="consent">I consent to data processing</label>
+<p id="consent-err" role="alert" hidden>You must agree to continue.</p>
+```
+
+Key HTML rules:
+* **Always associate a label.** Either `<label for="id">` matching the input's `id`, or wrap the input _inside_ the `<label>`. Without it, the box has no accessible name and the words aren't clickable — the two most common checkbox bugs at once.
+* **`value`** **matters for submission.** A checked box submits `name=value`. With no `value`, a checked box submits `name=on` (the browser default). An **unchecked box submits nothing at all** — see §9.7.
+* **`indeterminate`** **is not an attribute.** It exists only as a JS property. Markup can't set it.
+* **Group with** **`<fieldset>`****/****`<legend>`****\*\*\*\*.** This is how a screen reader knows three boxes belong to one question.
+* **`checked`** **is the initial state**, not the live one. After a user clicks, the attribute doesn't change; the _property_ does. (This trips people reading `.getAttribute("checked")` expecting the current value — read `.checked`.)
+
+### 9.2 CSS (custom-styled, done accessibly)
+Two honest ways to style a checkbox without breaking it. **Never** rebuild it from a `<div>`.
+
+**Option A —** **`appearance: none`** **+** **`accent-color`** **(the modern, minimal path).** For light restyling, `accent-color` alone recolors the native box with zero markup gymnastics and keeps every native behavior:
+
+```css
+input[type="checkbox"] {
+  accent-color: #5F2C82;   /* recolors the native check. Done. */
+  width: 20px;
+  height: 20px;
+}
+```
+
+For full control of the box's look, `appearance: none` strips the native rendering and you draw it yourself — **on the real input**, so semantics, keyboard, and focus survive:
+
+```css
+.cb {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border: 2px solid #7c6a90;
+  border-radius: 4px;
+  display: inline-grid;
+  place-content: center;
+  cursor: pointer;
+  transition: background-color .15s, border-color .15s;
+}
+/* the checkmark, drawn with a clip-path, revealed on :checked */
+.cb::before {
+  content: "";
+  width: 12px; height: 12px;
+  transform: scale(0);
+  transition: transform .12s ease-in-out;
+  background: #fff;
+  clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+.cb:checked { background: #5F2C82; border-color: #5F2C82; }
+.cb:checked::before { transform: scale(1); }
+
+/* indeterminate: a dash instead of a check */
+.cb:indeterminate { background: #5F2C82; border-color: #5F2C82; }
+.cb:indeterminate::before {
+  transform: scale(1);
+  clip-path: none;
+  width: 12px; height: 3px; border-radius: 2px;
+}
+
+/* keyboard focus only — survives the restyle */
+.cb:focus-visible { outline: 2px solid #DCA424; outline-offset: 2px; }
+.cb:disabled { opacity: .5; cursor: not-allowed; }
+```
+
+**Option B — visually-hidden native input + a styled sibling (maximum control, still fully accessible).** The native input stays in the DOM, focusable and announced, but visually hidden; a sibling `<span>` is the drawn box. The label ties them together and the input drives everything via CSS state selectors:
+
+```css
+/* visually-hidden but still in the a11y tree and tab order — do NOT use display:none */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  white-space: nowrap; border: 0;
+}
+.cb-wrap { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; cursor: pointer; }
+.cb-box { width: 20px; height: 20px; border: 2px solid #7c6a90; border-radius: 4px; }
+.cb-input:checked + .cb-box { background: #5F2C82; border-color: #5F2C82; /* draw check */ }
+.cb-input:focus-visible + .cb-box { outline: 2px solid #DCA424; outline-offset: 2px; }
+```
+
+```plain
+<label class="cb-wrap">
+  <input type="checkbox" class="cb-input visually-hidden">
+  <span class="cb-box" aria-hidden="true"></span>
+  <span>Email me security alerts</span>
+</label>
+```
+
+The rule under both: **the real** **`<input>`** **is always present and focusable.** `display:none` or `visibility:hidden` on the input removes it from the tab order and the accessibility tree — that's the exact mistake that produces a pretty checkbox no keyboard or screen-reader user can operate.
+
+### 9.3 React + TypeScript (a proper controlled component)
+A reusable, controlled checkbox that supports the indeterminate property (which React can't set via JSX — it needs a ref):
+
+```typescript
+import { forwardRef, useEffect, useId, useRef, InputHTMLAttributes, Ref } from "react";
+
+type CheckboxProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  label: string;
+  indeterminate?: boolean;
+  error?: string;
+};
+
+// Merge a forwarded ref and a local ref onto one node (React has no built-in for this)
+function mergeRefs<T>(...refs: Array<Ref<T>>) {
+  return (node: T | null) => {
+    for (const r of refs) {
+      if (typeof r === "function") r(node);
+      else if (r) (r as { current: T | null }).current = node;
+    }
+  };
+}
+
+export const Checkbox = forwardRef<HTMLInputElement, CheckboxProps>(
+  ({ label, indeterminate = false, error, id, className = "", ...rest }, ref) => {
+    const innerRef = useRef<HTMLInputElement>(null);
+    const autoId = useId();
+    const fieldId = id ?? autoId;
+    const errId = `${fieldId}-err`;
+
+    // indeterminate is a DOM property, not an attribute — must set it imperatively
+    useEffect(() => {
+      const node = innerRef.current;
+      if (node) node.indeterminate = indeterminate;
+    }, [indeterminate]);
+
+    return (
+      <div className="cb-field">
+        <label className="cb-wrap">
+          <input
+            type="checkbox"
+            id={fieldId}
+            ref={mergeRefs(ref, innerRef)}
+            aria-invalid={error ? true : undefined}
+            aria-describedby={error ? errId : undefined}
+            className={`cb ${className}`}
+            {...rest}
+          />
+          <span>{label}</span>
+        </label>
+        {error && (
+          <p id={errId} role="alert" className="cb-error">{error}</p>
+        )}
+      </div>
+    );
+  }
+);
+Checkbox.displayName = "Checkbox";
+```
+
+Why this is the senior version:
+* **`useEffect`** **sets** **`indeterminate`** because React deliberately has no `indeterminate` JSX prop — it's a property, so a ref + effect is the only correct path. Passing `indeterminate` as a plain attribute silently does nothing.
+* **`forwardRef`** **\+ a merged inner ref** so parents get the node _and_ the component can drive `indeterminate` itself.
+* **Extends native** **`InputHTMLAttributes`** so `checked`, `onChange`, `name`, `value`, `required`, `disabled`, `aria-*` all pass through for free.
+* **`error`** **drives** **`aria-invalid`** **+** **`aria-describedby`** so the message is programmatically tied to the box, not just visually near it.
+
+Controlled usage — the real pattern (checkbox groups store an array):
+
+```typescript
+function AlertPrefs() {
+  const [selected, setSelected] = useState<string[]>(["security"]);
+
+  function toggle(value: string, checked: boolean) {
+    setSelected((prev) =>
+      checked ? [...prev, value] : prev.filter((v) => v !== value)
+    );
+  }
+
+  const options = ["product", "security", "billing"];
+  return (
+    <fieldset>
+      <legend>Which alerts do you want?</legend>
+      {options.map((opt) => (
+        <Checkbox
+          key={opt}
+          label={opt}
+          value={opt}
+          checked={selected.includes(opt)}
+          onChange={(e) => toggle(opt, e.target.checked)}
+        />
+      ))}
+    </fieldset>
+  );
+}
+```
+
+### 9.4 Tri-state parent / child (the tree — indeterminate's real job)
+A "Select all" parent over children, with the parent showing indeterminate when the selection is mixed. This is the pattern the indeterminate property exists for:
+
+```typescript
+function SelectableList() {
+  const items = ["read", "write", "delete"];
+  const [checked, setChecked] = useState<Record<string, boolean>>({
+    read: true, write: false, delete: false,
+  });
+
+  const values = items.map((i) => checked[i]);
+  const allOn = values.every(Boolean);
+  const noneOn = values.every((v) => !v);
+  const parentIndeterminate = !allOn && !noneOn;
+
+  function toggleAll(on: boolean) {
+    setChecked(Object.fromEntries(items.map((i) => [i, on])));
+  }
+
+  return (
+    <fieldset>
+      <legend>Permissions</legend>
+      <Checkbox
+        label="Select all"
+        checked={allOn}
+        indeterminate={parentIndeterminate}   // dash when partially selected
+        onChange={(e) => toggleAll(e.target.checked)}
+      />
+      <div style={{ marginLeft: 24 }}>
+        {items.map((i) => (
+          <Checkbox
+            key={i}
+            label={i}
+            checked={checked[i]}
+            onChange={(e) => setChecked((p) => ({ ...p, [i]: e.target.checked }))}
+          />
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+```
+
+The logic that defines a correct tree: **parent = all children on → checked; all off → unchecked; anything in between → indeterminate.** Clicking an indeterminate parent conventionally selects _all_ children (some systems clear all — pick one and be consistent). For deep trees, indeterminate must propagate up every ancestor level, and checking a node cascades down to descendants.
+
+### 9.5 Vanilla JavaScript (no framework)
+The building block everything abstracts. Note that indeterminate is set in script, and that reading state means reading `.checked`, not the attribute:
+
+```javascript
+const all = document.querySelector("#select-all");
+const boxes = [...document.querySelectorAll(".row-check")];
+
+function syncParent() {
+  const on = boxes.filter((b) => b.checked).length;
+  all.checked = on === boxes.length;
+  all.indeterminate = on > 0 && on < boxes.length;   // JS property, not attribute
+}
+
+all.addEventListener("change", () => {
+  boxes.forEach((b) => (b.checked = all.checked));    // cascade down
+  all.indeterminate = false;
+});
+
+boxes.forEach((b) => b.addEventListener("change", syncParent));
+syncParent();  // set initial parent state on load
+```
+
+### 9.6 Next.js (App Router: client vs server)
+An interactive checkbox with `onChange` must be a **Client Component**, but a form of checkboxes can post to a **Server Action** with no API route. And a group posts as an _array_ — read it with `getAll`:
+
+```typescript
+// app/prefs/PrefsForm.tsx
+"use client";                       // has interactive checkboxes
+import { savePrefs } from "@/app/actions";
+
+export function PrefsForm() {
+  return (
+    <form action={savePrefs}>
+      <fieldset>
+        <legend>Alerts</legend>
+        <label><input type="checkbox" name="alerts" value="product" /> Product</label>
+        <label><input type="checkbox" name="alerts" value="security" /> Security</label>
+      </fieldset>
+      <button type="submit">Save</button>
+    </form>
+  );
+}
+// app/actions.ts
+"use server";
+import { revalidatePath } from "next/cache";
+
+export async function savePrefs(formData: FormData) {
+  const alerts = formData.getAll("alerts");   // getAll — a group is many entries
+  const consent = formData.get("consent") === "on"; // unchecked => null => false
+  await db.prefs.update({ alerts, consent });
+  revalidatePath("/prefs");
+}
+```
+
+The `getAll` vs `get` distinction is the whole game with checkbox groups on the server: several boxes share a `name`, so only `getAll` returns every checked value. `get` returns just the first.
+
+### 9.7 Form submission behavior (the trap that eats booleans)
+The single most surprising checkbox fact, and the source of countless "why is my boolean undefined" bugs:
+
+* **An unchecked checkbox submits** **_nothing_****\*\*\*\*.** It's not `false`, not `""`, not `0` — the field name simply isn't in the payload. Server code doing `if (body.newsletter === "false")` will never fire, because there's no `newsletter` key at all.
+* **A checked box submits** **`name=value`**, or `name=on` if you gave it no `value`.
+
+The classic fix for a true boolean is the **hidden-input companion**: a hidden field with the same `name` and a "false" value _before_ the checkbox. If the box is unchecked, only the hidden value posts; if checked, both post and the framework takes the last one:
+
+```plain
+<input type="hidden" name="newsletter" value="false">
+<input type="checkbox" name="newsletter" value="true">
+```
+
+This is exactly what Rails, and many form libraries, generate automatically. On the server, always **treat "absent" as false**, and read a group with `getAll`/`req.body.getlist`, never assume the key exists:
+
+```typescript
+// Node/Express with a group and a single boolean
+const alerts = [].concat(req.body.alerts ?? []);   // normalize 0/1/many to array
+const consent = req.body.consent === "true";       // absent => false, safely
+if (!consent) return res.status(422).json({ error: "Consent required" });
+```
+
+### 9.8 Python (backend + a rendered checkbox)
+**Backend** (FastAPI) reading a group and a required consent from a form post:
+
+```python
+from fastapi import FastAPI, Form, HTTPException
+from typing import List, Optional
+
+app = FastAPI()
+
+@app.post("/prefs")
+def save_prefs(
+    alerts: List[str] = Form(default=[]),      # a checkbox group -> list
+    consent: Optional[str] = Form(default=None) # unchecked -> None, not "false"
+):
+    if consent is None:                         # absent means unchecked
+        raise HTTPException(422, "Consent is required")
+    db.save_prefs(alerts=alerts, consent=True)
+    return {"alerts": alerts}
+```
+
+**Rendering** server-side (Django/Jinja), including the pre-checked guard and disabled state:
+
+```plain
+<label>
+  <input type="checkbox" name="alerts" value="billing"
+         {% if "billing" in selected %}checked{% endif %}>
+  Billing alerts
+</label>
+```
+
+Python note: even in a Python stack the checkbox lives in HTML/JS. Python's job is to render initial `checked` state and to defend the endpoint — treating a missing key as unchecked, validating required consent, never trusting the client to send `false`.
+
+### 9.9 shadcn/ui + Radix (headless, accessible by default)
+Radix handles state, keyboard, and — crucially — `aria-checked="mixed"` for the indeterminate case, which it exposes as a `"indeterminate"` checked value. You style only the indicator:
+
+```typescript
+"use client";
+import * as Checkbox from "@radix-ui/react-checkbox";
+import { Check, Minus } from "lucide-react";
+
+export function TriCheckbox({
+  checked, onCheckedChange, label,
+}: {
+  checked: boolean | "indeterminate";
+  onCheckedChange: (v: boolean | "indeterminate") => void;
+  label: string;
+}) {
+  return (
+    <label className="flex items-center gap-2 min-h-11 cursor-pointer">
+      <Checkbox.Root
+        checked={checked}
+        onCheckedChange={onCheckedChange}
+        className="h-5 w-5 rounded border-2 border-muted
+                   data-[state=checked]:bg-primary data-[state=indeterminate]:bg-primary
+                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
+        <Checkbox.Indicator>
+          {checked === "indeterminate" ? <Minus size={14} /> : <Check size={14} />}
+        </Checkbox.Indicator>
+      </Checkbox.Root>
+      <span>{label}</span>
+    </label>
+  );
+}
+```
+
+Radix models the tri-state as a first-class `checked` value of `"indeterminate"` — no ref, no effect, no manual DOM property. That's the payoff of a headless primitive: the awkward `indeterminate`\-is-a-property problem is solved for you.
+
+### 9.10 Other Frameworks (Vue, Svelte, Angular)
+Same native `<input type="checkbox">` underneath; the framework binds `checked`/`indeterminate` differently.
+
+**Vue 3** — `v-model` binds a single boolean, or an _array_ for a group automatically:
+
+```plain
+<script setup lang="ts">
+import { ref, watch } from "vue";
+const alerts = ref<string[]>(["security"]);   // array => group binding
+const parent = ref<HTMLInputElement>();
+const indeterminate = ref(true);
+watch(indeterminate, (v) => { if (parent.value) parent.value.indeterminate = v; });
+</script>
+
+<template>
+  <fieldset>
+    <legend>Alerts</legend>
+    <label><input type="checkbox" value="product" v-model="alerts"> Product</label>
+    <label><input type="checkbox" value="security" v-model="alerts"> Security</label>
+  </fieldset>
+</template>
+```
+
+Vue's array `v-model` is the cleanest group story of any framework: bind the same array to every box and it manages membership for you.
+
+**Svelte** — `bind:checked` for one, `bind:group` for a set, and `bind:indeterminate` (Svelte exposes it as a bindable, sparing you the manual property set):
+
+```plain
+<script lang="ts">
+  let alerts: string[] = ["security"];
+  let indeterminate = true;
+</script>
+
+<label><input type="checkbox" bind:group={alerts} value="product"> Product</label>
+<label><input type="checkbox" bind:group={alerts} value="security"> Security</label>
+<input type="checkbox" bind:indeterminate />
+```
+
+**Angular** — `[(ngModel)]` for the value; indeterminate via property binding `[indeterminate]`:
+
+```typescript
+@Component({
+  selector: "app-check",
+  standalone: true,
+  imports: [FormsModule],
+  template: `
+    <label>
+      <input type="checkbox" [(ngModel)]="checked"
+             [indeterminate]="mixed" (change)="mixed = false">
+      {{ label }}
+    </label>`,
+})
+export class CheckComponent {
+  @Input() label = "";
+  checked = false;
+  mixed = true;
+}
+```
+
+Angular is the one big framework that _does_ let you bind `[indeterminate]` directly in the template — a rare case where the framework smooths over the property-not-attribute quirk.
+
+### 9.11 Bootstrap (the classic component framework)
+Ready-made classes; indeterminate still needs one line of JS.
+
+```plain
+<div class="form-check">
+  <input class="form-check-input" type="checkbox" id="c1" value="product">
+  <label class="form-check-label" for="c1">Product news</label>
+</div>
+
+<!-- Switch skin (still a checkbox semantically!) -->
+<div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="s1">
+  <label class="form-check-label" for="s1">Notifications</label>
+</div>
+
+<!-- Indeterminate is JS-only, even in Bootstrap -->
+<script>document.querySelector("#c1").indeterminate = true;</script>
+```
+
+Note Bootstrap's switch is literally a checkbox with `.form-switch` and `role="switch"` — a reminder that "switch" is partly a skin over the checkbox, but the `role="switch"` changes how a screen reader announces it (on/off vs checked/unchecked). Use `role="switch"` only when the value truly applies live.
+
+### 9.12 Web Component (framework-agnostic)
+A checkbox that works anywhere, wrapping the native input so it keeps real semantics:
+
+```typescript
+class UICheckbox extends HTMLElement {
+  static observedAttributes = ["checked", "indeterminate", "disabled"];
+  #input = document.createElement("input");
+
+  connectedCallback() {
+    this.#input.type = "checkbox";
+    this.attachShadow({ mode: "open" }).append(this.#input);
+    this.#input.addEventListener("change", () => {
+      this.toggleAttribute("checked", this.#input.checked);
+      this.dispatchEvent(new Event("change"));
+    });
+    this.#sync();
+  }
+  attributeChangedCallback() { this.#sync(); }
+  #sync() {
+    this.#input.checked = this.hasAttribute("checked");
+    this.#input.indeterminate = this.hasAttribute("indeterminate"); // property set for us
+    this.#input.disabled = this.hasAttribute("disabled");
+  }
+  get checked() { return this.#input.checked; }
+}
+customElements.define("ui-checkbox", UICheckbox);
+// <ui-checkbox indeterminate></ui-checkbox> — the element maps the attr to the property
+```
+
+A nice touch: a custom element _can_ expose `indeterminate` as an attribute of its own and map it to the inner property, giving consumers the declarative markup the native input never offered.
+
+### 9.13 Native Mobile (SwiftUI, Jetpack Compose, Flutter)
+Off the web, the multi-select concept survives, but the platforms diverge sharply on whether a "checkbox" even exists.
+
+**SwiftUI (iOS/macOS):** iOS has **no native checkbox** — the idiomatic control is a `Toggle`, styled as a checkbox only on macOS. For multi-select lists, a checkmark row is the iOS convention:
+
+```plain
+Toggle("Email me updates", isOn: $wantsEmail)   // renders as a switch on iOS
+
+// Multi-select list row, the iOS-native "checkbox":
+HStack {
+    Text(option.name)
+    Spacer()
+    if selected.contains(option.id) { Image(systemName: "checkmark") }
+}
+.contentShape(Rectangle())
+.onTapGesture { toggle(option.id) }
+```
+
+**Jetpack Compose (Android):** a real `Checkbox`, plus `TriStateCheckbox` for exactly the indeterminate/parent case:
+
+```kotlin
+Checkbox(checked = isOn, onCheckedChange = { isOn = it })
+
+// Parent-child tri-state, first-class:
+TriStateCheckbox(
+    state = when {
+        allSelected -> ToggleableState.On
+        noneSelected -> ToggleableState.Off
+        else -> ToggleableState.Indeterminate
+    },
+    onClick = ::toggleAll,
+)
+```
+
+**Flutter:** `Checkbox` with a nullable `value` — `tristate: true` makes `null` the indeterminate state:
+
+```plain
+Checkbox(
+  tristate: true,           // enables the null/indeterminate state
+  value: parentValue,       // true / false / null
+  onChanged: (v) => setState(() => toggleAll(v)),
+)
+```
+
+The through-line: **Android and Flutter treat tri-state as first-class; iOS pushes you toward switches and checkmark rows.** Learn the multi-select _concept_, remap per platform — and know that "there's no iOS checkbox" is a real constraint, not an oversight.
+
+### 9.14 Testing (unit + a11y)
+A checkbox is behavior and state, so test what a user experiences: it's labeled, reachable by role, toggles, and exposes indeterminate as `mixed`.
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
+import { describe, it, expect } from "vitest";
+import { Checkbox } from "./Checkbox";
+
+describe("Checkbox", () => {
+  it("is reachable by role and labeled", () => {
+    render(<Checkbox label="I agree" />);
+    expect(screen.getByRole("checkbox", { name: /i agree/i })).toBeInTheDocument();
+  });
+
+  it("toggles on click and on Space", async () => {
+    render(<Checkbox label="I agree" />);
+    const box = screen.getByRole("checkbox");
+    expect(box).not.toBeChecked();
+    await userEvent.click(box);
+    expect(box).toBeChecked();
+    box.focus();
+    await userEvent.keyboard(" ");        // Space toggles a checkbox
+    expect(box).not.toBeChecked();
+  });
+
+  it("exposes indeterminate as aria mixed", () => {
+    render(<Checkbox label="Select all" indeterminate />);
+    // toBePartiallyChecked() asserts the indeterminate DOM property
+    expect(screen.getByRole("checkbox")).toBePartiallyChecked();
+  });
+
+  it("clicking the label toggles the box (association works)", async () => {
+    render(<Checkbox label="Newsletter" />);
+    await userEvent.click(screen.getByText("Newsletter"));
+    expect(screen.getByRole("checkbox")).toBeChecked();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(<Checkbox label="I agree" />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+```
+
+What to assert (and skip):
+* **Do test:** found `byRole("checkbox")` (proves accessible name + role), Space toggles (proves keyboard), clicking the _label_ toggles (proves association), `toBePartiallyChecked` (proves indeterminate is a real property, not a fake dash), axe passes.
+* **Don't test:** exact class names, the SVG path, hex colors. Implementation details that break tests without catching bugs.
+* **The label-click test is the sneaky-valuable one** — it's the fastest way to catch a broken `for`/`id` association, the #1 checkbox bug.
+
+---
+
+## 10\. Accessibility (non-negotiable)
+The checkbox is where custom styling most often destroys accessibility. Guard every point below.
+
+* **Use a real** **`<input type="checkbox">`****\*\*\*\*.** It comes with `role="checkbox"`, keyboard support, focus, and state announcement for free. A `<div>` + SVG throws all of that away and forces you to reimplement it (badly). If you _must_ build from scratch, you need `role="checkbox"`, `aria-checked` (`true`/`false`/`mixed`), `tabindex="0"`, and Space-key handling — i.e., you're rebuilding what the native input already gives you.
+* **Keyboard:** **Space toggles a checkbox** (Enter does _not_ — a common wrong assumption; Enter submits the form). Tab moves to it, Space flips it. Native handles this; a div doesn't.
+* **Accessible name:** every box needs a programmatic label — `<label for>`, wrapping label, `aria-label`, or `aria-labelledby`. A box with no name is announced as just "checkbox," which is useless.
+* **Indeterminate →** **`aria-checked="mixed"`****\*\*\*\*.** The native `indeterminate` property sets this automatically; a custom build must set it explicitly. Screen readers announce "mixed," which is how a blind user understands a partially-selected parent.
+* **Groups →** **`<fieldset>`** **+** **`<legend>`****\*\*\*\*.** The legend gives the whole group a name, announced with each box ("Which alerts? Product, checkbox, not checked"). Without it, three boxes are three orphaned questions.
+* **Focus visible:** never `outline: none` without a replacement. Use `:focus-visible` on the input (or the visible box sibling). Custom checkboxes lose this constantly.
+* **Error state:** a required unchecked box uses `aria-invalid="true"` and `aria-describedby` pointing at the error text, with the message in an `role="alert"`/`aria-live` region so it's announced.
+* **Contrast:** the box border and the checkmark must hit ≥3:1 against their background (WCAG non-text contrast for the control boundary), and label text ≥4.5:1. A thin light-gray unchecked border on white is a real failure.
+* **Touch target ≥ 44px.** The box is small; the target must not be. See §12 — this is the checkbox's signature a11y failure.
+* **Don't rely on color alone** for checked vs unchecked — the checkmark shape carries the meaning, so colorblind users aren't guessing.
+
+**Keyboard map:**
+
+| Key | Action |
+| ---| --- |
+| Tab / Shift+Tab | Move focus to / from the checkbox |
+| Space | Toggle checked ⇄ unchecked |
+| Enter | Nothing on the box itself (submits the form if in one) |
+
+---
+
+## 11\. Innovative & Emerging Ideas
+The checkbox looks solved but keeps moving:
+* **`accent-color`** **maturity:** one CSS line now recolors native checkboxes cross-browser, killing most reasons to hand-roll. The 2020s quietly made native styling good enough for the majority of cases.
+* **Animated check draws & spring toggles:** the checkmark strokes in (Material, Framer Motion) instead of popping — perceived quality, honoring `prefers-reduced-motion`.
+* **Card / tile multi-select:** the whole surface is the checkbox target with the box as a corner anchor; big, thumb-friendly, common in onboarding and plan pickers.
+* **Optimistic + persisted checkboxes:** settings that save on toggle with an inline saved/failed indicator, blurring the checkbox/switch line (and reminding you to pick the right one semantically).
+* **Bulk-select trees with indeterminate at scale:** virtualized permission and file trees that compute parent `mixed` state across thousands of nodes without re-rendering the world.
+* **Reduced-motion & forced-colors awareness baked in:** modern component libraries ship the media-query guards by default rather than as an afterthought.
+
+---
+
+## 12\. Conversion / UX Killers (the silent bleeders)
+None of these throw an error. They just quietly cost you completions, consent, and trust.
+
+* **The 44px target trap (the signature checkbox failure).** A 16px box on mobile is a 16px target unless you extend it. Users mis-tap, tap the label expecting it to work (and it doesn't, because the label isn't associated), and abandon. **Fix:** associate the label so the whole phrase is clickable, give the row `min-height: 44px`, and pad the hit area. The visible box stays small; the target gets big.
+* **Unassociated label.** Clicking the words does nothing because there's no `for`/`id` or wrapping. Doubles as an accessibility failure and a conversion leak — every user instinctively clicks the text.
+* **Pre-checked consent.** Illegal under GDPR, corrosive to trust everywhere, and a chargeback/refund magnet when users feel tricked into a subscription. Never pre-check anything with legal or financial weight.
+* **The invisible custom checkbox.** Someone `display:none`s the real input to style a div, and now no keyboard or screen-reader user can check the box — including the "I agree" gate blocking checkout. A total conversion wall for a slice of users, invisible in QA done with a mouse.
+* **Missing focus ring.** Custom-styled boxes drop `:focus-visible`; keyboard users can't tell which box they're on. Silent for mouse users, blocking for others.
+* **Checkbox where a switch belongs (and vice versa).** A checkbox on a live setting makes users hunt for a "save" that isn't there; a switch on a form field implies an instant change that never happens. Both erode confidence.
+* **Radio behavior faked with checkboxes.** Letting users check two mutually-exclusive options produces invalid data and a confusing UI. If only one should win, use radios.
+* **The unchecked-submits-nothing surprise.** Backend reads `body.consent` expecting `false`, gets `undefined`, and the "required" gate silently passes or the preference silently defaults wrong. Data integrity bug that ships clean.
+* **Round checkboxes.** Styling a checkbox as a circle makes users read it as a radio and expect single-select. The square/round convention is communication; breaking it misleads.
+
+**The through-line:** these fail _quietly_. No crash — just a slightly lower completion rate, a consent you can't legally rely on, or a boolean that's wrong in the database. Audit your checkboxes before you audit your funnel.
+
+---
+
+## 13\. Advanced Patterns
+Techniques that lean on the platform and the type system instead of custom JavaScript.
+
+**The hidden-input boolean companion.** Covered in §9.7 — the canonical way to make an unchecked box submit an explicit `false` instead of nothing. Rails and many form libs emit this automatically; know it so you're not baffled by the "duplicate" hidden field.
+
+**`:has`** **for row-level selection styling.** Highlight a whole selected row purely in CSS, no JS class toggling:
+
+```css
+.row:has(input[type="checkbox"]:checked) { background: color-mix(in oklch, #5F2C82 12%, white); }
+.row:has(input[type="checkbox"]:indeterminate) { background: color-mix(in oklch, #DCA424 10%, white); }
+```
+
+**Design tokens for the checkbox.** Three-tier tokens so a rebrand is one line, and dark mode is a token swap, not new checkbox CSS:
+
+```css
+:root {
+  --cb-size: 20px;
+  --cb-radius: 4px;
+  --cb-border: #7c6a90;          /* primitive */
+  --cb-fill: var(--color-action, #5F2C82);  /* semantic -> component */
+  --cb-check: #ffffff;
+  --cb-ring: var(--color-focus, #DCA424);
+}
+.cb { width: var(--cb-size); height: var(--cb-size); border-radius: var(--cb-radius); }
+.cb:checked { background: var(--cb-fill); }
+.cb:focus-visible { outline: 2px solid var(--cb-ring); }
+```
+
+**TypeScript that forces a label at compile time.** A checkbox with neither `label` nor `aria-label` is an accessibility bug; a discriminated union can make it fail to compile:
+
+```typescript
+type WithVisibleLabel = { label: string; "aria-label"?: never };
+type WithAriaLabel = { label?: never; "aria-label": string };
+type CheckboxA11yProps =
+  React.InputHTMLAttributes<HTMLInputElement> & (WithVisibleLabel | WithAriaLabel);
+// Now a <Checkbox /> with no label AND no aria-label won't compile.
+```
+
+**Forced-colors & reduced-motion guards** (ship these by default):
+
+```css
+@media (prefers-reduced-motion: reduce) { .cb, .cb::before { transition: none; } }
+@media (forced-colors: active) {
+  .cb { border-color: CanvasText; }
+  .cb:checked { background: Highlight; }
+  .cb:focus-visible { outline: 2px solid CanvasText; }
+}
+```
+
+---
+
+## 14\. Performance & Bundle Cost
+A checkbox feels free, and mostly is — but at scale a few things bite.
+
+* **Prefer native +** **`accent-color`** **over a component when you can.** The cheapest accessible checkbox is `<input type="checkbox">` with one line of CSS. Reaching for a headless library and a wrapper component for a single "I agree" box is bundle you didn't need.
+* **Virtualize long checkbox lists and trees.** A permissions tree with thousands of nodes should render only what's visible; computing parent `indeterminate` across the full set must be memoized, not recomputed on every render.
+* **Delegate change handlers on big groups.** One `change` listener on the container reading `e.target` beats hundreds of individual listeners — real memory and setup-time savings for data tables with a checkbox per row.
+* **Don't thrash layout.** Animate the checkmark with `transform`/`opacity` (compositor-only), not `width`/`height`, so toggling a column of boxes doesn't reflow the page.
+* **Icon imports:** if your indicator uses an icon library, named-import the single glyph (`import { Check } from "lucide-react"`), never `import * as Icons` — same tree-shaking trap as any icon.
+
+---
+
+## 15\. Security
+A checkbox is a boolean that crosses the trust boundary, and the cardinal sin is honoring it just because it arrived. **The biggest risk is mass-assignment / trusting the client.** A checkbox named `isAdmin`, `verified`, or `role[]` must never flip a privileged field simply because the browser posted it — the server allow-lists exactly which fields a given user is permitted to set for a given action and silently ignores everything else, rather than spreading the request body straight onto a model. **Grouped and array submissions need the same discipline:** a `name="perms[]"` group can post _any_ value a caller invents, regardless of which options you actually rendered, so validate every element server-side against a fixed allowlist before it touches authorization or storage. **Forms carrying checkbox state need CSRF protection** — a consent toggle or a permissions save is exactly the kind of state-changing POST an attacker will try to forge, so require a same-site or token-backed check on submit. And **`indeterminate`** **is a UI-only visual with no submitted value** — it exists purely to render a mixed parent, so never infer a user's authorization or intent from it; read the real `.checked` values the server actually received. Treat the rendered form as a suggestion and every request as hostile, and the checkbox stops being a quiet escalation vector.
+
+---
+
+## 16\. Senior-Level Checklist (ship-ready)
+Before a checkbox is "done":
+- [ ] Real `<input type="checkbox">` under the styling — never a `<div>`.
+- [ ] Label associated (`for`/`id` or wrapping); clicking the text toggles the box.
+- [ ] Right control chosen: checkbox (multi/independent) vs radio (exclusive) vs switch (live on/off).
+- [ ] Space toggles; Tab reaches it; visible `:focus-visible` ring survives the custom styling.
+- [ ] Indeterminate set via the JS property (or `aria-checked="mixed"` on a custom build), never as an attribute.
+- [ ] Parent/child trees compute checked/unchecked/indeterminate correctly and propagate.
+- [ ] Groups wrapped in `<fieldset>` with a `<legend>`.
+- [ ] Touch target ≥ 44px; control border ≥ 3:1 contrast, label text ≥ 4.5:1.
+- [ ] No consent/marketing box pre-checked.
+- [ ] Server treats an absent key as unchecked; group read with `getAll`; required consent validated server-side.
+- [ ] Error state wired: `aria-invalid` + `aria-describedby` + announced message.
+- [ ] Squares stay square (checkboxes), circles stay circles (radios).
+- [ ] `prefers-reduced-motion` and `forced-colors` guards present.
+
+---
+
+## 17\. Visual Styles (the same checkbox, eleven skins)
+Design systems are _whose_ rules; visual styles are _which look_. The same semantic checkbox wears any of these. **The rule that never changes: style is skin, behavior is the skeleton.** The real `<input>`, Space-to-toggle, focus ring, `aria-checked="mixed"`, and 44px target stay identical across all eleven. Full guidance in the Design Styles (visual languages) doc.
+
+* **Flat:** solid 2px border unchecked, solid fill + crisp checkmark checked. No shadow. Reads instantly, scales fast. The safe default for dense forms.
+* **Material:** square box, checkmark strokes in, ripple bloom on the surrounding 48dp target, purple fill. Indeterminate as a filled dash.
+* **Glassmorphism:** translucent box with `backdrop-filter: blur` over a vivid background; the checkmark glows. Rare, and watch that the border stays ≥3:1 — glass boxes vanish on busy backgrounds.
+* **Liquid Glass (the 2026 trend):** Apple's iOS 26 / macOS Tahoe material — the box is translucent and _refracts_ what's behind it with a specular rim and a moving sheen as it toggles, not a static blur. On iOS this is more often a `Toggle` than a checkbox; on the web it's an honest `backdrop-filter` approximation. SwiftUI emits native `.glassEffect`. Guard contrast and `prefers-reduced-motion`.
+* **Neumorphism:** the box is an inset/extruded shape on a same-color surface, dual light/dark shadows; checked = pressed-in. Pretty, contrast-poor — accent use only, and it fails forced-colors hard.
+* **Skeuomorphism:** a beveled, gradient-filled box with an inner highlight and a glossy checkmark — the tactile "real toggle" look. Heavier, warmer, retro.
+* **Neo-Brutalism:** thick black border, zero radius, a hard offset drop-shadow, a fat marker-style check in a clashing color. High personality; excellent contrast almost for free.
+* **Claymorphism:** big-radius puffy box, inner top-light + bottom-shadow, soft glow; checkmark sits in a squishy filled well. Friendly, playful — edges toward round, so keep it clearly square to not read as a radio.
+* **Aurora / Gradient:** animated multi-hue gradient fill on the checked box over a dark field. Premium; honor `prefers-reduced-motion` and keep the checkmark legible over the moving gradient.
+* **Minimal / Swiss:** hairline square, generous whitespace, a thin precise checkmark, near-zero decoration. Typography and grid carry it. Watch the border contrast — thin + light is the classic Swiss a11y trap.
+* **UJG Brand:** Goldenrod checkmark on a deep Eminence fill, confident 4px radius, a warm glow on `:checked`, Goldenrod `:focus-visible` ring over Night/Eminence surfaces. The dark, saturated backdrop makes the gold check sing. House default.
+
+**What's trending in 2026:** the checkbox rides the same wave as the rest of the system — **Liquid Glass** accents on Apple surfaces (often expressed as switches, given iOS's checkbox absence), Expressive Material 3's springier checkmark motion, and a retro-tactile counter-current bringing skeuomorphic, beveled boxes back. **For UJG:** Flat/Swiss for dense data and filter lists, the UJG Brand skin for consent gates and branded forms, Liquid Glass reserved for hero/marketing moments over deep Eminence. The a11y caveats hold no matter the skin: real input, 44px target, focus ring, contrast, reduced-motion.
+
+---
+
+**Bottom line:** a checkbox is the component people assume is free and build wrong more than any other. Nail the one decision it forces — checkbox vs radio vs switch — then respect the three things that separate a real build from a fake one: a real `<input>` you never replace with a div, the indeterminate property that only exists in JavaScript, and the fact that an unchecked box submits _nothing_. Get those right, keep the 44px target and the focus ring through every skin, and you've mastered a control that quietly gates consent, conversion, and data integrity across your entire product.

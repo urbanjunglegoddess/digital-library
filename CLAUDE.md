@@ -55,7 +55,7 @@ mdx-components.tsx  next.config.mjs
 - RLS: public read on published catalog rows; writes owner/admin (role via profiles.role);
   user-scoped rows (collections, templates) private to owner via `auth.uid()`.
 
-> Realized in `utils/supabase/migrations/0001_init.sql`. "Published" for a component is defined as its
+> Realized in `supabase/migrations/0001_init.sql`. "Published" for a component is defined as its
 > status being on the shippable end of the ladder (`built | audited | reusable`); snippets and
 > references inherit their parent component's visibility. `visual_styles.key` matches the
 > `[data-style="…"]` attribute in `styles/tokens.css` so a DB style maps straight onto a skin.

@@ -1,0 +1,980 @@
+---
+name: Switch
+slug: switch
+category: Inputs & Forms
+status: built
+summary: "A binary control that flips a single setting between on and off, taking effect immediately — like a physical light switch."
+clickup_page_id: 838qa-217811
+tags: [form, switch, toggle, boolean]
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <label class="switch">
+        <input type="checkbox" role="switch" class="switch__input">
+        <span class="switch__track" aria-hidden="true">
+          <span class="switch__thumb"></span>
+        </span>
+        <span class="switch__label">Wi-Fi</span>
+      </label>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import { forwardRef, useId, type ButtonHTMLAttributes } from "react";
+
+      type Size = "sm" | "md" | "lg";
+
+      interface SwitchProps
+        extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {
+        checked: boolean;                 // controlled: state lives in the parent
+        onCheckedChange: (next: boolean) => void;
+        label: string;                    // names the setting, not the state
+        size?: Size;
+        pending?: boolean;                // async in flight → block + spinner
+      }
+
+      export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+        ({ checked, onCheckedChange, label, size = "md", pending = false,
+           disabled, ...rest }, ref) => {
+          const labelId = useId();
+          const isDisabled = disabled || pending;
+
+          return (
+            <span className="switch-row">
+              <button
+                ref={ref}
+                type="button"
+                role="switch"
+                aria-checked={checked}
+                aria-labelledby={labelId}
+                aria-busy={pending || undefined}
+                disabled={isDisabled}
+                className={`switch switch--${size}`}
+                onClick={() => !isDisabled && onCheckedChange(!checked)}
+                {...rest}
+              >
+                <span className="switch__track" aria-hidden="true">
+                  <span className="switch__thumb">
+                    {pending && <span className="switch__spinner" />}
+                  </span>
+                </span>
+              </button>
+              <span id={labelId} className="switch__label">{label}</span>
+            </span>
+          );
+        }
+      );
+      Switch.displayName = "Switch";
+  - language: vue
+    label: Vue
+    code: |
+      <script setup lang="ts">
+      const props = defineProps<{ modelValue: boolean; label: string }>();
+      const emit = defineEmits<{ "update:modelValue": [boolean] }>();
+      </script>
+
+      <template>
+        <button type="button" role="switch" :aria-checked="modelValue"
+                :aria-label="label" class="switch"
+                @click="emit('update:modelValue', !modelValue)">
+          <span class="switch__track" aria-hidden="true"><span class="switch__thumb" /></span>
+        </button>
+      </template>
+---
+
+## 1\. What a Switch Actually Is
+A switch is a binary control that flips a single setting between two states — **on and off** — and the change **takes effect immediately**, like a physical light switch. That last part is the whole identity of the component. No Save button, no submit step: flip it and the world changes.
+
+The word gets lumped in with two very different controls, and the confusion is the source of almost every switch bug in the wild:
+
+*   **Switch (immediate binary state):** on/off, applied _now_. "Wi-Fi on." "Dark mode on." "Notifications on." The system acts the moment you flip it.
+*   **Checkbox (deferred selection):** marks a choice that's applied _later_, when a form is submitted. "☑ I agree to the terms." "☑ Add gift wrap." Nothing happens until you press Continue.
+*   **Toggle button (a pressed button):** a `<button aria-pressed>` that looks like a button and lives in a toolbar — Bold, Mute, Follow. It toggles state, but it's styled and semantically a button, not the sliding track-and-thumb switch.
+
+The single most common mistake: **using a switch for something that doesn't take effect immediately.** A switch inside a settings form that only applies when you hit Save is lying to the user — the sliding animation _promises_ instant action the Save button then contradicts. That's not a style choice; it's a broken mental model. Rule of thumb: **if flipping it changes something right now, it's a switch; if it's a choice you're collecting to submit later, it's a checkbox.** More on this heuristic in §7 — it's the number-one misuse and worth its own section.
+
+One more distinction that trips people up: a switch is **not** a two-option radio group. Radio is for picking one of several _labeled alternatives_ ("Light / Dark / System"). A switch is strictly on/off of a _single_ thing. The moment you have three states or three meaningful options, you're out of switch territory.
+
+---
+
+## 2\. Why It Matters
+A switch looks trivial — a little sliding pill — but it carries outsized weight because of its defining trait: **it commits instantly.**
+
+*   **Trust lives in the immediacy.** A switch sets an expectation that the change already happened. If the underlying action is actually async (a network call to flip a server-side setting) and you don't show that, the user walks away believing something is on when it's still off. That's a silent trust fracture, and it's specific to switches because checkboxes never make the "already done" promise.
+*   **It's an accessibility fault line.** Switches are wildly over-built as `<div>`s with a CSS animation and a click handler — no role, no state, no keyboard. To a screen-reader user that's an invisible control. Done right (`role="switch"` + `aria-checked`, or a native checkbox with the switch role), a whole class of users gets a control they can actually find, understand, and operate.
+*   **The label-and-color problem is a real exclusion risk.** The iOS "green means on" convention fails every colorblind user who can't distinguish the green track from the gray one, especially when the thumb position is subtle. Get the labeling wrong and you've built a control a chunk of your users literally cannot read the state of.
+*   **It's where "instant" UX either delights or deceives.** A good switch feels like flipping a physical switch — tactile, immediate, honest. A bad one flips visually, fails silently on the server, and reverts three seconds later with no explanation. The gap between those two is entirely engineering discipline.
+
+---
+
+## 3\. Anatomy of a Switch
+Every well-built switch is composed of predictable parts:
+
+*   **Track (rail):** the pill-shaped background the thumb slides along. Its color usually carries the on/off signal — which is exactly why color can't be the _only_ signal.
+*   **Thumb (knob):** the circular handle that slides from one end to the other. Its _position_ is the primary state cue: left = off, right = on (mirrored in RTL).
+*   **Label:** the text naming what the switch controls ("Airplane mode"). Should describe the _thing_, not the state — never label a switch "On/Off"; label it with the setting it governs.
+*   **State text / icons (optional but recommended):** an explicit "On/Off" text, or a check/x or I/O glyph inside or beside the track, so state doesn't rest on color and position alone.
+*   **Hit target:** the tappable area. Minimum **44×44px** (Apple) / **48×48dp** (Material), even though the visible track is often shorter than that.
+*   **Focus ring:** the outline on keyboard focus. Non-negotiable, same as any interactive control.
+*   **Pending/loading indicator (for async switches):** a spinner in or near the thumb while a server round-trip is in flight — the part that separates an honest async switch from a lying one.
+
+---
+
+## 4\. Sizes
+Switches are small by nature, but they still scale with context and platform. A track's width is roughly `1.75×–2×` its height, and the thumb is the track height minus a small inset.
+
+| Size | Track (W×H) | Thumb | Travel | Use |
+| ---| ---| ---| ---| --- |
+| SM | 36×20px | 16px | 16px | Dense settings lists, table rows, compact admin |
+| MD | 44×24px | 20px | 20px | Default for most UI |
+| LG | 52×32px | 28px | 20px | Touch-first mobile, primary settings screens |
+
+Rules that matter:
+*   **The visible track can be 20px tall, but the tap target must still be ≥44px.** Expand the hit area with padding or a pseudo-element — never ship a 20px-tall clickable strip.
+*   **Thumb travel should be visually obvious.** A thumb that barely moves makes on and off hard to tell apart, which compounds the color-only problem for low-vision users.
+*   **Drive dimensions from tokens,** not magic numbers, so the track/thumb/travel ratio stays consistent when the system scales.
+
+---
+
+## 5\. States (the part juniors forget)
+A production switch has more states than the two obvious ones, and each maps to an accessibility signal. Missing states are the #1 tell of an amateur build.
+
+1. **Off (default rest):** thumb at the start, `aria-checked="false"`. The baseline.
+2. **On:** thumb at the end, `aria-checked="true"`. Track color shifts _and_ position moves _and_ (ideally) state text/icon changes — three redundant cues, not one.
+3. **Hover:** subtle track/thumb shift. Doesn't exist on touch, so never the only affordance.
+4. **Focus:** reachable by keyboard, visible ring via `:focus-visible`. Tab reaches it; a mouse click shouldn't flash the ring.
+5. **Active (pressing):** the moment of the tap — a slight thumb scale or track darken sells the tactility of "flipping" it.
+6. **Pending / loading:** for async toggles, the switch is mid-flight to the server. Show a spinner, block re-toggles, and decide up front: optimistic (move now, roll back on failure) or pending (hold until confirmed). See §9.
+7. **Disabled:** not currently changeable. Reduced opacity, `cursor: not-allowed`, `aria-disabled`. Say _why_ nearby if you can ("Turn on Wi-Fi to enable").
+8. **Error / reverted:** the async flip failed and the switch snapped back. This state _must_ announce itself — a silent revert is the cruelest switch bug, because the user believes the setting stuck.
+9. **Read-only (rare):** state is meaningful but this user can't change it. Prefer disabled-with-explanation in most cases.
+
+There is deliberately **no indeterminate state.** That's a checkbox feature (a parent whose children are mixed). A switch is strictly binary — if you find yourself wanting a third "partial" state, you've picked the wrong control.
+
+---
+
+## 6\. Types & Variants
+Switches vary less than buttons — the semantics are fixed — but the meaningful axes are:
+
+*   **Unlabeled-track (iOS style):** color and thumb position only. The purest look, and the one most prone to the colorblind trap. Only safe when position travel is large and context is unambiguous.
+*   **Icon-in-track:** a check/x or I/O (power) glyph rides in the track or on the thumb, giving a non-color state cue. The accessible default for most brands.
+*   **Text-in-track (ON/OFF):** the state word sits inside the track. Bulletproof for state clarity; costs width and can crowd at small sizes.
+*   **Switch with external state text:** "Notifications — On" beside the control. Verbose but unambiguous, common in desktop settings.
+*   **Sync/async:** a **sync switch** flips a local, in-memory setting (no network). An **async switch** commits to a server and therefore needs pending + error states. This is the variant distinction that actually changes your code.
+*   **Sizes** (SM/MD/LG) from §4 double as variants in most systems.
+
+Note what's _not_ a switch variant: there's no "primary/secondary emphasis" ladder like buttons have. A switch is a switch. If you're reaching for visual weight to signal importance, you're likely looking at the wrong component.
+
+---
+
+## 7\. When to Use One (and When Not To) — the immediate-action heuristic
+This is the section that matters most, because switch-vs-checkbox is _the_ decision people get wrong.
+
+**Use a switch when all of these are true:**
+*   The setting is **binary** — exactly on or off, no third option.
+*   Flipping it **takes effect immediately** — no Save, no Submit, no "apply later."
+*   It reads naturally as **"turn X on/off"** ("Turn on notifications," "Enable dark mode," "Airplane mode on").
+
+**Use a checkbox instead when any of these are true:**
+*   The choice is **submitted later** as part of a form ("☑ I agree," "☑ Email me deals" collected at signup).
+*   You're selecting **multiple items from a list** (checkboxes in a filter panel, todo items).
+*   The choice needs a **confirmation or review step** before it applies.
+*   You need an **indeterminate/partial** state.
+
+**The one-line test:** _"When I flip this, does something change right now?"_ Yes → switch. "Not until they submit" → checkbox. This single question resolves the vast majority of real cases.
+
+**"Should a switch have Cancel / Save buttons?" — No.** This comes up constantly and the answer is firm. A switch's entire identity is instant effect; pairing it with Save/Cancel contradicts the control and confuses users about whether the toggle already did something. If the action genuinely needs confirmation (it's destructive, expensive, or irreversible — "Delete all backups," "Deactivate account"), that is your signal that **a switch is the wrong control.** Use a checkbox in a form, or a button with a confirmation dialog. Don't bolt a Save button onto a switch to paper over the mismatch — swap the control.
+
+**The edge case worth naming:** a _settings page full of switches_ where the platform batches changes on Save (some enterprise admin panels do this). Here every switch is really a checkbox wearing a switch costume. It works, but users misread it — they flip switches, navigate away, and lose changes they thought were live. If you must batch, either use checkboxes, or keep switches instant and drop the Save button entirely. Pick a lane.
+
+Placement heuristics:
+*   **Label on the left, switch on the right** in settings lists (Western reading order); the whole row is usually the tap target.
+*   **Group related switches** under a section header; don't scatter them.
+*   **Off is the safe/default resting state** — design so the more conservative choice is "off."
+
+---
+
+## 8\. Switches Across Design Systems
+Same control, different philosophies and, crucially, different accessibility defaults.
+
+*   **Material Design (Google):** The M3 switch is prominent — large thumb, an icon _inside_ the thumb (check when on), clear track color change. Material 3 deliberately added the in-thumb icon precisely to fix the color-only state problem. Ripple on the thumb.
+*   **Apple HIG (iOS/macOS):** The archetypal switch — the green "on" track everyone copies. Clean, unlabeled, position-driven. Beautiful and _the origin of the colorblind trap_: iOS leans hard on green, so third-party designers copying the look without the platform's other cues ship inaccessible switches. On macOS the switch is smaller and more restrained.
+*   **Fluent (Microsoft):** Compact, with on/off text often shown beside it, and clear high-contrast-mode support baked in — Windows users toggle forced-colors more than most, and Fluent respects it.
+*   **Ant Design / enterprise:** Dense, supports `checkedChildren`/`unCheckedChildren` (text or icon inside the track) and a built-in `loading` prop — enterprise UIs assume async server settings, so pending state is first-class.
+*   **Tailwind / utility-first:** No prescribed switch; you build it from a styled checkbox or a `role="switch"` button with peer/`has` utilities. Freedom plus the responsibility to get semantics right yourself.
+*   **Radix / shadcn (2024+ web standard):** Headless `Switch` primitive handles `role="switch"`, `aria-checked`, keyboard, and focus; you skin it with Tailwind. The accessible default most modern web teams reach for. See §9.7.
+*   **Bootstrap:** A switch is literally `.form-check.form-switch` wrapping a native checkbox with `role="switch"` — the honest, standards-first approach. See §9.12.
+
+---
+
+## 8b. The On/Off Labelling Problem (don't rely on position or color alone)
+This deserves its own beat because it's the switch's signature accessibility failure.
+
+A switch communicates state through **thumb position** and **track color**. Both fail specific users:
+*   **Color alone excludes colorblind users.** The iOS green-vs-gray convention is invisible to red-green colorblind users (~8% of men). If green-on and gray-off are the _only_ difference, they can't read the state.
+*   **Position alone is subtle.** A small thumb with short travel is hard to read at a glance for low-vision users, and impossible to perceive for screen-reader users entirely (position is visual).
+
+The fix is **redundant cues** — never fewer than two, and always include a non-visual one:
+1. **`aria-checked`** so screen readers announce "on/off" regardless of pixels. This is mandatory, not optional.
+2. **A shape/icon cue** — check/x, I/O power glyph, or ON/OFF text — so sighted-but-colorblind users have a non-color signal.
+3. **Adequate thumb travel and contrast** so position is genuinely legible.
+
+**The iOS green-only trap, stated plainly:** copying Apple's green switch _without_ Apple's platform-level assistive layer ships an inaccessible control. Apple gets away with green because iOS has system settings ("Differentiate Without Color") and VoiceOver announcing state; your web clone has none of that unless you build it. Add the icon or text. Every time.
+
+---
+
+## 9\. The Code
+### 9.1 HTML (two honest, accessible builds)
+There are exactly two correct foundations. Both give you real semantics; both are keyboard-operable for free or nearly so.
+
+**Build A — native checkbox promoted to a switch.** A real `<input type="checkbox">` carries checked state, keyboard, and form participation natively; `role="switch"` tells assistive tech to announce "on/off" instead of "checked/unchecked."
+
+```plain
+<label class="switch">
+  <input type="checkbox" role="switch" class="switch__input">
+  <span class="switch__track" aria-hidden="true">
+    <span class="switch__thumb"></span>
+  </span>
+  <span class="switch__label">Wi-Fi</span>
+</label>
+```
+
+The browser keeps `aria-checked` in sync with the checkbox's `checked` property when you use `role="switch"` on a real checkbox — you mostly get state for free. Space toggles it natively. This is the least-JS, most-robust build.
+
+**Build B — a button with** **`role="switch"`****\*\*\*\*.** When you can't use a checkbox (no form, custom widget), a `<button>` is the honest fallback because it's already keyboard-activatable:
+
+```plain
+<button type="button" role="switch" aria-checked="false"
+        class="switch" aria-labelledby="wifi-label">
+  <span class="switch__track" aria-hidden="true">
+    <span class="switch__thumb"></span>
+  </span>
+</button>
+<span id="wifi-label" class="switch__label">Wi-Fi</span>
+```
+
+Here _you_ own toggling `aria-checked` in JS (§9.5). Space and Enter both activate a `<button>` natively — you don't re-implement key handling, you just flip the attribute on `click`.
+
+Key HTML rules:
+*   **Never build a switch from a bare** **`<div>`** **\+ onClick.** No role, no state, no keyboard — it's invisible to assistive tech. This is the single most common switch defect.
+*   **The label names the setting, not the state.** "Wi-Fi," not "On." State is conveyed by `aria-checked`, not the label text.
+*   **Decorative track/thumb spans get** **`aria-hidden="true"`** — they're pixels, not semantics.
+
+### 9.2 CSS (states done right)
+The track and thumb are pure CSS; the state is driven by the checked/`aria-checked` attribute so the visual can never drift from the semantic.
+
+```css
+.switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  /* hit target: visible track is short, tappable area is not */
+  min-height: 44px;
+}
+.switch__input { position: absolute; opacity: 0; width: 0; height: 0; }
+
+.switch__track {
+  position: relative;
+  inline-size: 44px;
+  block-size: 24px;
+  border-radius: 999px;
+  background: #6b6b76;                 /* OFF: neutral, NOT color-only reliant */
+  transition: background-color .18s ease;
+}
+.switch__thumb {
+  position: absolute;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;             /* logical prop → RTL-safe */
+  inline-size: 20px;
+  block-size: 20px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform .18s ease;
+}
+
+/* ON state — works for checkbox (:checked) or button ([aria-checked]) */
+.switch__input:checked + .switch__track,
+.switch[aria-checked="true"] .switch__track { background: #5F2C82; }
+.switch__input:checked + .switch__track .switch__thumb,
+.switch[aria-checked="true"] .switch__track .switch__thumb {
+  transform: translateX(20px);         /* the travel */
+}
+
+/* Keyboard focus only */
+.switch__input:focus-visible + .switch__track,
+.switch:focus-visible .switch__track {
+  outline: 2px solid #DCA424;
+  outline-offset: 2px;
+}
+
+/* Disabled */
+.switch__input:disabled + .switch__track,
+.switch[aria-disabled="true"] .switch__track {
+  opacity: .5;
+  cursor: not-allowed;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .switch__track, .switch__thumb { transition: none; }
+}
+```
+
+Notice the ON rule doesn't rely on color alone at the semantic layer — `aria-checked` carries the real state; the purple track is a bonus cue. Add an icon in the thumb for the third cue (§8b).
+
+### 9.3 React + TypeScript (a proper reusable component)
+Controlled, accessible, and with a first-class async/pending path — the real-world shape.
+
+```typescript
+import { forwardRef, useId, type ButtonHTMLAttributes } from "react";
+
+type Size = "sm" | "md" | "lg";
+
+interface SwitchProps
+  extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "onChange"> {
+  checked: boolean;                 // controlled: state lives in the parent
+  onCheckedChange: (next: boolean) => void;
+  label: string;                    // names the setting, not the state
+  size?: Size;
+  pending?: boolean;                // async in flight → block + spinner
+}
+
+export const Switch = forwardRef<HTMLButtonElement, SwitchProps>(
+  ({ checked, onCheckedChange, label, size = "md", pending = false,
+     disabled, ...rest }, ref) => {
+    const labelId = useId();
+    const isDisabled = disabled || pending;
+
+    return (
+      <span className="switch-row">
+        <button
+          ref={ref}
+          type="button"
+          role="switch"
+          aria-checked={checked}
+          aria-labelledby={labelId}
+          aria-busy={pending || undefined}
+          disabled={isDisabled}
+          className={`switch switch--${size}`}
+          onClick={() => !isDisabled && onCheckedChange(!checked)}
+          {...rest}
+        >
+          <span className="switch__track" aria-hidden="true">
+            <span className="switch__thumb">
+              {pending && <span className="switch__spinner" />}
+            </span>
+          </span>
+        </button>
+        <span id={labelId} className="switch__label">{label}</span>
+      </span>
+    );
+  }
+);
+Switch.displayName = "Switch";
+```
+
+Why this is the senior version:
+*   **Controlled** (`checked` + `onCheckedChange`) so the source of truth is the parent — a switch's state usually mirrors real system state, not internal component state.
+*   **`role="switch"`** **+** **`aria-checked`** on a `<button>`, so Space/Enter work natively and screen readers announce on/off.
+*   **`pending`** **implies disabled** so users can't fire a second toggle while the first is in flight.
+*   **`label`** **is required** and wired via `aria-labelledby` — you cannot render this component without naming the setting.
+
+**The async pattern — optimistic vs. pending (this is where switches get hard):**
+
+```typescript
+function NotificationsSwitch() {
+  const [on, setOn] = useState(false);
+  const [pending, setPending] = useState(false);
+
+  // OPTIMISTIC: flip now, roll back if the server rejects
+  async function toggleOptimistic(next: boolean) {
+    setOn(next);                          // instant, feels right
+    setPending(true);
+    try {
+      await api.setNotifications(next);   // server round-trip
+    } catch {
+      setOn(!next);                       // ROLL BACK on failure
+      announce("Couldn't update notifications");  // aria-live, §13
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <Switch
+      checked={on}
+      pending={pending}
+      onCheckedChange={toggleOptimistic}
+      label="Push notifications"
+    />
+  );
+}
+```
+
+Two strategies, pick per stakes:
+*   **Optimistic** (above): move the thumb immediately, roll back on error. Feels instant. Correct for low-stakes, high-reliability settings. The rollback + announcement is mandatory — a silent failed optimistic switch is the "lying switch" bug.
+*   **Pending**: keep the thumb where it was, show a spinner, only move it when the server confirms. Slower-feeling but honest for high-stakes toggles ("Enable two-factor auth") where showing "on" before it's truly on is dangerous.
+
+### 9.4 The Backend Side (the async switch reaches the server)
+An async switch is a state-changing request every time it's flipped. Engineer it defensively.
+
+**The request the flip triggers:**
+
+```plain
+await fetch("/api/settings/notifications", {
+  method: "PUT",
+  headers: {
+    "Content-Type": "application/json",
+    "Idempotency-Key": crypto.randomUUID(),   // rapid re-flips must be safe
+  },
+  body: JSON.stringify({ enabled: next }),
+});
+```
+
+**The endpoint (Node/Express-style):**
+
+```plain
+app.put("/api/settings/notifications", requireAuth, async (req, res) => {
+  // Authorization: can THIS user change THIS setting?
+  if (!can(req.user, "update", "settings")) return res.sendStatus(403);
+
+  // Validate — never trust the client's boolean blindly
+  const parsed = SettingSchema.safeParse(req.body);   // { enabled: boolean }
+  if (!parsed.success) return res.status(422).json(parsed.error);
+
+  const updated = await db.setNotifications(req.user.id, parsed.data.enabled);
+  // Return the AUTHORITATIVE state so the client can reconcile
+  res.status(200).json({ enabled: updated.enabled });
+});
+```
+
+Backend concerns a switch silently depends on:
+*   **Return the authoritative state.** The client should reconcile its thumb to what the server says, not to what it optimistically assumed. If the server clamps or overrides the value, the switch must reflect that.
+*   **Idempotency / last-write-wins.** A user flipping rapidly can send toggles out of order. Either make the write idempotent per value, or stamp requests so a stale response can't overwrite a newer state.
+*   **Authorization server-side.** Hiding or disabling the switch is UX, not security. The endpoint re-checks permission every time.
+*   **Optimistic UI reconciliation.** When you flip optimistically, the server response is the truth — reconcile on success too, not just on failure, in case the server adjusted the value.
+
+---
+
+### 9.5 Vanilla JavaScript (no framework)
+The `role="switch"` button build, wired by hand. Because it's a real `<button>`, Space/Enter come free — you only manage the attribute and the async flip.
+
+```javascript
+const sw = document.querySelector(".switch");
+
+sw.addEventListener("click", async () => {
+  if (sw.getAttribute("aria-disabled") === "true") return;
+
+  const next = sw.getAttribute("aria-checked") !== "true";
+  sw.setAttribute("aria-checked", String(next));     // move the state
+  sw.setAttribute("aria-busy", "true");              // pending
+  sw.setAttribute("aria-disabled", "true");
+
+  try {
+    const res = await fetch("/api/flag", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ enabled: next }),
+    });
+    if (!res.ok) throw new Error(res.statusText);
+    const { enabled } = await res.json();
+    sw.setAttribute("aria-checked", String(enabled)); // reconcile to server
+  } catch (err) {
+    sw.setAttribute("aria-checked", String(!next));   // ROLL BACK
+    status.textContent = "Couldn't update setting";   // announce, see §13
+    console.error(err);
+  } finally {
+    sw.removeAttribute("aria-busy");
+    sw.removeAttribute("aria-disabled");
+  }
+});
+```
+
+No `keydown` handler needed — that's the payoff of building on a real `<button>` instead of a `<div>`. If you'd used a div, you'd owe Space/Enter handling, `preventDefault` on Space to stop scrolling, and a `tabindex` — three ways to get it wrong that the button eliminates.
+
+### 9.6 Tailwind CSS (utility-first)
+No prescribed switch — you compose it. The clean modern approach uses a `peer` checkbox so the track/thumb react to `:checked` with zero JS for the sync case.
+
+```plain
+<label class="inline-flex items-center gap-3 cursor-pointer min-h-[44px]">
+  <input type="checkbox" role="switch" class="peer sr-only" />
+  <span class="relative h-6 w-11 rounded-full bg-gray-500 transition-colors
+               peer-checked:bg-purple-800
+               peer-focus-visible:outline peer-focus-visible:outline-2
+               peer-focus-visible:outline-offset-2 peer-focus-visible:outline-amber-400
+               after:absolute after:top-0.5 after:start-0.5
+               after:h-5 after:w-5 after:rounded-full after:bg-white
+               after:transition-transform
+               peer-checked:after:translate-x-5"></span>
+  <span class="text-sm">Wi-Fi</span>
+</label>
+```
+
+`peer` + `peer-checked` do the state wiring against a real, keyboard-accessible checkbox; `sr-only` visually hides the input but keeps it operable. Real teams wrap this in a component rather than repeating the string — which is exactly what Radix/shadcn does next.
+
+### 9.7 Radix / shadcn (the 2024+ standard)
+You copy the component into your repo and own it. Radix's `Switch` primitive handles `role="switch"`, `aria-checked`, keyboard, focus, and disabled; you skin it.
+
+```typescript
+import * as React from "react";
+import * as SwitchPrimitives from "@radix-ui/react-switch";
+import { cn } from "@/lib/utils";
+
+const Switch = React.forwardRef<
+  React.ElementRef<typeof SwitchPrimitives.Root>,
+  React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>
+>(({ className, ...props }, ref) => (
+  <SwitchPrimitives.Root
+    ref={ref}
+    className={cn(
+      "peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center " +
+        "rounded-full border-2 border-transparent transition-colors " +
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring " +
+        "focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 " +
+        "data-[state=checked]:bg-primary data-[state=unchecked]:bg-input",
+      className
+    )}
+    {...props}
+  >
+    <SwitchPrimitives.Thumb
+      className={cn(
+        "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg " +
+          "ring-0 transition-transform " +
+          "data-[state=checked]:translate-x-5 data-[state=unchecked]:translate-x-0"
+      )}
+    />
+  </SwitchPrimitives.Root>
+));
+Switch.displayName = SwitchPrimitives.Root.displayName;
+
+export { Switch };
+```
+
+Usage: `<Switch checked={on} onCheckedChange={setOn} aria-label="Wi-Fi" />`. Radix drives state through `data-[state=checked|unchecked]` attributes, so your CSS never has to know whether the source is a checkbox or a button — the primitive owns semantics, you own looks. Pair it with a `<Label>` so it's named, not just `aria-label`'d, whenever there's visible text.
+
+### 9.8 Next.js (App Router: client vs. server)
+An interactive switch (it has state and an onClick) must be a **Client Component**, but the flip's effect can run on the **server** via a Server Action — no API route needed. `useOptimistic` is purpose-built for the optimistic switch.
+
+```typescript
+// app/components/DarkModeSwitch.tsx
+"use client";                         // required: state + interaction
+import { useOptimistic, useTransition } from "react";
+import { setDarkMode } from "@/app/actions";
+
+export function DarkModeSwitch({ initial }: { initial: boolean }) {
+  const [optimistic, setOptimistic] = useOptimistic(initial);
+  const [, startTransition] = useTransition();
+
+  return (
+    <button
+      type="button" role="switch" aria-checked={optimistic}
+      aria-label="Dark mode"
+      onClick={() =>
+        startTransition(async () => {
+          setOptimistic(!optimistic);       // instant flip
+          await setDarkMode(!optimistic);   // server confirms / reverts
+        })
+      }
+    >
+      <span className="track"><span className="thumb" /></span>
+    </button>
+  );
+}
+// app/actions.ts
+"use server";
+import { revalidatePath } from "next/cache";
+
+export async function setDarkMode(enabled: boolean) {
+  await db.user.update({ where: { id: currentUserId() }, data: { darkMode: enabled } });
+  revalidatePath("/settings");        // if it fails/reverts, useOptimistic rolls back
+}
+```
+
+`useOptimistic` automatically reverts the optimistic value if the transition's action throws — the framework gives you the rollback the vanilla version wrote by hand.
+
+### 9.9 Python (backend + a rendered switch)
+**Backend** (FastAPI) receiving the flip:
+
+```python
+from fastapi import FastAPI, Depends, HTTPException
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class SettingUpdate(BaseModel):
+    enabled: bool                     # validates the type for free
+
+@app.put("/api/settings/notifications")
+def set_notifications(body: SettingUpdate, user=Depends(require_auth)):
+    if not user.can("update", "settings"):
+        raise HTTPException(403, "Not allowed")
+    updated = db.set_notifications(user.id, body.enabled)
+    return {"enabled": updated.enabled}   # authoritative state back to client
+```
+
+**Rendering** a switch server-side (Django/Jinja template) — note it's still a real checkbox with `role="switch"`:
+
+```plain
+<label class="switch">
+  <input type="checkbox" role="switch" name="notifications"
+         {% if user.notifications_on %}checked aria-checked="true"{% else %}aria-checked="false"{% endif %}>
+  <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+  <span class="switch__label">Notifications</span>
+</label>
+```
+
+Python's job is to render the accessible markup and defend the endpoint (auth, validation) — the switch itself still lives in HTML/CSS/JS.
+
+### 9.10 Other Frameworks (Vue, Svelte, Angular)
+Same semantics, different syntax. `role="switch"` + `aria-checked` underneath never changes.
+
+**Vue 3 (SFC):**
+
+```plain
+<script setup lang="ts">
+const props = defineProps<{ modelValue: boolean; label: string }>();
+const emit = defineEmits<{ "update:modelValue": [boolean] }>();
+</script>
+
+<template>
+  <button type="button" role="switch" :aria-checked="modelValue"
+          :aria-label="label" class="switch"
+          @click="emit('update:modelValue', !modelValue)">
+    <span class="switch__track" aria-hidden="true"><span class="switch__thumb" /></span>
+  </button>
+</template>
+```
+
+**Svelte:**
+
+```plain
+<script lang="ts">
+  export let checked = false;
+  export let label: string;
+</script>
+
+<button type="button" role="switch" aria-checked={checked} aria-label={label}
+        class="switch" on:click={() => (checked = !checked)}>
+  <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+</button>
+```
+
+**Angular (standalone):**
+
+```typescript
+import { Component, Input, Output, EventEmitter } from "@angular/core";
+
+@Component({
+  selector: "app-switch",
+  standalone: true,
+  template: `
+    <button type="button" role="switch" [attr.aria-checked]="checked"
+            [attr.aria-label]="label" class="switch"
+            (click)="toggle.emit(!checked)">
+      <span class="switch__track" aria-hidden="true"><span class="switch__thumb"></span></span>
+    </button>`,
+})
+export class SwitchComponent {
+  @Input() checked = false;
+  @Input() label = "";
+  @Output() toggle = new EventEmitter<boolean>();
+}
+```
+
+### 9.11 Bootstrap (the standards-first switch)
+Bootstrap's switch is the most honest of any framework: it's a native checkbox with `role="switch"` and a CSS skin. Nothing to reinvent.
+
+```plain
+<div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="wifi">
+  <label class="form-check-label" for="wifi">Wi-Fi</label>
+</div>
+
+<!-- Checked + disabled -->
+<div class="form-check form-switch">
+  <input class="form-check-input" type="checkbox" role="switch" id="bt" checked disabled>
+  <label class="form-check-label" for="bt">Bluetooth</label>
+</div>
+```
+
+Load it with the Bootstrap CSS (CDN). Because it's a real checkbox, keyboard, focus, form participation, and `for`/`id` label association all come free — the pattern every hand-rolled switch should aspire to.
+
+### 9.12 Web Components (framework-agnostic)
+A switch that works in any framework or none, built on a real button so keyboard is free:
+
+```typescript
+class UISwitch extends HTMLElement {
+  static observedAttributes = ["checked", "disabled"];
+  connectedCallback() {
+    this.attachShadow({ mode: "open" });
+    // Delegate the click on the shadow root — it survives render() replacing
+    // innerHTML, so the switch keeps toggling. A listener on the button itself
+    // would be detached the first time render() re-creates the button.
+    this.shadowRoot!.addEventListener("click", (e) => {
+      if ((e.target as Element).closest("button")) this.toggle();
+    });
+    this.render();
+  }
+  attributeChangedCallback() { if (this.shadowRoot) this.render(); }
+  toggle() {
+    if (this.hasAttribute("disabled")) return;
+    this.toggleAttribute("checked");
+    this.dispatchEvent(new CustomEvent("change",
+      { detail: { checked: this.hasAttribute("checked") } }));
+  }
+  render() {
+    const on = this.hasAttribute("checked");
+    this.shadowRoot!.innerHTML = `
+      <style>/* scoped track/thumb styles */</style>
+      <button type="button" role="switch" aria-checked="${on}" part="switch">
+        <span class="track"><span class="thumb"></span></span>
+      </button>`;
+  }
+}
+customElements.define("ui-switch", UISwitch);
+// Usage anywhere: <ui-switch checked></ui-switch>
+```
+
+### 9.13 Native Mobile (SwiftUI, Jetpack Compose, Flutter)
+Off the web, the switch is a first-class native control — you don't build the track/thumb, you get the platform's.
+
+**SwiftUI (iOS):**
+
+```plain
+Toggle("Wi-Fi", isOn: $wifiEnabled)
+    .toggleStyle(.switch)          // the classic iOS green switch
+    .disabled(isLoading)
+```
+
+**Jetpack Compose (Android / Kotlin):**
+
+```kotlin
+Switch(
+    checked = wifiEnabled,
+    onCheckedChange = { wifiEnabled = it },
+    enabled = !isLoading,
+    thumbContent = { if (wifiEnabled) Icon(Icons.Filled.Check, null) } // non-color cue
+)
+```
+
+**Flutter (Dart):**
+
+```plain
+Switch(
+  value: wifiEnabled,
+  onChanged: isLoading ? null : (v) => setState(() => wifiEnabled = v), // null disables
+)
+```
+
+The through-line: every platform gives you a bound value, an `onChange`, and a disabled path — and Material's `thumbContent` icon exists specifically to solve the color-only-state problem §8b describes. Learn the concept once, remap syntax per platform.
+
+### 9.14 Testing the Switch
+A switch is behavior — test the behavior, not the pixels. Query by `role="switch"` and assert the accessible state, not the thumb's transform.
+
+**Unit / component (Vitest + Testing Library):**
+
+```typescript
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe } from "jest-axe";
+import { describe, it, expect, vi } from "vitest";
+import { Switch } from "./Switch";
+
+describe("Switch", () => {
+  it("exposes role=switch and its label + state", () => {
+    render(<Switch checked={false} onCheckedChange={() => {}} label="Wi-Fi" />);
+    const sw = screen.getByRole("switch", { name: /wi-fi/i });
+    expect(sw).toHaveAttribute("aria-checked", "false");
+  });
+
+  it("toggles on click and reports the new state", async () => {
+    const onChange = vi.fn();
+    render(<Switch checked={false} onCheckedChange={onChange} label="Wi-Fi" />);
+    await userEvent.click(screen.getByRole("switch"));
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  it("toggles via keyboard (Space)", async () => {
+    const onChange = vi.fn();
+    render(<Switch checked={false} onCheckedChange={onChange} label="Wi-Fi" />);
+    await userEvent.tab();                       // focus the switch
+    await userEvent.keyboard(" ");               // Space toggles
+    expect(onChange).toHaveBeenCalledWith(true);
+  });
+
+  it("is inert while pending (no double-toggle)", async () => {
+    const onChange = vi.fn();
+    render(<Switch checked={false} pending onCheckedChange={onChange} label="Wi-Fi" />);
+    const sw = screen.getByRole("switch");
+    expect(sw).toBeDisabled();
+    await userEvent.click(sw);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <Switch checked={true} onCheckedChange={() => {}} label="Wi-Fi" />);
+    expect(await axe(container)).toHaveNoViolations();
+  });
+});
+```
+
+**End-to-end (Playwright)** — prove the async round-trip actually reconciles:
+
+```typescript
+import { test, expect } from "@playwright/test";
+
+test("notifications switch persists and reflects server state", async ({ page }) => {
+  await page.goto("/settings");
+  const sw = page.getByRole("switch", { name: "Push notifications" });
+
+  await expect(sw).toHaveAttribute("aria-checked", "false");
+  await sw.click();
+  await expect(sw).toHaveAttribute("aria-checked", "true");   // optimistic
+  await page.reload();
+  await expect(sw).toHaveAttribute("aria-checked", "true");   // truly persisted
+});
+```
+
+What to actually assert (and skip):
+*   **Do test:** it's found `byRole("switch")` (proves accessibility), click and Space both toggle, `aria-checked` reflects state, pending blocks re-toggle, the async value persists across reload.
+*   **Don't test:** thumb `translateX`, track hex color, class names. Those break tests without catching real bugs.
+*   **Bonus:** the `axe` check catches missing labels and role errors automatically.
+
+---
+
+## 10\. Accessibility (non-negotiable)
+*   **Role:** `role="switch"` — on a native checkbox (Build A) or a `<button>` (Build B). Never a bare `<div>`. The switch role makes screen readers announce "on/off," which is the correct mental model, versus a checkbox's "checked/unchecked."
+*   **State:** `aria-checked="true|false"` is mandatory and must always mirror the visual. This is the cue that carries state to users who can't see color or position (§8b).
+*   **Keyboard:** **Space toggles** a switch (both checkbox- and button-based); **Enter** also activates the button build. Native elements give you this free — a div does not. Space must not scroll the page (native controls handle this; a custom div owes you a `preventDefault`).
+*   **Focus visible:** never `outline: none` without a `:focus-visible` replacement ring.
+*   **Label:** every switch names the setting it controls, associated via `<label for>`, `aria-labelledby`, or `aria-label`. The label describes the _thing_ ("Airplane mode"), not the state.
+*   **Don't rely on color alone:** provide a shape/text cue (check/x, I/O, ON/OFF) in addition to track color — the iOS green-only trap fails colorblind users.
+*   **Announce async results:** when an optimistic flip fails and reverts, push the message to an `aria-live` region so the reversal isn't silent (§13).
+*   **Contrast:** track and thumb boundaries ≥ 3:1 against their surroundings (WCAG non-text contrast); label text ≥ 4.5:1.
+*   **Touch target ≥ 44px** even when the visible track is 20–24px tall — expand the hit area.
+
+---
+
+## 11\. Innovative & Emerging Ideas
+The switch looks solved but keeps evolving:
+*   **Optimistic-by-default with graceful reconcile:** React's `useOptimistic` and Server Actions make the flip-now/confirm-later pattern the standard, with automatic rollback.
+*   **Icon-in-thumb as the new default:** Material 3 bakes a check glyph into the thumb; expect more systems to make the non-color cue standard rather than opt-in.
+*   **Haptic switches:** native platforms fire a subtle tick on flip (iOS haptics, `navigator.vibrate` on web-Android) — physical confirmation of a state change.
+*   **Liquid Glass switches (2026):** Apple's iOS 26 track/thumb pick up the refractive glass material — the thumb reads as a lens over the track. Honor `prefers-reduced-motion` for the sheen.
+*   **Spring/morph animation:** the thumb overshoots and settles with a spring curve for tactility; reduced-motion users get an instant snap.
+*   **AI/agentic switches:** "Auto" as a third-position control is creeping in (off / on / let-the-system-decide) — but note the moment you have three states it stops being a switch and becomes a segmented control.
+
+---
+
+## 12\. Conversion & Trust Killers (mistakes that bleed trust silently)
+None of these throw an error. They quietly erode trust, and they're specific to the switch's "instant" promise.
+
+*   **The lying switch (silent async failure).** User flips it, the network call fails, the thumb stays "on" — the setting is off but the UI says on. The single worst switch bug. Fix: pending/optimistic with mandatory rollback + announcement.
+*   **Switch that needs a Save button.** Contradicts the instant-effect promise; users don't know if the flip took. Fix: make it truly instant, or use a checkbox (§7).
+*   **Color-only state.** Green-on / gray-off with subtle travel fails colorblind and low-vision users. Fix: add an icon/text cue and adequate thumb travel (§8b).
+*   **Switch used for a submit-later choice.** "☑ I agree" as a switch mis-signals that agreement already applied. Fix: checkbox for form selections.
+*   **Missing loading state on a slow toggle.** User flips, nothing visibly happens, they flip again — now they've sent two conflicting requests. Fix: pending state that blocks re-toggle.
+*   **No confirmation on a destructive "switch."** "Deactivate account" as an instant switch = one mis-tap from disaster. Fix: destructive/irreversible actions aren't switches — use a button + confirm dialog.
+*   **Ambiguous label.** A switch labeled "On" or "Enabled" with no subject, or "Disable notifications" (double-negative when off) confuses everyone. Fix: label the positive setting name.
+*   **Tiny tap target.** A 20px-tall clickable strip = mis-taps and rage. Fix: ≥44px hit area regardless of visible track height.
+
+**The through-line:** these all fail _quietly_ — no crash, just a user who thinks a setting is on when it's off, or can't tell what state they're in. Audit the async path and the labeling before you ship.
+
+---
+
+## 13\. Advanced Patterns
+Techniques that lean on the platform and the type system.
+
+**`aria-live`** **for async result announcements.** A visual revert isn't enough for screen-reader users. Pair the switch with a polite live region so a failed flip is _announced_:
+
+```plain
+<span id="sw-status" aria-live="polite" class="sr-only"></span>
+<!-- on rollback: status.textContent = "Notifications could not be turned on" -->
+```
+
+**Design tokens for the track/thumb ratio.** Drive every dimension from tokens so the switch scales as one system:
+
+```css
+:root {
+  --switch-track-h: 24px;
+  --switch-track-w: 44px;
+  --switch-thumb: 20px;
+  --switch-travel: 20px;          /* track-w - thumb - 2*inset */
+  --switch-on: #5F2C82;
+  --switch-off: #6b6b76;
+  --switch-focus: #DCA424;
+}
+```
+
+Change one token, every switch updates; retheme by swapping the block. Use OKLCH for the on/off/hover ramp so lightness steps look perceptually even.
+
+**TypeScript: force a label at compile time.** A switch with no accessible name is an invisible control. Make the type system refuse to build one:
+
+```typescript
+type LabeledSwitch =
+  | { label: string; "aria-label"?: never }
+  | { "aria-label": string; label?: never };
+// Now <Switch /> with neither a visible label nor aria-label won't compile.
+```
+
+**Reconcile-on-response, always.** Even on a successful optimistic flip, set the thumb to the server's returned value, not your assumed one — the server may have clamped, overridden, or normalized it. The UI's source of truth is the response, not the optimistic guess.
+
+**Grouped switches with a section pattern.** In a settings list, wrap related switches in a `role="group"` with an `aria-labelledby` heading so assistive tech announces the group context ("Notifications: Push — on, Email — off").
+
+---
+
+## 14\. Performance & Bundle Cost
+A switch is cheap, but the sins are the same as any small control at scale.
+
+*   **Animate only** **`transform`** **and** **`opacity`****\*\*\*\*.** The thumb travel should be `transform: translateX()`, never animating `left`/`margin`, which forces layout reflow every frame. The CSS in §9.2 does this correctly.
+*   **Don't import an icon library for one glyph.** If the thumb carries a check icon, use a named import (`import { Check } from "lucide-react"`) — a namespace import (`import *`) defeats tree-shaking and can add hundreds of KB for one checkmark.
+*   **Delegate for long settings lists.** A page with 50 switches doesn't need 50 listeners — one delegated handler on the container, keyed off `data-setting`, is one closure instead of 50.
+*   **`contain: layout style`** on the switch isolates its internal reflow from the page.
+*   **Memoize in large lists.** In React, a switch inside a big, frequently-updating list benefits from a memoized component + `useCallback` handler so a parent re-render doesn't re-render every row. Don't over-apply it.
+
+---
+
+## 15\. Security
+A switch is a _request_ to change state, never the authority to do it. The dangerous switches are the ones that flip something privileged server-side — "make admin," "disable 2FA," "make this public" — and the cardinal rule is that the client toggle is never the authorization: the server must independently verify the user is allowed to make that change **and** enforce it, treating the incoming boolean as an untrusted request, not a decision that has already been made. The switch's rendered position reflects server truth, but it must never become the _source_ of truth for a gated feature — check the real state on the server at the moment the feature is used, because a user can force the thumb to "on" in devtools without ever touching your backend. When you flip optimistically, reconcile against the server's response and roll back on failure; assuming success is how a switch silently reports a permission the user was actually denied. Because every flip is a state-changing request, protect it like one: CSRF tokens (or same-site, header-checked fetches) so a third-party page can't toggle a setting on the user's behalf, and idempotency so a rapid double-flip or a retried request can't land the setting in an ambiguous state. Finally, watch the visibility switches — a toggle that "hides" data changes what the UI renders, not who is authorized to see it, so if the hidden data already shipped to the client you have leaked it; gate that data server-side and never send it to a client that shouldn't have it. Hiding or disabling a switch in the UI is a usability affordance, not a security control — the enforcement always lives on the server (see the backend defenses in §9.4).
+
+---
+
+## 16\. Senior-Level Checklist (ship-ready)
+Before a switch is "done":
+- [ ] Correct control: it takes effect immediately (switch), not on submit (checkbox) — verified against the §7 heuristic.
+- [ ] Built on a native checkbox or `<button>` with `role="switch"` — never a bare `<div>`.
+- [ ] `aria-checked` always mirrors the visual state.
+- [ ] Space toggles it (and Enter for the button build); focus ring visible via `:focus-visible`.
+- [ ] Labeled with the setting name (not "On/Off"), associated via `for`/`aria-labelledby`/`aria-label`.
+- [ ] State conveyed by more than color — icon/text cue plus adequate thumb travel.
+- [ ] Async flips have a pending state that blocks re-toggle, roll back on failure, and reconcile to the server's returned value.
+- [ ] Failed/reverted flips are announced via `aria-live`, not silent.
+- [ ] No Save/Cancel bolted on; destructive actions use a button + confirm instead.
+- [ ] Touch target ≥ 44px; thumb travel animates `transform` only; reduced-motion respected.
+- [ ] Server re-checks auth and validates the boolean regardless of UI state.
+
+---
+
+## 17\. Visual Styles (the same switch, eleven aesthetics)
+Design systems are _whose_ rules; visual styles are _which look_. The same semantic switch — `role="switch"`, `aria-checked`, Space to toggle, 44px target, non-color state cue — can wear any of these skins. **Style is skin; behavior is the skeleton.** None of the eleven change the semantics, keyboard, focus, or target size. See them live on the 🎨 Design Styles (visual languages) page.
+
+*   **Flat:** solid track, crisp white thumb, no shadow. Reads instantly, scales fast.
+*   **Material:** filled track with M3's in-thumb check icon, ripple on the thumb, clear elevation on the knob.
+*   **Glassmorphism:** translucent track with `backdrop-filter: blur()` over a vivid background. Watch the on/off contrast — glass tracks blur the state signal, so lean harder on the icon cue.
+*   **Liquid Glass (the 2026 trend):** Apple's iOS 26 / macOS Tahoe material — the thumb reads as a refractive lens over the track with a specular rim and a sheen that shifts with motion. Guard for contrast and `prefers-reduced-motion`; SwiftUI emits it natively via `.glassEffect()`, the web is an honest approximation.
+*   **Neumorphism:** track carved into the surface with dual light/dark inner shadows, thumb extruded. Pretty, contrast-poor — accent use only, and the icon cue becomes mandatory.
+*   **Skeuomorphism:** the literal physical light-switch look — beveled track, glossy thumb, inner highlight. The tactile "real object" register.
+*   **Neo-Brutalism:** hard offset shadow on the thumb, thick black border on the track, zero-radius or blocky pill, clashing on/off colors. High personality.
+*   **Claymorphism:** big soft radius, puffy thumb with inner top-light and bottom-shadow, gentle glow. Friendly and tactile.
+*   **Aurora / Gradient:** animated multi-hue gradient on the "on" track over a dark field. Premium; honor `prefers-reduced-motion` and keep the state legible under the animation.
+*   **Minimal / Swiss:** near-zero decoration, thin track, sharp typographic label doing the work. State clarity from a small ON/OFF text rather than heavy color.
+*   **UJG Brand:** Goldenrod thumb on a deep Eminence "on" track, neutral tinted-purple gray for "off," a warm focus glow, confident pill radius, and an I/O icon in the thumb so state never rests on color alone. The house default — Afro-Futurist, dark, saturated, honest about state.
+
+**Rule that never changes:** the style is skin. Across all eleven, the switch stays a `role="switch"` control that toggles on Space, shows a visible focus ring, keeps a ≥44px target, and signals state with more than color. Guard glass / liquid-glass / neumorphism for contrast; guard aurora / liquid-glass for reduced motion.
+
+---
+
+**Bottom line:** a switch is a two-state control with one non-negotiable trait — it takes effect _immediately_ — and almost every switch bug traces back to violating that. Pick it only when flipping it changes something right now; build it on a real `role="switch"` element with `aria-checked` and a non-color state cue; and if it reaches the server, make the async path honest with pending, rollback, and reconciliation. Get those three right and you've built a switch users can trust, versus a pretty sliding pill that lies about what's on.
