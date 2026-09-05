@@ -16,6 +16,7 @@ export function Header() {
         </Link>
         <nav className="site-nav" aria-label="Primary">
           <Link href="/catalog">Catalog</Link>
+          <Link href="/portal">Portal</Link>
           <a
             href="https://www.w3.org/WAI/ARIA/apg/"
             target="_blank"
