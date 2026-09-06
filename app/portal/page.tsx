@@ -14,7 +14,6 @@ import {
  * every library figure is read live from content/docs.
  */
 
-const PLANNED_TOTAL = 51;
 const TARGET_COUNT = 12;
 const FILLED_TARGETS = 8;
 
@@ -66,9 +65,9 @@ const RUNS: Run[] = [
 ];
 
 const DOMAIN_MAP = [
-  { name: "Websites", planned: 18, categories: ["Marketing & Content", "Navigation", "Layout & Structure"] },
-  { name: "Data reports", planned: 21, categories: ["Data Display", "Feedback & Status"] },
-  { name: "Mobile", planned: 12, categories: ["Actions", "Inputs & Forms", "Overlays & Popouts"] },
+  { name: "Websites", categories: ["Marketing & Content", "Navigation", "Layout & Structure", "Media"] },
+  { name: "Data reports", categories: ["Data Display", "Feedback & Status"] },
+  { name: "Mobile", categories: ["Actions", "Inputs & Forms", "Overlays & Popouts", "Utilities"] },
 ];
 
 const AUDITED: ComponentStatus[] = ["audited", "reusable"];
@@ -78,16 +77,16 @@ export default function Portal() {
   const categories = getCategories();
   const written = components.length;
   const audited = components.filter((c) => AUDITED.includes(c.status)).length;
-  const idea = PLANNED_TOTAL - written;
+  const idea = components.filter((c) => c.status === "idea").length;
   const blocked = RUNS.filter((r) => r.status === "blocked").length;
 
   const countIn = (names: string[]) =>
     components.filter((c) => names.includes(c.category)).length;
 
   const kpis = [
-    { label: "Specs written", value: String(written), unit: `/ ${PLANNED_TOTAL}`, delta: "+3 this week", trend: "up" },
+    { label: "Reference specs", value: String(written), delta: "+3 this week", trend: "up" },
     { label: "Runs generated", value: String(RUNS.length + 5), delta: "+2 this week", trend: "up" },
-    { label: "Assets at Idea", value: String(idea), delta: "unchanged", trend: "flat" },
+    { label: "Specs audited", value: String(audited), unit: `/ ${written}`, delta: "in review", trend: "flat" },
     { label: "Targets filled", value: String(FILLED_TARGETS), unit: `/ ${TARGET_COUNT}`, delta: "1 stale", trend: "down" },
   ];
 
@@ -161,24 +160,22 @@ export default function Portal() {
 
             {blocked > 0 && (
               <div className="pt-callout">
-                <strong>One run is blocked on two specs.</strong> Data Table and
-                Chart Frame are on the {PLANNED_TOTAL} but still at Idea. Write
-                them and the intake dashboard finishes without another decision
-                from you.
+                <strong>One run is blocked on wiring, not specs.</strong> The
+                intake dashboard&rsquo;s specs are all written — it stalled on a
+                data source. Reconnect it and the run finishes without another
+                decision from you.
               </div>
             )}
 
-            <h2 className="pt-h2 pt-h2--spaced">Where the {PLANNED_TOTAL} sit</h2>
+            <h2 className="pt-h2 pt-h2--spaced">Where the {written} specs sit</h2>
             <div className="pt-domains">
               {DOMAIN_MAP.map((d) => {
                 const ready = countIn(d.categories);
-                const pct = Math.round((ready / d.planned) * 100);
+                const pct = written ? Math.round((ready / written) * 100) : 0;
                 return (
                   <div key={d.name} className="pt-domain">
                     <div className="pt-domain__name">{d.name}</div>
-                    <div className="pt-domain__count">
-                      {ready} / {d.planned}
-                    </div>
+                    <div className="pt-domain__count">{ready}</div>
                     <div className="pt-track">
                       <div className="pt-track__fill" style={{ width: `${pct}%` }} />
                     </div>
@@ -216,12 +213,12 @@ export default function Portal() {
               <div className="pt-meter">
                 <div className="pt-meter__head">
                   <span>Specs audited</span>
-                  <span>{Math.round((audited / PLANNED_TOTAL) * 100)}%</span>
+                  <span>{written ? Math.round((audited / written) * 100) : 0}%</span>
                 </div>
                 <div className="pt-track">
                   <div
                     className="pt-track__fill"
-                    style={{ width: `${(audited / PLANNED_TOTAL) * 100}%` }}
+                    style={{ width: `${written ? (audited / written) * 100 : 0}%` }}
                   />
                 </div>
               </div>
