@@ -65,20 +65,6 @@ const RUNS: Run[] = [
   },
 ];
 
-const RAIL: { section?: string; id?: string; label?: string; href?: string; badge?: string }[] = [
-  { section: "Build" },
-  { id: "overview", label: "Overview", href: "/portal" },
-  { id: "composer", label: "Composer", href: "/catalog", badge: "3" },
-  { id: "runs", label: "Runs", href: "/portal" },
-  { id: "templates", label: "Templates", href: "/portal" },
-  { section: "Library" },
-  { id: "catalog", label: "Catalog", href: "/catalog" },
-  { id: "specs", label: "Specs", href: "/catalog" },
-  { id: "skins", label: "Skins", href: "/catalog" },
-  { section: "System" },
-  { id: "settings", label: "Settings", href: "/portal" },
-];
-
 const DOMAIN_MAP = [
   { name: "Websites", planned: 18, categories: ["Marketing & Content", "Navigation", "Layout & Structure"] },
   { name: "Data reports", planned: 21, categories: ["Data Display", "Feedback & Status"] },
@@ -107,37 +93,6 @@ export default function Portal() {
 
   return (
     <div className="pt">
-      <nav className="pt-rail" aria-label="Portal">
-        <div className="pt-rail__logo">
-          <span className="pt-rail__wordmark">DIGITAL ASSET</span>
-          <span className="pt-rail__sub">Library · UJG</span>
-        </div>
-        <ul className="pt-rail__list">
-          {RAIL.map((item, i) =>
-            item.section ? (
-              <li key={`s-${i}`} className="pt-rail__section">
-                {item.section}
-              </li>
-            ) : (
-              <li key={item.id}>
-                <Link
-                  href={item.href ?? "/portal"}
-                  className={`pt-rail__item${item.id === "overview" ? " is-active" : ""}`}
-                  aria-current={item.id === "overview" ? "page" : undefined}
-                >
-                  <span>{item.label}</span>
-                  {item.badge ? <span className="pt-rail__badge">{item.badge}</span> : null}
-                </Link>
-              </li>
-            ),
-          )}
-        </ul>
-        <div className="pt-rail__footer">
-          <div>Omegea Hunter</div>
-          <div className="pt-rail__ver">Phase 0 · v0.1.0</div>
-        </div>
-      </nav>
-
       <main className="pt-main">
         <header className="pt-top">
           <div>
@@ -145,10 +100,10 @@ export default function Portal() {
             <h1 className="pt-h1">Here&rsquo;s where the library stands.</h1>
           </div>
           <div className="pt-top__actions">
-            <Link href="/catalog" className="pt-btn">
-              Open catalog
+            <Link href="/knowledge" className="pt-btn">
+              Open Knowledge Hub
             </Link>
-            <Link href="/catalog" className="pt-btn pt-btn--primary">
+            <Link href="/build" className="pt-btn pt-btn--primary">
               Start a run
             </Link>
           </div>
@@ -242,7 +197,7 @@ export default function Portal() {
                   <div className="pt-resume__name">Client intake dashboard</div>
                   <div className="pt-resume__meta">7 assets chosen · 2 flagged</div>
                 </div>
-                <Link href="/catalog" className="pt-btn pt-btn--primary pt-btn--full">
+                <Link href="/build" className="pt-btn pt-btn--primary pt-btn--full">
                   Resume in composer
                 </Link>
                 <hr className="pt-rule" />
@@ -250,7 +205,7 @@ export default function Portal() {
                   <div className="pt-resume__name">Data Table spec</div>
                   <div className="pt-resume__meta">4 of 17 sections drafted</div>
                 </div>
-                <Link href="/catalog" className="pt-btn pt-btn--full">
+                <Link href="/knowledge" className="pt-btn pt-btn--full">
                   Keep writing
                 </Link>
               </div>

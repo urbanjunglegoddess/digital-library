@@ -18,14 +18,14 @@
   --pt-display: "Playfair Display", Georgia, serif;
   --pt-data: "JetBrains Mono", ui-monospace, monospace;
 
-  display: grid;
-  grid-template-columns: 248px minmax(0, 1fr);
+  /* The global app shell provides the left rail; the portal is now a single
+     content column rendered inside it (its own rail markup was removed). */
+  display: block;
   min-height: 100vh;
   background: var(--pt-night);
   color: var(--pt-platinum);
   font-family: var(--pt-body);
 }
-@media (max-width: 900px) { .pt { grid-template-columns: minmax(0, 1fr); } }
 
 /* --- rail ----------------------------------------------------- */
 .pt-rail {
