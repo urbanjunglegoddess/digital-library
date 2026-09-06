@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Header } from "@/components/site/Header";
+import { AppShell } from "@/components/site/AppShell";
 
 export const metadata: Metadata = {
   title: "Digital Asset Library — Urban Jungle Goddess",
@@ -33,12 +33,7 @@ export default function RootLayout({
         />
       </head>
       <body>
-        <Header />
-        {children}
-        <footer className="site-footer">
-          <span>Digital Asset Library · Urban Jungle Goddess</span>
-          <span>Next.js + Supabase · 11 styles · 12 targets</span>
-        </footer>
+        <AppShell>{children}</AppShell>
       </body>
     </html>
   );

@@ -14,7 +14,6 @@ import {
  * every library figure is read live from content/docs.
  */
 
-const PLANNED_TOTAL = 51;
 const TARGET_COUNT = 12;
 const FILLED_TARGETS = 8;
 
@@ -65,24 +64,10 @@ const RUNS: Run[] = [
   },
 ];
 
-const RAIL: { section?: string; id?: string; label?: string; href?: string; badge?: string }[] = [
-  { section: "Build" },
-  { id: "overview", label: "Overview", href: "/portal" },
-  { id: "composer", label: "Composer", href: "/catalog", badge: "3" },
-  { id: "runs", label: "Runs", href: "/portal" },
-  { id: "templates", label: "Templates", href: "/portal" },
-  { section: "Library" },
-  { id: "catalog", label: "Catalog", href: "/catalog" },
-  { id: "specs", label: "Specs", href: "/catalog" },
-  { id: "skins", label: "Skins", href: "/catalog" },
-  { section: "System" },
-  { id: "settings", label: "Settings", href: "/portal" },
-];
-
 const DOMAIN_MAP = [
-  { name: "Websites", planned: 18, categories: ["Marketing & Content", "Navigation", "Layout & Structure"] },
-  { name: "Data reports", planned: 21, categories: ["Data Display", "Feedback & Status"] },
-  { name: "Mobile", planned: 12, categories: ["Actions", "Inputs & Forms", "Overlays & Popouts"] },
+  { name: "Websites", categories: ["Marketing & Content", "Navigation", "Layout & Structure", "Media"] },
+  { name: "Data reports", categories: ["Data Display", "Feedback & Status"] },
+  { name: "Mobile", categories: ["Actions", "Inputs & Forms", "Overlays & Popouts", "Utilities"] },
 ];
 
 const AUDITED: ComponentStatus[] = ["audited", "reusable"];
@@ -92,52 +77,21 @@ export default function Portal() {
   const categories = getCategories();
   const written = components.length;
   const audited = components.filter((c) => AUDITED.includes(c.status)).length;
-  const idea = PLANNED_TOTAL - written;
+  const idea = components.filter((c) => c.status === "idea").length;
   const blocked = RUNS.filter((r) => r.status === "blocked").length;
 
   const countIn = (names: string[]) =>
     components.filter((c) => names.includes(c.category)).length;
 
   const kpis = [
-    { label: "Specs written", value: String(written), unit: `/ ${PLANNED_TOTAL}`, delta: "+3 this week", trend: "up" },
+    { label: "Reference specs", value: String(written), delta: "+3 this week", trend: "up" },
     { label: "Runs generated", value: String(RUNS.length + 5), delta: "+2 this week", trend: "up" },
-    { label: "Assets at Idea", value: String(idea), delta: "unchanged", trend: "flat" },
+    { label: "Specs audited", value: String(audited), unit: `/ ${written}`, delta: "in review", trend: "flat" },
     { label: "Targets filled", value: String(FILLED_TARGETS), unit: `/ ${TARGET_COUNT}`, delta: "1 stale", trend: "down" },
   ];
 
   return (
     <div className="pt">
-      <nav className="pt-rail" aria-label="Portal">
-        <div className="pt-rail__logo">
-          <span className="pt-rail__wordmark">DIGITAL ASSET</span>
-          <span className="pt-rail__sub">Library · UJG</span>
-        </div>
-        <ul className="pt-rail__list">
-          {RAIL.map((item, i) =>
-            item.section ? (
-              <li key={`s-${i}`} className="pt-rail__section">
-                {item.section}
-              </li>
-            ) : (
-              <li key={item.id}>
-                <Link
-                  href={item.href ?? "/portal"}
-                  className={`pt-rail__item${item.id === "overview" ? " is-active" : ""}`}
-                  aria-current={item.id === "overview" ? "page" : undefined}
-                >
-                  <span>{item.label}</span>
-                  {item.badge ? <span className="pt-rail__badge">{item.badge}</span> : null}
-                </Link>
-              </li>
-            ),
-          )}
-        </ul>
-        <div className="pt-rail__footer">
-          <div>Omegea Hunter</div>
-          <div className="pt-rail__ver">Phase 0 · v0.1.0</div>
-        </div>
-      </nav>
-
       <main className="pt-main">
         <header className="pt-top">
           <div>
@@ -145,10 +99,10 @@ export default function Portal() {
             <h1 className="pt-h1">Here&rsquo;s where the library stands.</h1>
           </div>
           <div className="pt-top__actions">
-            <Link href="/catalog" className="pt-btn">
-              Open catalog
+            <Link href="/knowledge" className="pt-btn">
+              Open Knowledge Hub
             </Link>
-            <Link href="/catalog" className="pt-btn pt-btn--primary">
+            <Link href="/build" className="pt-btn pt-btn--primary">
               Start a run
             </Link>
           </div>
@@ -206,24 +160,22 @@ export default function Portal() {
 
             {blocked > 0 && (
               <div className="pt-callout">
-                <strong>One run is blocked on two specs.</strong> Data Table and
-                Chart Frame are on the {PLANNED_TOTAL} but still at Idea. Write
-                them and the intake dashboard finishes without another decision
-                from you.
+                <strong>One run is blocked on wiring, not specs.</strong> The
+                intake dashboard&rsquo;s specs are all written — it stalled on a
+                data source. Reconnect it and the run finishes without another
+                decision from you.
               </div>
             )}
 
-            <h2 className="pt-h2 pt-h2--spaced">Where the {PLANNED_TOTAL} sit</h2>
+            <h2 className="pt-h2 pt-h2--spaced">Where the {written} specs sit</h2>
             <div className="pt-domains">
               {DOMAIN_MAP.map((d) => {
                 const ready = countIn(d.categories);
-                const pct = Math.round((ready / d.planned) * 100);
+                const pct = written ? Math.round((ready / written) * 100) : 0;
                 return (
                   <div key={d.name} className="pt-domain">
                     <div className="pt-domain__name">{d.name}</div>
-                    <div className="pt-domain__count">
-                      {ready} / {d.planned}
-                    </div>
+                    <div className="pt-domain__count">{ready}</div>
                     <div className="pt-track">
                       <div className="pt-track__fill" style={{ width: `${pct}%` }} />
                     </div>
@@ -242,7 +194,7 @@ export default function Portal() {
                   <div className="pt-resume__name">Client intake dashboard</div>
                   <div className="pt-resume__meta">7 assets chosen · 2 flagged</div>
                 </div>
-                <Link href="/catalog" className="pt-btn pt-btn--primary pt-btn--full">
+                <Link href="/build" className="pt-btn pt-btn--primary pt-btn--full">
                   Resume in composer
                 </Link>
                 <hr className="pt-rule" />
@@ -250,7 +202,7 @@ export default function Portal() {
                   <div className="pt-resume__name">Data Table spec</div>
                   <div className="pt-resume__meta">4 of 17 sections drafted</div>
                 </div>
-                <Link href="/catalog" className="pt-btn pt-btn--full">
+                <Link href="/knowledge" className="pt-btn pt-btn--full">
                   Keep writing
                 </Link>
               </div>
@@ -261,12 +213,12 @@ export default function Portal() {
               <div className="pt-meter">
                 <div className="pt-meter__head">
                   <span>Specs audited</span>
-                  <span>{Math.round((audited / PLANNED_TOTAL) * 100)}%</span>
+                  <span>{written ? Math.round((audited / written) * 100) : 0}%</span>
                 </div>
                 <div className="pt-track">
                   <div
                     className="pt-track__fill"
-                    style={{ width: `${(audited / PLANNED_TOTAL) * 100}%` }}
+                    style={{ width: `${written ? (audited / written) * 100 : 0}%` }}
                   />
                 </div>
               </div>
