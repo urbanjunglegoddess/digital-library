@@ -107,7 +107,7 @@ export function CatalogBrowser({
           <h2 className="catalog-group__title">{category}</h2>
           <div className="card-grid">
             {list.map((it) => (
-              <Link key={it.slug} href={`/catalog/${it.slug}`} className="card">
+              <Link key={it.slug} href={`/knowledge/${it.slug}`} className="card">
                 <div className="card__head">
                   <span className="card__name">{it.name}</span>
                   <span className={`status status--${it.status}`}>{it.status}</span>
