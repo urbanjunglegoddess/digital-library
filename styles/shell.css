@@ -1,0 +1,240 @@
+/* =============================================================================
+   App shell — the eight surfaces at three sizes.
+
+   REPLACES the "App shell" block at the end of app/globals.css, including its
+   `@media (max-width: 860px)` rule (the one that turned the rail into a
+   two-column nav grid stacked above the content). See README-dropin.md.
+
+   ≥1024px   full 256px rail
+   768–1023  64px icon rail
+   ≤767px    bottom tab bar of five + a More sheet
+   ============================================================================= */
+
+.app {
+  display: flex;
+  align-items: flex-start;
+  min-height: 100vh;
+}
+.app-rail {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  width: 256px;
+  flex-shrink: 0;
+  height: 100vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  padding: 18px 14px;
+  background: var(--dl-surface-2);
+  border-right: 1px solid var(--dl-line);
+}
+.app-brand {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  text-decoration: none;
+  color: var(--dl-ink);
+  padding: 4px 8px;
+}
+.app-brand__glyph { font-size: 1.3rem; color: var(--dl-primary); }
+.app-brand__text {
+  display: flex;
+  flex-direction: column;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1.05;
+}
+.app-brand__sub {
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: 0.6rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--dl-ink-soft);
+  margin-top: 3px;
+}
+.app-nav { flex: 1; }
+.app-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.app-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  min-height: 44px;
+  padding: 9px 10px;
+  border-radius: 10px;
+  text-decoration: none;
+  color: var(--dl-ink-soft);
+  border: 1px solid transparent;
+}
+.app-nav__item:hover { background: var(--dl-surface); color: var(--dl-ink); }
+.app-nav__item:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
+.app-nav__item.is-active {
+  background: var(--dl-primary);
+  border-color: var(--dl-primary);
+  color: #fff;
+}
+.app-nav__item.is-active .app-nav__hint { color: oklch(100% 0 0 / 0.7); }
+.app-nav__glyph { width: 22px; text-align: center; font-size: 1rem; flex-shrink: 0; }
+.app-nav__labels { display: flex; flex-direction: column; line-height: 1.1; min-width: 0; }
+.app-nav__label { font-weight: 600; font-size: 0.92rem; }
+.app-nav__hint { font-size: 0.68rem; color: var(--dl-ink-soft); margin-top: 2px; }
+.app-rail__foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--dl-ink-soft);
+}
+.app-rail__foot-sub { opacity: 0.7; }
+.app-main { flex: 1; min-width: 0; }
+
+/* Mobile-only chrome, off at desktop. */
+.app-tabs { display: none; }
+.app-more { display: none; }
+
+/* =============================================================================
+   768–1023px — icon rail. Labels collapse; `title` on the link carries the
+   name, and the glyph keeps a 44px target.
+   ============================================================================= */
+@media (max-width: 1023px) {
+  .app-rail {
+    width: 64px;
+    padding: 14px 0;
+    gap: 6px;
+    align-items: center;
+  }
+  .app-brand { padding: 0; margin-bottom: 8px; }
+  .app-brand__glyph { font-size: 1.35rem; }
+  .app-brand__text { display: none; }
+  .app-nav { width: 100%; }
+  .app-nav ul { justify-items: center; gap: 4px; }
+  .app-nav__item {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+  .app-nav__glyph { width: auto; font-size: 1.05rem; }
+  .app-nav__labels { display: none; }
+  .app-rail__foot { display: none; }
+}
+
+/* =============================================================================
+   ≤767px — rail off, bottom tabs on. Content gets the whole width and the
+   nav sits under the thumb.
+   ============================================================================= */
+@media (max-width: 767px) {
+  .app { flex-direction: column; align-items: stretch; }
+  .app-rail { display: none; }
+  .app-main {
+    width: 100%;
+    /* Clear the fixed tab bar: 52px row + 6px pad + safe area. */
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px));
+  }
+
+  .app-tabs {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 60;
+    background: var(--dl-surface-2);
+    border-top: 1px solid var(--dl-line);
+    padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+  }
+  .app-tab {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 52px;
+    border: none;
+    background: none;
+    text-decoration: none;
+    color: var(--dl-ink-soft);
+    cursor: pointer;
+  }
+  .app-tab.is-active { color: var(--dl-primary); }
+  .app-tab.is-active .app-tab__label { font-weight: 600; }
+  .app-tab:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: -3px; border-radius: 8px; }
+  .app-tab__glyph { font-size: 1.05rem; line-height: 1; }
+  .app-tab__label {
+    font-family: var(--font-mono);
+    font-size: 0.56rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .app-more { display: block; position: fixed; inset: 0; z-index: 70; }
+  .app-more__scrim {
+    position: absolute;
+    inset: 0;
+    border: none;
+    background: oklch(24% 0.02 305 / 0.5);
+    cursor: pointer;
+  }
+  .app-more__sheet {
+    position: absolute;
+    inset: auto 0 0 0;
+    background: var(--dl-surface);
+    border-radius: 20px 20px 0 0;
+    padding: 10px 16px calc(22px + env(safe-area-inset-bottom, 0px));
+    box-shadow: 0 -18px 44px oklch(24% 0.06 305 / 0.28);
+  }
+  .app-more__grab {
+    width: 42px;
+    height: 4px;
+    border-radius: 999px;
+    background: var(--dl-line-2);
+    margin: 0 auto 16px;
+  }
+  .app-more__eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--dl-ink-soft);
+    margin: 0 0 12px;
+  }
+  .app-more__list { list-style: none; margin: 0 0 18px; padding: 0; display: grid; gap: 4px; }
+  .app-more__item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-height: 52px;
+    padding: 0 12px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--dl-ink);
+  }
+  .app-more__item:hover { background: var(--dl-surface-2); }
+  .app-more__item:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
+  .app-more__item.is-active { background: var(--dl-primary); color: #fff; }
+  .app-more__item.is-active .app-more__hint,
+  .app-more__item.is-active .app-more__glyph { color: oklch(100% 0 0 / 0.75); }
+  .app-more__glyph { width: 24px; text-align: center; font-size: 1.05rem; color: var(--dl-primary); flex: none; }
+  .app-more__labels { display: flex; flex-direction: column; line-height: 1.15; min-width: 0; }
+  .app-more__label { font-weight: 600; font-size: 0.94rem; }
+  .app-more__hint { font-size: 0.72rem; color: var(--dl-ink-soft); }
+  .app-more__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding-top: 14px;
+    border-top: 1px solid var(--dl-line);
+    font-family: var(--font-mono);
+    font-size: 0.62rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--dl-ink-soft);
+  }
+}
