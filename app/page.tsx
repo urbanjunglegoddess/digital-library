@@ -1,5 +1,5 @@
 import Link from "next/link";
-import "styles\home.css";
+import "@/styles/home.css";
 import {
   ALL_STYLES,
   getAllComponents,
@@ -54,8 +54,8 @@ const ENTRIES = [
   },
 ];
 
-const PLANNED_TOTAL = 51;
 const TARGET_COUNT = 12;
+const CATEGORY_TOTAL = 10;
 
 export default function Home() {
   const components = getAllComponents();
@@ -65,6 +65,7 @@ export default function Home() {
   const audited = components.filter(
     (c) => c.status === "audited" || c.status === "reusable",
   ).length;
+  const auditedPct = written ? Math.round((audited / written) * 100) : 0;
   const countIn = (names: string[]) =>
     components.filter((c) => names.includes(c.category)).length;
 
@@ -85,10 +86,10 @@ export default function Home() {
             work. The code is already done.
           </p>
           <div className="lp-cta">
-            <Link href="/catalog" className="btn btn--primary btn--lg lp-btn">
+            <Link href="/build" className="btn btn--primary btn--lg lp-btn">
               Start an Adventure
             </Link>
-            <Link href="/catalog" className="lp-link">
+            <Link href="/knowledge" className="lp-link">
               Read the specs →
             </Link>
           </div>
@@ -99,9 +100,7 @@ export default function Home() {
           <dl className="lp-manifest__list">
             <div>
               <dt>Component specs</dt>
-              <dd>
-                {written} / {PLANNED_TOTAL}
-              </dd>
+              <dd>{written}</dd>
             </div>
             <div>
               <dt>Visual skins</dt>
@@ -113,7 +112,9 @@ export default function Home() {
             </div>
             <div>
               <dt>Categories seeded</dt>
-              <dd>{categories.length} / 10</dd>
+              <dd>
+                {categories.length} / {CATEGORY_TOTAL}
+              </dd>
             </div>
             <div>
               <dt>Status ladder</dt>
@@ -123,12 +124,12 @@ export default function Home() {
           <div className="lp-meter">
             <div className="lp-meter__head">
               <span>Written and audited</span>
-              <span>{Math.round((audited / PLANNED_TOTAL) * 100)}%</span>
+              <span>{auditedPct}%</span>
             </div>
             <div className="lp-meter__track">
               <div
                 className="lp-meter__fill"
-                style={{ width: `${(audited / PLANNED_TOTAL) * 100}%` }}
+                style={{ width: `${auditedPct}%` }}
               />
             </div>
           </div>
@@ -152,7 +153,7 @@ export default function Home() {
         <p className="lp-eyebrow">03 · What it builds</p>
         <div className="lp-domains">
           {DOMAINS.map((d) => (
-            <Link key={d.name} href="/catalog" className="lp-domain">
+            <Link key={d.name} href="/knowledge" className="lp-domain">
               <h3 className="lp-h3">{d.name}</h3>
               <p className="lp-body lp-body--sm">{d.blurb}</p>
               <span className="lp-domain__count">
