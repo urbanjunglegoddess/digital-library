@@ -23,4 +23,14 @@ export interface StackItem {
   category: string;
   /** Editable prop values, keyed by the field keys in the component's spec. */
   props: Record<string, string | boolean>;
+  /** Free position + depth, used only by the "layered" canvas layout. */
+  layer?: { x: number; y: number; z: number };
 }
+
+export type LayoutKey =
+  | "flow"
+  | "two-col"
+  | "asym"
+  | "split"
+  | "bento"
+  | "layered";

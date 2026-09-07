@@ -1,33 +1,35 @@
 import type { Metadata } from "next";
-import { SurfacePlaceholder } from "@/components/site/SurfacePlaceholder";
+import { getAllComponents } from "@/lib/content";
+import { hasRenderer } from "@/lib/composer";
+import { Playground } from "@/components/workspace/Playground";
+import type { TrayItem } from "@/components/build/types";
 
 export const metadata: Metadata = {
   title: "Workspace — Digital Asset Library",
-  description: "Your saved snippets, collections, and drafts.",
+  description:
+    "Your playground: pick a component, flip its props, switch across all 11 skins, and read the generated code.",
 };
 
-export default function WorkspacePage() {
-  return (
-    <SurfacePlaceholder
-      eyebrow="Workspace"
-      title="Your saved work"
-      lede="A personal space for the components you save, the collections you curate, and the builds you have in progress — all scoped to your account."
-      phase="🚧 Unlocks in Phase 3 (accounts & personalization) once sign-in ships."
-      points={[
-        {
-          heading: "Collections",
-          body: "Group components into named folders you can reuse and share — backed by the `collections` table.",
-        },
-        {
-          heading: "Saved snippets",
-          body: "Pin the exact code snippets you copy most, across any language target.",
-        },
-        {
-          heading: "Drafts",
-          body: "Pick up in-progress builds where you left off, synced from the Portal.",
-        },
-      ]}
-      cta={{ href: "/knowledge", label: "Find components to save" }}
-    />
-  );
+/**
+ * Workspace — /workspace
+ *
+ * Home of the Playground (moved here from the Knowledge Hub detail page): a
+ * single-component sandbox. Saved snippets, collections and drafts land here
+ * too once auth ships in Phase 3.
+ */
+export default async function WorkspacePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string }>;
+}) {
+  const { c } = await searchParams;
+  const tray: TrayItem[] = getAllComponents().map((comp) => ({
+    slug: comp.slug,
+    name: comp.name,
+    category: comp.category,
+    status: comp.status,
+    renderable: hasRenderer(comp.slug),
+  }));
+
+  return <Playground tray={tray} initialSlug={c} />;
 }

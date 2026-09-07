@@ -1,12 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  getAllSlugs,
-  getComponent,
-  playgroundExists,
-  STYLE_NAMES,
-} from "@/lib/content";
+import { getAllSlugs, getComponent, STYLE_NAMES } from "@/lib/content";
 import { StyleSwitcher } from "@/components/catalog/StyleSwitcher";
 import { CodeTabs } from "@/components/catalog/CodeTabs";
 import { Markdown } from "@/components/catalog/Markdown";
@@ -47,7 +42,6 @@ export default async function ComponentPage({
   if (!doc) notFound();
 
   const styles = doc.styles?.length ? doc.styles : Object.keys(STYLE_NAMES);
-  const hasPlayground = playgroundExists(doc.playground);
 
   return (
     <main className="page detail">
@@ -84,19 +78,17 @@ export default async function ComponentPage({
         />
       </section>
 
-      {hasPlayground && (
-        <section className="detail__block">
-          <h2 className="detail__h2">Interactive playground</h2>
-          <div className="playground-frame">
-            <iframe
-              src={`/playgrounds/${doc.playground}.html`}
-              title={`${doc.name} interactive playground`}
-              loading="lazy"
-              className="playground-frame__iframe"
-            />
-          </div>
-        </section>
-      )}
+      <section className="detail__block">
+        <Link href={`/workspace?c=${doc.slug}`} className="detail__playcta">
+          <span>
+            <strong>Open in the Playground</strong>
+            <span className="detail__playcta-sub">
+              Flip props and switch across all 11 skins in the Workspace.
+            </span>
+          </span>
+          <span aria-hidden="true">→</span>
+        </Link>
+      </section>
 
       {doc.snippets && doc.snippets.length > 0 && (
         <section className="detail__block">

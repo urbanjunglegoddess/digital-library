@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { getAllComponents } from "@/lib/content";
 import { hasRenderer } from "@/lib/composer";
-import { BuildComposer } from "@/components/build/BuildComposer";
+import { BuildHub } from "@/components/build/BuildHub";
 import type { TrayItem } from "@/components/build/types";
 
 export const metadata: Metadata = {
   title: "Build Hub — Digital Asset Library",
   description:
-    "Compose library components into real output: pick a visual skin and a language target, arrange the stack, and copy or export the code.",
+    "Compose library components into real output, and audit any markup for accessibility — pick a skin and a language target, arrange the stack, copy the code, and run the checks.",
 };
 
 /**
@@ -27,5 +27,5 @@ export default function BuildHubPage() {
     renderable: hasRenderer(c.slug),
   }));
 
-  return <BuildComposer tray={tray} />;
+  return <BuildHub tray={tray} />;
 }
