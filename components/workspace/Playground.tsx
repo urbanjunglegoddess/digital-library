@@ -1,49 +1,79 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
+import { STYLE_NAMES } from "@/lib/styles";
 import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
 import { CanvasItem } from "@/components/build/CanvasItem";
 import { generate } from "@/components/build/generate";
-import type { StackItem, TrayItem } from "@/components/build/types";
+import type { DocSnippet, StackItem, TrayItem } from "@/components/build/types";
 import "@/styles/workspace.css";
 
 /**
- * Playground — Workspace hub.
+ * Playground — Workspace hub (deep-spec).
  *
- * The single-component sandbox that used to live behind the Knowledge detail
- * page. Pick one component, flip its props, switch across all 11 skins live,
- * and read the generated code for any target. Everything is local state; it
- * reuses the same renderers and generator as the Build Hub composer so a
- * preview here matches what a build emits.
+ * Configure a component across variant / size / state / features / style /
+ * language, see it live on a dotted stage, and read the code. Crucially, the
+ * code panel shows the REAL snippet documented in the component's md file when
+ * one exists for the chosen language — falling back to the generator only for
+ * languages the doc doesn't cover.
  */
+
+// Style order per the spec: Flat first, UJG last.
+const STYLE_ORDER = ["flat", "material", "glass", "liquid", "neu", "skeu", "brut", "clay", "aurora", "swiss", "ujg"];
+const STATES = ["default", "hover", "focus", "active", "disabled"] as const;
+type StateKey = (typeof STATES)[number];
+
+// Which doc snippet languages satisfy a given code target (frontmatter labels
+// and body fence languages both).
+const TARGET_SNIPPET_LANGS: Record<string, string[]> = {
+  html: ["html"],
+  react: ["tsx", "jsx", "typescript", "javascript"],
+  "react-ts": ["tsx", "typescript"],
+  next: ["tsx", "jsx", "typescript"],
+  vue: ["vue"],
+  svelte: ["svelte"],
+  angular: ["ts", "typescript"],
+  "web-components": ["js", "javascript"],
+  "react-native": ["tsx", "jsx"],
+  swiftui: ["swift"],
+  compose: ["kotlin", "kt"],
+  flutter: ["dart"],
+  tailwind: ["html"],
+};
 
 let seq = 0;
 const uid = () => `pg${++seq}`;
 
-export function Playground({
-  tray,
-  initialSlug,
-}: {
-  tray: TrayItem[];
-  initialSlug?: string;
-}) {
+function findSnippet(snippets: DocSnippet[] | undefined, targetKey: string): DocSnippet | undefined {
+  if (!snippets?.length) return undefined;
+  const langs = TARGET_SNIPPET_LANGS[targetKey] ?? [];
+  const reactish = targetKey === "react" || targetKey === "react-ts" || targetKey === "next";
+  return (
+    snippets.find((s) => langs.includes((s.language ?? "").toLowerCase())) ??
+    (reactish ? snippets.find((s) => (s.framework ?? "").toLowerCase() === "react") : undefined)
+  );
+}
+
+export function Playground({ tray, initialSlug }: { tray: TrayItem[]; initialSlug?: string }) {
   const renderable = useMemo(() => tray.filter((t) => t.renderable), [tray]);
   const fallback = renderable[0]?.slug ?? tray[0]?.slug ?? "button";
   const [slug, setSlug] = useState<string>(
     initialSlug && tray.some((t) => t.slug === initialSlug) ? initialSlug : fallback,
   );
-  const [skin, setSkin] = useState<string>("ujg");
+  const [skin, setSkin] = useState<string>("flat");
   const [target, setTarget] = useState<string>(DEFAULT_TARGET);
+  const [state, setState] = useState<StateKey>("default");
   const [copied, setCopied] = useState(false);
+  const [propsBySlug, setPropsBySlug] = useState<Record<string, StackItem["props"]>>({});
 
   const meta = tray.find((t) => t.slug === slug);
   const spec = specFor(slug);
-
-  // Prop state is keyed by slug so switching components and coming back keeps edits.
-  const [propsBySlug, setPropsBySlug] = useState<Record<string, StackItem["props"]>>({});
   const props = propsBySlug[slug] ?? { ...spec.defaults };
+
+  const textFields = spec.fields.filter((f) => f.kind === "text");
+  const selectFields = spec.fields.filter((f) => f.kind === "select");
+  const toggleFields = spec.fields.filter((f) => f.kind === "toggle");
 
   const item: StackItem = {
     uid: uid(),
@@ -53,54 +83,56 @@ export function Playground({
     props,
   };
 
-  const code = useMemo(
-    () => generate([item], target, skin, meta?.name ?? "Playground"),
-    // item is rebuilt each render; depend on the values that actually change it.
+  const realSnippet = findSnippet(meta?.snippets, target);
+  const targetMeta = TARGETS_BY_KEY[target];
+
+  const code = useMemo(() => {
+    if (realSnippet) return realSnippet.code.replace(/\s+$/, "");
+    if (targetMeta?.emit) return generate([item], target, skin, meta?.name ?? "Preview");
+    return [
+      `// ${targetMeta?.label ?? target} isn't documented for ${meta?.name ?? slug} yet.`,
+      `// The full spec and any code for this target live on its Knowledge Hub page.`,
+    ].join("\n");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [slug, target, skin, props, meta?.name],
-  );
+  }, [slug, target, skin, props, realSnippet]);
 
   function setProp(key: string, value: string | boolean) {
-    setPropsBySlug((s) => ({
-      ...s,
-      [slug]: { ...(s[slug] ?? { ...spec.defaults }), [key]: value },
-    }));
+    setPropsBySlug((s) => ({ ...s, [slug]: { ...(s[slug] ?? { ...spec.defaults }), [key]: value } }));
   }
-
   function reset() {
     setPropsBySlug((s) => ({ ...s, [slug]: { ...spec.defaults } }));
+    setState("default");
   }
-
   async function copy() {
     try {
       await navigator.clipboard.writeText(code);
       setCopied(true);
-      window.setTimeout(() => setCopied(false), 1600);
+      window.setTimeout(() => setCopied(false), 1500);
     } catch {
       setCopied(false);
     }
   }
 
-  const targetMeta = TARGETS_BY_KEY[target];
+  const chip = (label: string, active: boolean, onClick: () => void, key?: string) => (
+    <button
+      key={key ?? label}
+      type="button"
+      className={`pg-chip${active ? " is-active" : ""}`}
+      aria-pressed={active}
+      onClick={onClick}
+    >
+      {label}
+    </button>
+  );
 
   return (
-    <main className="pg">
-      <header className="pg-head">
-        <div>
-          <p className="pg-eyebrow">Workspace · Playground</p>
-          <h1 className="pg-title">One component, every skin.</h1>
-          <p className="pg-lede">
-            Pick a component, flip its props, and switch skins to see the token
-            layer do its work. The code updates as you go.
-          </p>
-        </div>
+    <div className="pg">
+      <header className="pg-header">
+        <h1 className="pg-h1">Playground</h1>
+        <span className="pg-toolbadge">{meta?.name ?? slug}</span>
         <label className="pg-picker">
-          <span className="pg-picker__label">Component</span>
-          <select
-            className="pg-select"
-            value={slug}
-            onChange={(e) => setSlug(e.target.value)}
-          >
+          <span className="pg-srlabel">Component</span>
+          <select className="pg-select" value={slug} onChange={(e) => setSlug(e.target.value)}>
             {tray.map((t) => (
               <option key={t.slug} value={t.slug}>
                 {t.name}
@@ -109,148 +141,105 @@ export function Playground({
             ))}
           </select>
         </label>
+        <button type="button" className="pg-reset" onClick={reset}>
+          Reset
+        </button>
       </header>
 
-      <div className="pg-body">
-        <section className="pg-stagewrap" aria-label="Preview">
-          <div className="pg-skins" role="group" aria-label="Visual skin">
-            {ALL_STYLES.map((k) => (
-              <button
-                key={k}
-                type="button"
-                className={`pg-skin${skin === k ? " is-active" : ""}`}
-                aria-pressed={skin === k}
-                onClick={() => setSkin(k)}
-              >
-                {STYLE_NAMES[k]}
-              </button>
-            ))}
-          </div>
-          <div className="pg-stage" data-style={skin}>
-            <CanvasItem item={item} />
-          </div>
-          {!meta?.renderable && (
-            <p className="pg-note">
-              This component is documented but has no live playground renderer
-              yet — its full spec and code live on its{" "}
-              <a href={`/knowledge/${slug}`}>Knowledge Hub page</a>.
-            </p>
-          )}
-        </section>
-
-        <aside className="pg-panel" aria-label="Controls">
-          <div className="pg-panel__head">
-            <h2 className="pg-panel__title">{meta?.name ?? slug}</h2>
-            <button type="button" className="pg-mini" onClick={reset}>
-              Reset
-            </button>
-          </div>
-
-          <div className="pg-fields">
-            {spec.fields.map((f) => {
-              const value = props[f.key];
-              const fid = `pg-${f.key}`;
-              if (f.kind === "toggle") {
-                return (
-                  <div key={f.key} className="pg-row">
-                    <label htmlFor={fid} className="pg-row__label">
-                      {f.label}
-                    </label>
-                    <button
-                      id={fid}
-                      type="button"
-                      role="switch"
-                      aria-checked={Boolean(value)}
-                      className={`pg-switch${value ? " is-on" : ""}`}
-                      onClick={() => setProp(f.key, !value)}
-                    >
-                      <span className="pg-switch__dot" />
-                    </button>
-                  </div>
-                );
-              }
-              if (f.kind === "select") {
-                return (
-                  <div key={f.key} className="pg-ctrl">
-                    <label htmlFor={fid} className="pg-ctrl__label">
-                      {f.label}
-                    </label>
-                    <select
-                      id={fid}
-                      className="pg-select"
-                      value={String(value ?? "")}
-                      onChange={(e) => setProp(f.key, e.target.value)}
-                    >
-                      {f.options?.map((o) => (
-                        <option key={o} value={o}>
-                          {o}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                );
-              }
-              return (
-                <div key={f.key} className="pg-ctrl">
-                  <label htmlFor={fid} className="pg-ctrl__label">
-                    {f.label}
-                  </label>
+      <aside className="pg-controls" aria-label="Controls">
+        {textFields.length > 0 && (
+          <div className="pg-group">
+            <h3 className="pg-group__title">Content</h3>
+            <div className="pg-texts">
+              {textFields.map((f) => (
+                <label key={f.key} className="pg-textrow">
+                  <span className="pg-srlabel">{f.label}</span>
                   <input
-                    id={fid}
-                    type="text"
-                    className="pg-input"
-                    value={String(value ?? "")}
+                    className="pg-textinput"
+                    value={String(props[f.key] ?? "")}
                     onChange={(e) => setProp(f.key, e.target.value)}
+                    placeholder={f.label}
                   />
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="pg-panel__block">
-            <span className="pg-eyebrow">Accessibility</span>
-            <ul className="pg-a11y">
-              {spec.a11y.map((line) => (
-                <li key={line}>
-                  <span className="pg-a11y__tick" aria-hidden="true">
-                    ✓
-                  </span>
-                  {line}
-                </li>
+                </label>
               ))}
-            </ul>
+            </div>
           </div>
-        </aside>
-      </div>
+        )}
 
-      <section className="pg-code" aria-label="Generated code">
+        {selectFields.map((f) => (
+          <div key={f.key} className="pg-group">
+            <h3 className="pg-group__title">{f.label}</h3>
+            <div className="pg-options">
+              {f.options?.map((o) => chip(o, String(props[f.key]) === o, () => setProp(f.key, o), o))}
+            </div>
+          </div>
+        ))}
+
+        {toggleFields.length > 0 && (
+          <div className="pg-group">
+            <h3 className="pg-group__title">Features</h3>
+            <div className="pg-options">
+              {toggleFields.map((f) =>
+                chip(f.label, Boolean(props[f.key]), () => setProp(f.key, !props[f.key]), f.key),
+              )}
+            </div>
+          </div>
+        )}
+
+        <div className="pg-group">
+          <h3 className="pg-group__title">State</h3>
+          <div className="pg-options">
+            {STATES.map((s) => chip(s, state === s, () => setState(s), s))}
+          </div>
+        </div>
+
+        <div className="pg-group">
+          <h3 className="pg-group__title">Style</h3>
+          <div className="pg-options">
+            {STYLE_ORDER.map((k) => chip(STYLE_NAMES[k] ?? k, skin === k, () => setSkin(k), k))}
+          </div>
+        </div>
+
+        <div className="pg-group">
+          <h3 className="pg-group__title">Language</h3>
+          <div className="pg-options">
+            {ALL_TARGETS.map((t) => chip(t.label, target === t.key, () => setTarget(t.key), t.key))}
+          </div>
+        </div>
+      </aside>
+
+      <section className="pg-stage" aria-label="Preview">
+        <div className={`pg-stage__inner is-${state}`} data-style={skin}>
+          <CanvasItem item={item} />
+        </div>
+        {!meta?.renderable && (
+          <p className="pg-stagenote">
+            Documented component — no live renderer yet. Its full spec is on the{" "}
+            <a href={`/knowledge/${slug}`}>Knowledge Hub page</a>.
+          </p>
+        )}
+      </section>
+
+      <section className="pg-code" aria-label="Code">
         <div className="pg-code__bar">
-          <label className="pg-code__target">
-            <span className="pg-eyebrow">Target</span>
-            <select
-              className="pg-select pg-select--dark"
-              value={target}
-              onChange={(e) => setTarget(e.target.value)}
-            >
-              {ALL_TARGETS.map((t) => (
-                <option key={t.key} value={t.key}>
-                  {t.label}
-                  {t.emit ? "" : " · Phase 4"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <span className="pg-code__name">
-            {targetMeta?.label ?? target} · {STYLE_NAMES[skin]}
+          <span className={`pg-code__src${realSnippet ? " is-real" : ""}`}>
+            {realSnippet
+              ? `From the docs · ${realSnippet.label ?? realSnippet.language}`
+              : targetMeta?.emit
+                ? "Generated"
+                : "Not documented for this target"}
           </span>
-          <button type="button" className="pg-code__copy" onClick={copy}>
-            {copied ? "Copied" : "Copy"}
+          <span className="pg-code__lang">
+            {targetMeta?.label ?? target} · {STYLE_NAMES[skin] ?? skin}
+          </span>
+          <button type="button" className={`pg-code__copy${copied ? " is-copied" : ""}`} onClick={copy}>
+            {copied ? "Copied!" : "Copy"}
           </button>
         </div>
         <pre className="pg-code__pre">
           <code>{code}</code>
         </pre>
       </section>
-    </main>
+    </div>
   );
 }
