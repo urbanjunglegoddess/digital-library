@@ -7,7 +7,36 @@
  */
 
 import { TARGETS_BY_KEY } from "@/lib/targets";
-import type { StackItem } from "./types";
+import { pickSnippet } from "@/lib/snippets";
+import type { DocSnippet, StackItem } from "./types";
+
+export type SnippetsBySlug = Record<string, DocSnippet[]>;
+
+const commentLine = (target: string, text: string) =>
+  target === "html" || target === "tailwind" ? `<!-- ${text} -->` : `// ${text}`;
+
+/**
+ * Real documented source for each distinct component in the stack, for the
+ * current target — pulled from the component docs. This is what wires real doc
+ * snippets into the composer's output: the assembled usage above, the actual
+ * documented implementations below.
+ */
+function docSources(
+  stack: StackItem[],
+  target: string,
+  snippetsBySlug?: SnippetsBySlug,
+): string[] {
+  if (!snippetsBySlug) return [];
+  const seen = new Set<string>();
+  const blocks: string[] = [];
+  for (const item of stack) {
+    if (seen.has(item.slug)) continue;
+    seen.add(item.slug);
+    const snip = pickSnippet(snippetsBySlug[item.slug], target);
+    if (snip) blocks.push(`${commentLine(target, `${item.name} — from the docs`)}\n${snip.code}`);
+  }
+  return blocks;
+}
 
 const esc = (s: string) => String(s).replace(/"/g, "&quot;");
 const id = (item: StackItem) => `${item.slug}-${item.uid}`;
@@ -110,18 +139,31 @@ export function generate(
   target: string,
   skin: string,
   title: string,
+  snippetsBySlug?: SnippetsBySlug,
 ): string {
   const t = TARGETS_BY_KEY[target];
   const componentName = title.replace(/[^a-zA-Z0-9]+(.)/g, (_, c) => c.toUpperCase()).replace(/^./, (c) => c.toUpperCase()) || "Composition";
 
+  const sources = docSources(stack, target, snippetsBySlug);
+  const sourcesBlock = sources.length
+    ? "\n\n" + commentLine(target, "── Component sources (from the docs) ──") + "\n\n" + sources.join("\n\n")
+    : "";
+
   if (!t?.emit) {
+    // No assembler for this target yet — but if the docs carry real code for
+    // it, show that per component rather than a placeholder note.
+    if (sources.length) {
+      return [
+        commentLine(target, `${t?.label ?? target} · component sources from the docs`),
+        commentLine(target, "Assembly for this target lands with the export pipeline (Phase 4)."),
+        "",
+        sources.join("\n\n"),
+      ].join("\n");
+    }
     return [
-      `// ${t?.label ?? target} generator lands with the export pipeline (Phase 4).`,
-      `//`,
-      `// The stack is ${stack.length} component${stack.length === 1 ? "" : "s"} and the docs`,
-      `// already carry ${t?.label ?? target} snippets in their frontmatter — the composer`,
-      `// just doesn't assemble them yet. Switch to HTML, React, or React + TypeScript`,
-      `// to see real output, or copy the per-component snippet from its doc page.`,
+      `// ${t?.label ?? target} isn't documented for these components yet.`,
+      `// Switch to HTML, React, or React + TypeScript for assembled output,`,
+      `// or open a component's Knowledge Hub page for its full spec.`,
     ].join("\n");
   }
 
@@ -131,7 +173,7 @@ export function generate(
       `<div class="stack" data-style="${skin}">`,
       ...stack.map(htmlFor),
       `</div>`,
-    ].join("\n");
+    ].join("\n") + sourcesBlock;
   }
 
   const ts = target === "react-ts";
@@ -148,7 +190,7 @@ export function generate(
     `    </div>`,
     `  );`,
     `}`,
-  ].filter((line) => line !== "").join("\n");
+  ].filter((line) => line !== "").join("\n") + sourcesBlock;
 }
 
 export function fileList(stack: StackItem[], target: string, title: string): string[] {

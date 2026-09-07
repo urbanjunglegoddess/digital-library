@@ -4,9 +4,10 @@ import { useMemo, useState } from "react";
 import { STYLE_NAMES } from "@/lib/styles";
 import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
+import { pickSnippet } from "@/lib/snippets";
 import { CanvasItem } from "@/components/build/CanvasItem";
 import { generate } from "@/components/build/generate";
-import type { DocSnippet, StackItem, TrayItem } from "@/components/build/types";
+import type { StackItem, TrayItem } from "@/components/build/types";
 import "@/styles/workspace.css";
 
 /**
@@ -24,36 +25,8 @@ const STYLE_ORDER = ["flat", "material", "glass", "liquid", "neu", "skeu", "brut
 const STATES = ["default", "hover", "focus", "active", "disabled"] as const;
 type StateKey = (typeof STATES)[number];
 
-// Which doc snippet languages satisfy a given code target (frontmatter labels
-// and body fence languages both).
-const TARGET_SNIPPET_LANGS: Record<string, string[]> = {
-  html: ["html"],
-  react: ["tsx", "jsx", "typescript", "javascript"],
-  "react-ts": ["tsx", "typescript"],
-  next: ["tsx", "jsx", "typescript"],
-  vue: ["vue"],
-  svelte: ["svelte"],
-  angular: ["ts", "typescript"],
-  "web-components": ["js", "javascript"],
-  "react-native": ["tsx", "jsx"],
-  swiftui: ["swift"],
-  compose: ["kotlin", "kt"],
-  flutter: ["dart"],
-  tailwind: ["html"],
-};
-
 let seq = 0;
 const uid = () => `pg${++seq}`;
-
-function findSnippet(snippets: DocSnippet[] | undefined, targetKey: string): DocSnippet | undefined {
-  if (!snippets?.length) return undefined;
-  const langs = TARGET_SNIPPET_LANGS[targetKey] ?? [];
-  const reactish = targetKey === "react" || targetKey === "react-ts" || targetKey === "next";
-  return (
-    snippets.find((s) => langs.includes((s.language ?? "").toLowerCase())) ??
-    (reactish ? snippets.find((s) => (s.framework ?? "").toLowerCase() === "react") : undefined)
-  );
-}
 
 export function Playground({ tray, initialSlug }: { tray: TrayItem[]; initialSlug?: string }) {
   const renderable = useMemo(() => tray.filter((t) => t.renderable), [tray]);
@@ -83,7 +56,7 @@ export function Playground({ tray, initialSlug }: { tray: TrayItem[]; initialSlu
     props,
   };
 
-  const realSnippet = findSnippet(meta?.snippets, target);
+  const realSnippet = pickSnippet(meta?.snippets, target);
   const targetMeta = TARGETS_BY_KEY[target];
 
   const code = useMemo(() => {

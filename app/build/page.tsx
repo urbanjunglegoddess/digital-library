@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { getAllComponents } from "@/lib/content";
 import { hasRenderer } from "@/lib/composer";
+import { extractBodySnippets } from "@/lib/snippets";
 import { BuildHub } from "@/components/build/BuildHub";
 import type { TrayItem } from "@/components/build/types";
 
@@ -25,6 +26,7 @@ export default function BuildHubPage() {
     category: c.category,
     status: c.status,
     renderable: hasRenderer(c.slug),
+    snippets: c.snippets?.length ? c.snippets : extractBodySnippets(c.body),
   }));
 
   return <BuildHub tray={tray} />;

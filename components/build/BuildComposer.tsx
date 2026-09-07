@@ -6,7 +6,7 @@ import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
 import { CanvasItem } from "./CanvasItem";
 import { generate, fileList } from "./generate";
-import type { LayoutKey, StackItem, TrayItem } from "./types";
+import type { DocSnippet, LayoutKey, StackItem, TrayItem } from "./types";
 import "./build.css";
 
 /**
@@ -118,9 +118,15 @@ export function BuildComposer({
     });
   }, [tray, query]);
 
+  const snippetsBySlug = useMemo(() => {
+    const m: Record<string, DocSnippet[]> = {};
+    for (const t of tray) if (t.snippets?.length) m[t.slug] = t.snippets;
+    return m;
+  }, [tray]);
+
   const code = useMemo(
-    () => generate(stack, target, skin, title),
-    [stack, target, skin, title],
+    () => generate(stack, target, skin, title, snippetsBySlug),
+    [stack, target, skin, title, snippetsBySlug],
   );
   const files = useMemo(() => fileList(stack, target, title), [stack, target, title]);
 
