@@ -149,3 +149,89 @@
   [data-style="aurora"] .dl-skin,
   [data-style="liquid"] .dl-skin::before { animation: none; }
 }
+
+/* =============================================================================
+   Live-preview skins — per [data-style] tokens consumed by the real component
+   preview classes (.btn, .cv-*), so switching a skin restyles the actual button,
+   field, alert, etc. in the Playground / composer / template previews — not just
+   the .dl-skin swatch. Token values ported from the 44-style reference.
+   ============================================================================= */
+[data-style="ujg"] { --sk-surf: #0A0A0A; --sk-surf-fg: #E8E6E1; --sk-dim: #8E8A80; --sk-ctl: #DCA424; --sk-ctl-fg: #0A0A0A; --sk-ctl-bd: none; --sk-ctl-r: 10px; --sk-ctl-sh: 0 0 22px rgba(220,164,36,.32); --sk-ctl-hov: #F0B62A; --sk-field-bg: #141414; --sk-field-bd: 1px solid #3A3325; --sk-card-bg: #141414; --sk-card-bd: 1px solid #DCA42433; --sk-card-r: 12px; --sk-card-sh: 0 0 34px rgba(220,164,36,.12); --sk-track: 0.02em; --sk-case: uppercase; }
+[data-style="flat"] { --sk-surf: #F4F6F8; --sk-surf-fg: #16222E; --sk-dim: #6B7B8A; --sk-ctl: #1F7AE0; --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 3px; --sk-ctl-sh: none; --sk-ctl-hov: #1A66BD; --sk-field-bg: #fff; --sk-field-bd: 1px solid #C8D2DA; --sk-card-bg: #fff; --sk-card-bd: 1px solid #E1E7EC; --sk-card-r: 3px; --sk-card-sh: none; --sk-track: -0.01em; --sk-case: none; }
+[data-style="material"] { --sk-surf: #FEF7FF; --sk-surf-fg: #1D1B20; --sk-dim: #625B71; --sk-ctl: #65558F; --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 20px; --sk-ctl-sh: 0 1px 3px rgba(0,0,0,.3),0 4px 8px rgba(0,0,0,.15); --sk-ctl-hov: #54467A; --sk-field-bg: #ECE6F0; --sk-field-bd: 1px solid #79747E; --sk-card-bg: #F7F2FA; --sk-card-bd: none; --sk-card-r: 12px; --sk-card-sh: 0 1px 2px rgba(0,0,0,.3),0 2px 6px rgba(0,0,0,.15); --sk-track: 0; --sk-case: none; }
+[data-style="glass"] { --sk-surf: linear-gradient(135deg,#6D3BE8 0%,#2B7FE0 45%,#12C2C2 100%); --sk-surf-fg: #fff; --sk-dim: rgba(255,255,255,.72); --sk-ctl: rgba(255,255,255,.16); --sk-ctl-fg: #fff; --sk-ctl-bd: 1px solid rgba(255,255,255,.38); --sk-ctl-r: 12px; --sk-ctl-sh: inset 0 1px 0 rgba(255,255,255,.35); --sk-ctl-hov: rgba(255,255,255,.28); --sk-field-bg: rgba(255,255,255,.12); --sk-field-bd: 1px solid rgba(255,255,255,.3); --sk-card-bg: rgba(255,255,255,.13); --sk-card-bd: 1px solid rgba(255,255,255,.28); --sk-card-r: 16px; --sk-card-sh: 0 8px 32px rgba(0,0,0,.18); --sk-track: 0; --sk-case: none; }
+[data-style="liquid"] { --sk-surf: linear-gradient(150deg,#0B1B33 0%,#1E4D7B 40%,#5B8FB9 75%,#0E2740 100%); --sk-surf-fg: #F2F7FC; --sk-dim: rgba(242,247,252,.7); --sk-ctl: linear-gradient(135deg,rgba(255,255,255,.2),rgba(255,255,255,.05)); --sk-ctl-fg: #F6FAFF; --sk-ctl-bd: 1px solid rgba(255,255,255,.3); --sk-ctl-r: 20px; --sk-ctl-sh: inset 0 1px 1px rgba(255,255,255,.45),0 6px 20px rgba(0,0,0,.25); --sk-ctl-hov: linear-gradient(135deg,rgba(255,255,255,.3),rgba(255,255,255,.1)); --sk-field-bg: linear-gradient(135deg,rgba(255,255,255,.14),rgba(255,255,255,.04)); --sk-field-bd: 1px solid rgba(255,255,255,.26); --sk-card-bg: linear-gradient(135deg,rgba(255,255,255,.16),rgba(255,255,255,.04)); --sk-card-bd: 1px solid rgba(255,255,255,.24); --sk-card-r: 22px; --sk-card-sh: 0 10px 36px rgba(0,0,0,.3); --sk-track: -0.01em; --sk-case: none; }
+[data-style="neu"] { --sk-surf: #E0E5EC; --sk-surf-fg: #4A5568; --sk-dim: #8A94A6; --sk-ctl: #E0E5EC; --sk-ctl-fg: #4A5568; --sk-ctl-bd: none; --sk-ctl-r: 16px; --sk-ctl-sh: 7px 7px 14px #B8BFC9, -7px -7px 14px #FFFFFF; --sk-ctl-hov: #E4E9F0; --sk-field-bg: #E0E5EC; --sk-field-bd: none; --sk-card-bg: #E0E5EC; --sk-card-bd: none; --sk-card-r: 22px; --sk-card-sh: 9px 9px 18px #B8BFC9, -9px -9px 18px #FFFFFF; --sk-track: 0; --sk-case: none; }
+[data-style="skeu"] { --sk-surf: linear-gradient(#3E6B4A,#2C5138); --sk-surf-fg: #F4EEDC; --sk-dim: #C9BFA3; --sk-ctl: linear-gradient(#FDFCF7,#D3CBB4); --sk-ctl-fg: #3A3324; --sk-ctl-bd: 1px solid #8C7F5E; --sk-ctl-r: 7px; --sk-ctl-sh: inset 0 1px 0 #fff, inset 0 -2px 3px rgba(0,0,0,.18), 0 3px 5px rgba(0,0,0,.4); --sk-ctl-hov: linear-gradient(#fff,#DED6BE); --sk-field-bg: linear-gradient(#E4DEC8,#F6F2E4); --sk-field-bd: 1px solid #7D7256; --sk-card-bg: linear-gradient(#F6F1DF,#E2DAC0); --sk-card-bd: 1px solid #8C7F5E; --sk-card-r: 9px; --sk-card-sh: inset 0 1px 0 #fff, 0 5px 12px rgba(0,0,0,.45); --sk-track: 0; --sk-case: none; }
+[data-style="brut"] { --sk-surf: #FFE500; --sk-surf-fg: #000; --sk-dim: #3B3600; --sk-ctl: #FF6B6B; --sk-ctl-fg: #000; --sk-ctl-bd: 3px solid #000; --sk-ctl-r: 0; --sk-ctl-sh: 5px 5px 0 #000; --sk-ctl-hov: #4ECDC4; --sk-field-bg: #fff; --sk-field-bd: 3px solid #000; --sk-card-bg: #fff; --sk-card-bd: 3px solid #000; --sk-card-r: 0; --sk-card-sh: 7px 7px 0 #000; --sk-track: -0.02em; --sk-case: uppercase; }
+[data-style="clay"] { --sk-surf: #EFE7FF; --sk-surf-fg: #4A3B6B; --sk-dim: #8A79AD; --sk-ctl: #7C5CFF; --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 22px; --sk-ctl-sh: inset 0 -4px 6px rgba(0,0,0,.16), inset 0 3px 5px rgba(255,255,255,.45), 0 9px 22px rgba(90,60,190,.3); --sk-ctl-hov: #6B48F5; --sk-field-bg: #fff; --sk-field-bd: none; --sk-card-bg: #fff; --sk-card-bd: none; --sk-card-r: 30px; --sk-card-sh: inset 0 -5px 8px rgba(0,0,0,.07), inset 0 3px 5px rgba(255,255,255,.9), 0 12px 30px rgba(90,60,190,.2); --sk-track: 0; --sk-case: none; }
+[data-style="aurora"] { --sk-surf: #0B0A16; --sk-surf-fg: #EDEBFF; --sk-dim: rgba(237,235,255,.6); --sk-ctl: linear-gradient(100deg,#7C3AED,#2563EB,#06B6D4); --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 11px; --sk-ctl-sh: 0 6px 24px rgba(124,58,237,.45); --sk-ctl-hov: linear-gradient(100deg,#8B4BFF,#3B7BFF,#22D3EE); --sk-field-bg: rgba(255,255,255,.05); --sk-field-bd: 1px solid rgba(255,255,255,.14); --sk-card-bg: rgba(255,255,255,.045); --sk-card-bd: 1px solid rgba(255,255,255,.1); --sk-card-r: 14px; --sk-card-sh: 0 10px 40px rgba(0,0,0,.5); --sk-track: -0.01em; --sk-case: none; }
+[data-style="swiss"] { --sk-surf: #FFFFFF; --sk-surf-fg: #111111; --sk-dim: #8A8A8A; --sk-ctl: #111111; --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 0; --sk-ctl-sh: none; --sk-ctl-hov: #E63946; --sk-field-bg: #fff; --sk-field-bd: 1px solid #111; --sk-card-bg: #fff; --sk-card-bd: 1px solid #111; --sk-card-r: 0; --sk-card-sh: none; --sk-track: -0.03em; --sk-case: none; }
+[data-style="minimal"] { --sk-surf: #FFFFFF; --sk-surf-fg: #111111; --sk-dim: #8A8A8A; --sk-ctl: #111111; --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 0; --sk-ctl-sh: none; --sk-ctl-hov: #E63946; --sk-field-bg: #fff; --sk-field-bd: 1px solid #111; --sk-card-bg: #fff; --sk-card-bd: 1px solid #111; --sk-card-r: 0; --sk-card-sh: none; --sk-track: -0.03em; --sk-case: none; }
+[data-style="maximal"] { --sk-surf: #1B5E20; --sk-surf-fg: #FFE9B8; --sk-dim: #C8A96A; --sk-ctl: #880E4F; --sk-ctl-fg: #FFE9B8; --sk-ctl-bd: 3px double #E6B84C; --sk-ctl-r: 5px; --sk-ctl-sh: 0 5px 18px rgba(0,0,0,.42); --sk-ctl-hov: #A81462; --sk-field-bg: #0F3D14; --sk-field-bd: 2px solid #E6B84C; --sk-card-bg: #01579B; --sk-card-bd: 3px double #E6B84C; --sk-card-r: 5px; --sk-card-sh: 0 9px 26px rgba(0,0,0,.46); --sk-track: 0.01em; --sk-case: none; }
+[data-style="surreal"] { --sk-surf: #CFE3F0; --sk-surf-fg: #1E2A38; --sk-dim: #6A7C8E; --sk-ctl: #FF006E; --sk-ctl-fg: #FFF4F8; --sk-ctl-bd: none; --sk-ctl-r: 3px; --sk-ctl-sh: 0 22px 26px -14px rgba(30,42,56,.45); --sk-ctl-hov: #D9005E; --sk-field-bg: #F0F6FB; --sk-field-bd: 1px solid #A8BFD2; --sk-card-bg: #F0F6FB; --sk-card-bd: none; --sk-card-r: 3px; --sk-card-sh: 0 30px 34px -20px rgba(30,42,56,.4); --sk-track: 0.02em; --sk-case: none; }
+[data-style="scrap"] { --sk-surf: #EFE3D2; --sk-surf-fg: #4A3B2A; --sk-dim: #8C7A62; --sk-ctl: #FFF8F0; --sk-ctl-fg: #4A3B2A; --sk-ctl-bd: 1px solid #D8C6AC; --sk-ctl-r: 1px; --sk-ctl-sh: 2px 3px 7px rgba(0,0,0,.22); --sk-ctl-hov: #FFEFD9; --sk-field-bg: #FFFCF6; --sk-field-bd: 1px solid #D8C6AC; --sk-card-bg: #FFF8F0; --sk-card-bd: 1px solid #D8C6AC; --sk-card-r: 1px; --sk-card-sh: 3px 4px 10px rgba(0,0,0,.2); --sk-track: 0; --sk-case: none; }
+[data-style="y2k"] { --sk-surf: linear-gradient(170deg,#FF71CE 0%,#B967FF 38%,#01CDFE 72%,#05FFA1 100%); --sk-surf-fg: #2A0B3D; --sk-dim: rgba(42,11,61,.66); --sk-ctl: linear-gradient(180deg,#FDFDFD,#B9B9C4 48%,#F2F2F7); --sk-ctl-fg: #2A0B3D; --sk-ctl-bd: 2px solid #fff; --sk-ctl-r: 999px; --sk-ctl-sh: 0 4px 12px rgba(42,11,61,.34), inset 0 1px 0 #fff; --sk-ctl-hov: linear-gradient(180deg,#fff,#D6D6E4 48%,#fff); --sk-field-bg: rgba(255,255,255,.5); --sk-field-bd: 2px solid #fff; --sk-card-bg: rgba(255,255,255,.34); --sk-card-bd: 2px solid rgba(255,255,255,.85); --sk-card-r: 22px; --sk-card-sh: 0 8px 26px rgba(42,11,61,.24); --sk-track: 0.01em; --sk-case: none; }
+[data-style="bento"] { --sk-surf: #0F1117; --sk-surf-fg: #F4F5F7; --sk-dim: #9AA0AC; --sk-ctl: #F4F5F7; --sk-ctl-fg: #0F1117; --sk-ctl-bd: none; --sk-ctl-r: 18px; --sk-ctl-sh: none; --sk-ctl-hov: #D8DBE2; --sk-field-bg: #1A1D26; --sk-field-bd: 1px solid #2A2E3A; --sk-card-bg: #1A1D26; --sk-card-bd: none; --sk-card-r: 20px; --sk-card-sh: none; --sk-track: -0.02em; --sk-case: none; }
+[data-style="boho"] { --sk-surf: #FDF6EC; --sk-surf-fg: #4A3428; --sk-dim: #967E64; --sk-ctl: #C1440E; --sk-ctl-fg: #FDF6EC; --sk-ctl-bd: none; --sk-ctl-r: 0; --sk-ctl-sh: none; --sk-ctl-hov: #A03A0C; --sk-field-bg: #fff; --sk-field-bd: 2px solid #D4A843; --sk-card-bg: #FFFBF3; --sk-card-bd: 2px solid #2A6478; --sk-card-r: 0; --sk-card-sh: none; --sk-track: 0.03em; --sk-case: none; }
+[data-style="victorian"] { --sk-surf: #FFFFF0; --sk-surf-fg: #2B1A1A; --sk-dim: #7A5C50; --sk-ctl: #800020; --sk-ctl-fg: #FFFFF0; --sk-ctl-bd: 2px solid #BF953F; --sk-ctl-r: 2px; --sk-ctl-sh: 0 2px 5px rgba(43,26,26,.28); --sk-ctl-hov: #9E0028; --sk-field-bg: #FFFDF2; --sk-field-bd: 2px solid #BF953F; --sk-card-bg: #FFFDF2; --sk-card-bd: 3px double #800020; --sk-card-r: 2px; --sk-card-sh: 0 3px 10px rgba(43,26,26,.16); --sk-track: 0.14em; --sk-case: uppercase; }
+[data-style="cyber"] { --sk-surf: #0A0A0F; --sk-surf-fg: #00FF41; --sk-dim: #0A8F32; --sk-ctl: transparent; --sk-ctl-fg: #00FFFF; --sk-ctl-bd: 1px solid #00FFFF; --sk-ctl-r: 0; --sk-ctl-sh: 0 0 12px rgba(0,255,255,.5), inset 0 0 12px rgba(0,255,255,.12); --sk-ctl-hov: rgba(255,0,255,.12); --sk-field-bg: #07070C; --sk-field-bd: 1px solid #FF00FF; --sk-card-bg: rgba(0,255,65,.03); --sk-card-bd: 1px solid rgba(0,255,65,.35); --sk-card-r: 0; --sk-card-sh: 0 0 22px rgba(0,255,65,.14); --sk-track: 0.14em; --sk-case: uppercase; }
+[data-style="gothic"] { --sk-surf: #0D0D0D; --sk-surf-fg: #D4CFC4; --sk-dim: #726C61; --sk-ctl: transparent; --sk-ctl-fg: #D4CFC4; --sk-ctl-bd: 1px solid #8B7536; --sk-ctl-r: 999px 999px 3px 3px; --sk-ctl-sh: 0 0 24px rgba(139,117,54,.2); --sk-ctl-hov: rgba(139,0,0,.24); --sk-field-bg: #131318; --sk-field-bd: 1px solid #2E2E38; --sk-card-bg: #131318; --sk-card-bd: 1px solid #2A2A34; --sk-card-r: 999px 999px 4px 4px; --sk-card-sh: none; --sk-track: 0.05em; --sk-case: none; }
+[data-style="graffiti"] { --sk-surf: #2C2C2C; --sk-surf-fg: #F2F2F2; --sk-dim: #9A9A9A; --sk-ctl: #39FF14; --sk-ctl-fg: #0F0F0F; --sk-ctl-bd: 3px solid #0F0F0F; --sk-ctl-r: 3px; --sk-ctl-sh: 0 0 24px rgba(57,255,20,.4); --sk-ctl-hov: #FF1493; --sk-field-bg: #1E1E1E; --sk-field-bd: 3px solid #00BFFF; --sk-card-bg: #242424; --sk-card-bd: 3px solid #F2F2F2; --sk-card-r: 3px; --sk-card-sh: 6px 6px 0 rgba(0,0,0,.55); --sk-track: 0.01em; --sk-case: uppercase; }
+[data-style="sketch"] { --sk-surf: #F5F0E0; --sk-surf-fg: #555555; --sk-dim: #9A9482; --sk-ctl: transparent; --sk-ctl-fg: #4A90D9; --sk-ctl-bd: 1px dashed #4A90D9; --sk-ctl-r: 2px; --sk-ctl-sh: none; --sk-ctl-hov: rgba(74,144,217,.09); --sk-field-bg: transparent; --sk-field-bd: 1px dashed #555; --sk-card-bg: transparent; --sk-card-bd: 1px dashed #4A90D9; --sk-card-r: 2px; --sk-card-sh: none; --sk-track: 0.02em; --sk-case: none; }
+[data-style="afro"] { --sk-surf: #0A0A0A; --sk-surf-fg: #F3E6C8; --sk-dim: #A08F6C; --sk-ctl: #DCA424; --sk-ctl-fg: #120A20; --sk-ctl-bd: 2px solid #B87333; --sk-ctl-r: 3px 14px 3px 14px; --sk-ctl-sh: 0 0 30px rgba(220,164,36,.42); --sk-ctl-hov: #F0B62A; --sk-field-bg: #150C24; --sk-field-bd: 2px solid #B87333; --sk-card-bg: #150C24; --sk-card-bd: 2px solid rgba(220,164,36,.4); --sk-card-r: 14px 3px 14px 3px; --sk-card-sh: 0 0 40px rgba(220,164,36,.14); --sk-track: 0.08em; --sk-case: uppercase; }
+[data-style="psych"] { --sk-surf: #12002B; --sk-surf-fg: #FFF200; --sk-dim: #C89CFF; --sk-ctl: #FF00A8; --sk-ctl-fg: #FFF200; --sk-ctl-bd: 3px solid #00FF88; --sk-ctl-r: 44% 56% 52% 48% / 48% 44% 56% 52%; --sk-ctl-sh: 0 0 26px rgba(255,0,168,.6); --sk-ctl-hov: #00FF88; --sk-field-bg: #22004F; --sk-field-bd: 3px solid #FFF200; --sk-card-bg: #1C0040; --sk-card-bd: 3px solid #FF00A8; --sk-card-r: 52% 48% 44% 56% / 44% 56% 48% 52%; --sk-card-sh: 0 0 34px rgba(0,255,136,.34); --sk-track: 0.04em; --sk-case: none; }
+[data-style="editorial"] { --sk-surf: #FAF9F7; --sk-surf-fg: #0D0D0D; --sk-dim: #787672; --sk-ctl: #0D0D0D; --sk-ctl-fg: #FAF9F7; --sk-ctl-bd: none; --sk-ctl-r: 0; --sk-ctl-sh: none; --sk-ctl-hov: #E63946; --sk-field-bg: transparent; --sk-field-bd: 1px solid #0D0D0D; --sk-card-bg: #FAF9F7; --sk-card-bd: none; --sk-card-r: 0; --sk-card-sh: none; --sk-track: -0.04em; --sk-case: none; }
+[data-style="nsibidi"] { --sk-surf: #F5F0E5; --sk-surf-fg: #2A1F1F; --sk-dim: #8B7B6B; --sk-ctl: transparent; --sk-ctl-fg: #2A1F1F; --sk-ctl-bd: 2px solid #2A1F1F; --sk-ctl-r: 999px; --sk-ctl-sh: none; --sk-ctl-hov: rgba(139,58,42,.11); --sk-field-bg: transparent; --sk-field-bd: 2px solid #8B3A2A; --sk-card-bg: transparent; --sk-card-bd: 2px solid #2A1F1F; --sk-card-r: 22px; --sk-card-sh: none; --sk-track: 0.09em; --sk-case: none; }
+[data-style="sudanese"] { --sk-surf: #FAF0E6; --sk-surf-fg: #2A2A2A; --sk-dim: #8E7A62; --sk-ctl: #2A5F8F; --sk-ctl-fg: #FAF0E6; --sk-ctl-bd: none; --sk-ctl-r: 0 20px 0 20px; --sk-ctl-sh: none; --sk-ctl-hov: #3B4D82; --sk-field-bg: #FFFAF2; --sk-field-bd: 2px solid #A0522D; --sk-card-bg: #FFFAF2; --sk-card-bd: 2px solid #2A5F8F; --sk-card-r: 20px 0 20px 0; --sk-card-sh: none; --sk-track: 0.04em; --sk-case: none; }
+[data-style="bauhaus"] { --sk-surf: #F2EFE9; --sk-surf-fg: #000000; --sk-dim: #5C5C5C; --sk-ctl: #E63946; --sk-ctl-fg: #fff; --sk-ctl-bd: none; --sk-ctl-r: 0; --sk-ctl-sh: none; --sk-ctl-hov: #1D3557; --sk-field-bg: #fff; --sk-field-bd: 2px solid #000; --sk-card-bg: #fff; --sk-card-bd: 2px solid #000; --sk-card-r: 0; --sk-card-sh: none; --sk-track: 0; --sk-case: lowercase; }
+[data-style="punk"] { --sk-surf: #E8E8E8; --sk-surf-fg: #000000; --sk-dim: #5A5A5A; --sk-ctl: #000000; --sk-ctl-fg: #FFFFFF; --sk-ctl-bd: 4px solid #000; --sk-ctl-r: 0; --sk-ctl-sh: none; --sk-ctl-hov: #FF0000; --sk-field-bg: #fff; --sk-field-bd: 4px solid #000; --sk-card-bg: #FFFFFF; --sk-card-bd: 4px solid #000; --sk-card-r: 0; --sk-card-sh: none; --sk-track: -0.01em; --sk-case: uppercase; }
+
+/* --- consumption: real component previews inside any skin wrapper --------- */
+[data-style] .btn {
+  background: var(--sk-ctl); color: var(--sk-ctl-fg); border: var(--sk-ctl-bd);
+  border-radius: var(--sk-ctl-r); box-shadow: var(--sk-ctl-sh);
+  letter-spacing: var(--sk-track); text-transform: var(--sk-case);
+}
+[data-style] .btn:hover:not(:disabled) { background: var(--sk-ctl-hov); }
+
+[data-style] .cv-field__label { color: var(--sk-surf-fg); }
+[data-style] .cv-field__control {
+  background: var(--sk-field-bg); border: var(--sk-field-bd);
+  color: var(--sk-surf-fg); border-radius: var(--sk-ctl-r);
+}
+[data-style] .cv-field__help { color: var(--sk-dim); }
+
+[data-style] .cv-check__input { accent-color: var(--sk-ctl); }
+[data-style] .cv-check__label { color: var(--sk-surf-fg); }
+
+[data-style] .cv-alert {
+  background: var(--sk-card-bg); border: var(--sk-card-bd); color: var(--sk-surf-fg);
+  border-radius: var(--sk-card-r); box-shadow: var(--sk-card-sh);
+}
+[data-style] .cv-alert__text { color: inherit; }
+
+[data-style] .cv-badge {
+  background: var(--sk-ctl); color: var(--sk-ctl-fg);
+  border: var(--sk-ctl-bd); border-radius: var(--sk-ctl-r);
+}
+
+[data-style] .cv-divider { border-top-color: var(--sk-dim); }
+[data-style] .cv-divider--labelled { color: var(--sk-dim); }
+[data-style] .cv-divider--labelled::before,
+[data-style] .cv-divider--labelled::after { border-top-color: var(--sk-dim); }
+
+[data-style] .cv-quote { border-left-color: var(--sk-ctl); color: var(--sk-surf-fg); }
+[data-style] .cv-quote cite { color: var(--sk-dim); }
+
+[data-style] .cv-pending { background: var(--sk-card-bg); color: var(--sk-surf-fg); }
+[data-style] .cv-pending__note { color: var(--sk-dim); }
+
+/* --- the preview surface takes the skin's ground -------------------------- */
+.pg-stage__inner[data-style] {
+  background: var(--sk-surf); color: var(--sk-surf-fg);
+  padding: clamp(22px, 4vw, 38px); border-radius: 16px;
+}
+.th-preview[data-style], .bh-stage[data-style] {
+  background: var(--sk-surf); color: var(--sk-surf-fg);
+}
