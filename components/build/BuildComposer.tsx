@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
+import { PREF_SKIN, PREF_TARGET, getPref } from "@/lib/prefs";
 import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
 import { CanvasItem } from "./CanvasItem";
@@ -90,6 +91,14 @@ export function BuildComposer({
   const [selected, setSelected] = useState<string | null>(
     () => null,
   );
+
+  // Honor the defaults saved in Settings (post-mount, avoids hydration mismatch).
+  useEffect(() => {
+    const s = getPref(PREF_SKIN);
+    const t = getPref(PREF_TARGET);
+    if (s && ALL_STYLES.includes(s as (typeof ALL_STYLES)[number])) setSkin(s);
+    if (t && ALL_TARGETS.some((x) => x.key === t)) setTarget(t);
+  }, []);
 
   const selectedItem = stack.find((i) => i.uid === selected) ?? null;
   const spec = selectedItem ? specFor(selectedItem.slug) : null;
