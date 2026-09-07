@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getAllComponents, getAllTags, getCategories } from "@/lib/content";
 import { CatalogBrowser, type CatalogItem } from "@/components/catalog/CatalogBrowser";
 
@@ -33,6 +34,11 @@ export default function KnowledgeHubPage() {
           {components.length} reusable, accessibility-audited components. Each is
           documented to the 17-section bar, previewable across the 11 visual
           styles, and copy-ready across language targets.
+        </p>
+        <p className="page__lede">
+          For the system-level references — style languages, the atomic design
+          map, and screen &amp; feature taxonomies — see the{" "}
+          <Link href="/reference">Reference library</Link>.
         </p>
       </div>
 
