@@ -83,7 +83,7 @@ export default async function ComponentPage({
           <span>
             <strong>Open in the Playground</strong>
             <span className="detail__playcta-sub">
-              Flip props and switch across all 11 skins in the Workspace.
+              Flip props and switch across every skin in the Workspace.
             </span>
           </span>
           <span aria-hidden="true">→</span>

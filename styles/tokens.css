@@ -100,6 +100,47 @@
 /* 11 · Minimal / Swiss */
 [data-style="swiss"] .dl-skin { background: oklch(20% .02 285); color:#fff; border-radius: 0; box-shadow:none; }
 
+/* --- Extended skins (added on to the base 11) ------------------------------ */
+[data-style="minimal"] .dl-skin { background: #111111; color: #fff; border: none; border-radius: 0; letter-spacing: -0.03em; }
+[data-style="minimal"] .dl-skin:hover { background: #E63946; }
+[data-style="maximal"] .dl-skin { background: #880E4F; color: #FFE9B8; border: 3px double #E6B84C; border-radius: 5px; box-shadow: 0 5px 18px rgba(0,0,0,.42); letter-spacing: 0.01em; }
+[data-style="maximal"] .dl-skin:hover { background: #A81462; }
+[data-style="surreal"] .dl-skin { background: #FF006E; color: #FFF4F8; border: none; border-radius: 3px; box-shadow: 0 22px 26px -14px rgba(30,42,56,.45); letter-spacing: 0.02em; }
+[data-style="surreal"] .dl-skin:hover { background: #D9005E; }
+[data-style="scrap"] .dl-skin { background: #FFF8F0; color: #4A3B2A; border: 1px solid #D8C6AC; border-radius: 1px; box-shadow: 2px 3px 7px rgba(0,0,0,.22); }
+[data-style="scrap"] .dl-skin:hover { background: #FFEFD9; }
+[data-style="y2k"] .dl-skin { background: linear-gradient(180deg,#FDFDFD,#B9B9C4 48%,#F2F2F7); color: #2A0B3D; border: 2px solid #fff; border-radius: 999px; box-shadow: 0 4px 12px rgba(42,11,61,.34), inset 0 1px 0 #fff; letter-spacing: 0.01em; }
+[data-style="y2k"] .dl-skin:hover { background: linear-gradient(180deg,#fff,#D6D6E4 48%,#fff); }
+[data-style="bento"] .dl-skin { background: #F4F5F7; color: #0F1117; border: none; border-radius: 18px; letter-spacing: -0.02em; }
+[data-style="bento"] .dl-skin:hover { background: #D8DBE2; }
+[data-style="boho"] .dl-skin { background: #C1440E; color: #FDF6EC; border: none; border-radius: 0; letter-spacing: 0.03em; }
+[data-style="boho"] .dl-skin:hover { background: #A03A0C; }
+[data-style="victorian"] .dl-skin { background: #800020; color: #FFFFF0; border: 2px solid #BF953F; border-radius: 2px; box-shadow: 0 2px 5px rgba(43,26,26,.28); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-style="victorian"] .dl-skin:hover { background: #9E0028; }
+[data-style="cyber"] .dl-skin { background: transparent; color: #00FFFF; border: 1px solid #00FFFF; border-radius: 0; box-shadow: 0 0 12px rgba(0,255,255,.5), inset 0 0 12px rgba(0,255,255,.12); letter-spacing: 0.14em; text-transform: uppercase; }
+[data-style="cyber"] .dl-skin:hover { background: rgba(255,0,255,.12); }
+[data-style="gothic"] .dl-skin { background: transparent; color: #D4CFC4; border: 1px solid #8B7536; border-radius: 999px 999px 3px 3px; box-shadow: 0 0 24px rgba(139,117,54,.2); letter-spacing: 0.05em; }
+[data-style="gothic"] .dl-skin:hover { background: rgba(139,0,0,.24); }
+[data-style="graffiti"] .dl-skin { background: #39FF14; color: #0F0F0F; border: 3px solid #0F0F0F; border-radius: 3px; box-shadow: 0 0 24px rgba(57,255,20,.4); letter-spacing: 0.01em; text-transform: uppercase; }
+[data-style="graffiti"] .dl-skin:hover { background: #FF1493; }
+[data-style="sketch"] .dl-skin { background: transparent; color: #4A90D9; border: 1px dashed #4A90D9; border-radius: 2px; letter-spacing: 0.02em; }
+[data-style="sketch"] .dl-skin:hover { background: rgba(74,144,217,.09); }
+[data-style="afro"] .dl-skin { background: #DCA424; color: #120A20; border: 2px solid #B87333; border-radius: 3px 14px 3px 14px; box-shadow: 0 0 30px rgba(220,164,36,.42); letter-spacing: 0.08em; text-transform: uppercase; }
+[data-style="afro"] .dl-skin:hover { background: #F0B62A; }
+[data-style="psych"] .dl-skin { background: #FF00A8; color: #FFF200; border: 3px solid #00FF88; border-radius: 44% 56% 52% 48% / 48% 44% 56% 52%; box-shadow: 0 0 26px rgba(255,0,168,.6); letter-spacing: 0.04em; }
+[data-style="psych"] .dl-skin:hover { background: #00FF88; }
+[data-style="editorial"] .dl-skin { background: #0D0D0D; color: #FAF9F7; border: none; border-radius: 0; letter-spacing: -0.04em; }
+[data-style="editorial"] .dl-skin:hover { background: #E63946; }
+[data-style="nsibidi"] .dl-skin { background: transparent; color: #2A1F1F; border: 2px solid #2A1F1F; border-radius: 999px; letter-spacing: 0.09em; }
+[data-style="nsibidi"] .dl-skin:hover { background: rgba(139,58,42,.11); }
+[data-style="sudanese"] .dl-skin { background: #2A5F8F; color: #FAF0E6; border: none; border-radius: 0 20px 0 20px; letter-spacing: 0.04em; }
+[data-style="sudanese"] .dl-skin:hover { background: #3B4D82; }
+[data-style="bauhaus"] .dl-skin { background: #E63946; color: #fff; border: none; border-radius: 0; text-transform: lowercase; }
+[data-style="bauhaus"] .dl-skin:hover { background: #1D3557; }
+[data-style="punk"] .dl-skin { background: #000000; color: #FFFFFF; border: 4px solid #000; border-radius: 0; letter-spacing: -0.01em; text-transform: uppercase; }
+[data-style="punk"] .dl-skin:hover { background: #FF0000; }
+
+
 @keyframes dl-drift { 0%,100% { background-position: 0 0; } 50% { background-position: 100% 0; } }
 @keyframes dl-sheen { 0% { background-position: -150% 0; } 100% { background-position: 250% 0; } }
 
