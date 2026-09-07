@@ -63,9 +63,9 @@ export default function DashboardPage() {
   return (
     <main className="dsh">
       <div className="dsh-canvas">
-        <div className="dsh-greet">
+        <h1 className="dsh-greet">
           Welcome back, <b>Omegea</b> — the jungle&rsquo;s been growing.
-        </div>
+        </h1>
 
         <div className="dsh-tiles">
           <div className="dsh-tile dsh-tile--total">
@@ -118,7 +118,7 @@ export default function DashboardPage() {
 
         <div className="dsh-row">
           <div className="dsh-card">
-            <h3>▤ Continue where you left off</h3>
+            <h2>▤ Continue where you left off</h2>
             {resume ? (
               <div className="dsh-cont">
                 <div className="dsh-thumb" />
@@ -138,7 +138,7 @@ export default function DashboardPage() {
           </div>
 
           <div className="dsh-card">
-            <h3>⚡ Quick actions</h3>
+            <h2>⚡ Quick actions</h2>
             <div className="dsh-qa">
               {actions.map((a) => (
                 <Link
@@ -155,7 +155,7 @@ export default function DashboardPage() {
 
         <div className="dsh-row">
           <div className="dsh-card">
-            <h3>◈ Recent activity</h3>
+            <h2>◈ Recent activity</h2>
             <div className="dsh-feed">
               <div className="dsh-fi">
                 <span className="dsh-dot dsh-dot--gold" />
@@ -197,9 +197,9 @@ export default function DashboardPage() {
           </div>
 
           <div className="dsh-card dsh-card--build">
-            <h3>
+            <h2>
               ⚒ Build progress <span className="dsh-own">Owner</span>
-            </h3>
+            </h2>
             <div className="dsh-ladder">
               {counts.map((s) => (
                 <div key={s.key} className={`dsh-seg dsh-seg--${s.key}`}>

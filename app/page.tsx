@@ -137,7 +137,7 @@ export default function Home() {
       </section>
 
       <section className="lp-section">
-        <p className="lp-eyebrow">02 · How you drive it</p>
+        <h2 className="lp-eyebrow">02 · How you drive it</h2>
         <div className="lp-entries">
           {ENTRIES.map((e) => (
             <div key={e.key} className="lp-entry">
@@ -150,7 +150,7 @@ export default function Home() {
       </section>
 
       <section className="lp-section">
-        <p className="lp-eyebrow">03 · What it builds</p>
+        <h2 className="lp-eyebrow">03 · What it builds</h2>
         <div className="lp-domains">
           {DOMAINS.map((d) => (
             <Link key={d.name} href="/knowledge" className="lp-domain">
@@ -165,7 +165,7 @@ export default function Home() {
       </section>
 
       <section className="lp-section lp-section--last">
-        <p className="lp-eyebrow">04 · What you get back</p>
+        <h2 className="lp-eyebrow">04 · What you get back</h2>
         <ul className="lp-outputs">
           <li className="lp-chip lp-chip--solid">Runnable scaffold · .zip</li>
           <li className="lp-chip">Spec document · .md</li>
