@@ -75,33 +75,10 @@ export interface CategoryGroup {
 
 const DOCS_DIR = path.join(process.cwd(), "content", "docs");
 
-export const ALL_STYLES = [
-  "ujg",
-  "flat",
-  "material",
-  "glass",
-  "liquid",
-  "neu",
-  "skeu",
-  "brut",
-  "clay",
-  "aurora",
-  "swiss",
-] as const;
-
-export const STYLE_NAMES: Record<string, string> = {
-  ujg: "UJG",
-  flat: "Flat",
-  material: "Material",
-  glass: "Glassmorphism",
-  liquid: "Liquid Glass",
-  neu: "Neumorphism",
-  skeu: "Skeuomorphism",
-  brut: "Neo-Brutalism",
-  clay: "Claymorphism",
-  aurora: "Aurora",
-  swiss: "Swiss",
-};
+// One source of truth for the skin list (keys match [data-style="…"] in
+// styles/tokens.css); imported for local use and re-exported for callers.
+import { ALL_STYLES, STYLE_NAMES } from "./styles";
+export { ALL_STYLES, STYLE_NAMES };
 
 /** Preferred category display order; unknown categories sort after these. */
 const CATEGORY_ORDER = [

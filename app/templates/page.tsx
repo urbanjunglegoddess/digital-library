@@ -7,7 +7,7 @@ import type { TrayItem } from "@/components/build/types";
 export const metadata: Metadata = {
   title: "Template Hub — Digital Asset Library",
   description:
-    "Curated compositions you can edit: add and remove components, reorder them, and preview under any of the 11 skins.",
+    "Curated compositions you can edit: add and remove components, reorder them, and preview under any skin.",
 };
 
 /**
