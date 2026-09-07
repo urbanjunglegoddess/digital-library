@@ -1,12 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
 import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
 import { CanvasItem } from "./CanvasItem";
 import { generate, fileList } from "./generate";
-import type { StackItem, TrayItem } from "./types";
+import type { LayoutKey, StackItem, TrayItem } from "./types";
 import "./build.css";
 
 /**
@@ -37,6 +37,21 @@ const CATEGORY_ORDER = [
   "Utilities",
 ];
 
+/**
+ * Canvas layouts. Names are drawn from the UJG avant-garde layout catalog:
+ * flow (single column), a plain grid, Extreme Asymmetry (80/20), Split-Screen,
+ * a Bento mosaic, and Overlapping Layers (free-positioned depth collage). The
+ * layered mode is what lets components sit on top of each other.
+ */
+const LAYOUTS: { key: LayoutKey; label: string }[] = [
+  { key: "flow", label: "Flow · stack" },
+  { key: "two-col", label: "Two column" },
+  { key: "asym", label: "Asymmetric · 80/20" },
+  { key: "split", label: "Split screen" },
+  { key: "bento", label: "Bento grid" },
+  { key: "layered", label: "Layered · overlap" },
+];
+
 function seed(slug: string, name: string, category: string): StackItem {
   return {
     uid: nextUid(),
@@ -57,6 +72,7 @@ export function BuildComposer({
   const [title, setTitle] = useState("Signup screen");
   const [skin, setSkin] = useState<string>("ujg");
   const [target, setTarget] = useState<string>(DEFAULT_TARGET);
+  const [layout, setLayout] = useState<LayoutKey>("flow");
   const [view, setView] = useState<"stack" | "code">("stack");
   const [query, setQuery] = useState("");
   const [sheet, setSheet] = useState<"tray" | "inspector" | null>(null);
@@ -108,11 +124,62 @@ export function BuildComposer({
   );
   const files = useMemo(() => fileList(stack, target, title), [stack, target, title]);
 
+  const dragRef = useRef<{ uid: string; sx: number; sy: number; ox: number; oy: number; moved: boolean } | null>(null);
+
+  const topZ = () => stack.reduce((m, i) => Math.max(m, i.layer?.z ?? 0), 0);
+
   function append(t: TrayItem) {
     const item = seed(t.slug, t.name, t.category);
+    const n = stack.length;
+    item.layer = { x: 28 + (n % 5) * 30, y: 28 + (n % 5) * 30, z: topZ() + 1 };
     setStack((s) => [...s, item]);
     setSelected(item.uid);
     setSheet(null);
+  }
+
+  function setLayer(uid: string, patch: Partial<{ x: number; y: number; z: number }>) {
+    setStack((s) =>
+      s.map((i) =>
+        i.uid === uid
+          ? { ...i, layer: { x: 28, y: 28, z: 1, ...i.layer, ...patch } }
+          : i,
+      ),
+    );
+  }
+
+  function bringForward(uid: string) {
+    setLayer(uid, { z: topZ() + 1 });
+  }
+  function sendBack(uid: string) {
+    const minZ = stack.reduce((m, i) => Math.min(m, i.layer?.z ?? 0), Infinity);
+    setLayer(uid, { z: (Number.isFinite(minZ) ? minZ : 1) - 1 });
+  }
+
+  function onLayerPointerDown(e: React.PointerEvent, item: StackItem) {
+    if (layout !== "layered") return;
+    setSelected(item.uid);
+    const l = item.layer ?? { x: 28, y: 28, z: 1 };
+    dragRef.current = { uid: item.uid, sx: e.clientX, sy: e.clientY, ox: l.x, oy: l.y, moved: false };
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+  }
+  function onLayerPointerMove(e: React.PointerEvent) {
+    const d = dragRef.current;
+    if (!d) return;
+    const dx = e.clientX - d.sx;
+    const dy = e.clientY - d.sy;
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 3) return;
+    d.moved = true;
+    setLayer(d.uid, { x: Math.max(0, d.ox + dx), y: Math.max(0, d.oy + dy) });
+  }
+  function onLayerPointerUp(e: React.PointerEvent) {
+    if (dragRef.current) {
+      try {
+        (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+      } catch {
+        /* pointer already released */
+      }
+    }
+    dragRef.current = null;
   }
 
   function setProp(uid: string, key: string, value: string | boolean) {
@@ -293,21 +360,77 @@ export function BuildComposer({
             </ul>
           </div>
 
+          {layout === "layered" && (
+            <div className="bh-inspect__block">
+              <span className="bh-eyebrow">Position &amp; depth</span>
+              <div className="bh-xy">
+                <label className="bh-ctrl">
+                  <span className="bh-ctrl__label">X</span>
+                  <input
+                    type="number"
+                    className="bh-input"
+                    value={selectedItem.layer?.x ?? 28}
+                    onChange={(e) => setLayer(selectedItem.uid, { x: Number(e.target.value) })}
+                  />
+                </label>
+                <label className="bh-ctrl">
+                  <span className="bh-ctrl__label">Y</span>
+                  <input
+                    type="number"
+                    className="bh-input"
+                    value={selectedItem.layer?.y ?? 28}
+                    onChange={(e) => setLayer(selectedItem.uid, { y: Number(e.target.value) })}
+                  />
+                </label>
+                <label className="bh-ctrl">
+                  <span className="bh-ctrl__label">Layer</span>
+                  <input
+                    type="number"
+                    className="bh-input"
+                    value={selectedItem.layer?.z ?? 1}
+                    onChange={(e) => setLayer(selectedItem.uid, { z: Number(e.target.value) })}
+                  />
+                </label>
+              </div>
+            </div>
+          )}
+
           <div className="bh-inspect__actions">
-            <button
-              type="button"
-              className="bh-mini"
-              onClick={() => move(selectedItem.uid, -1)}
-            >
-              Move up
-            </button>
-            <button
-              type="button"
-              className="bh-mini"
-              onClick={() => move(selectedItem.uid, 1)}
-            >
-              Move down
-            </button>
+            {layout === "layered" ? (
+              <>
+                <button
+                  type="button"
+                  className="bh-mini"
+                  onClick={() => bringForward(selectedItem.uid)}
+                >
+                  Bring forward
+                </button>
+                <button
+                  type="button"
+                  className="bh-mini"
+                  onClick={() => sendBack(selectedItem.uid)}
+                >
+                  Send back
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className="bh-mini"
+                  onClick={() => move(selectedItem.uid, -1)}
+                >
+                  Move up
+                </button>
+                <button
+                  type="button"
+                  className="bh-mini"
+                  onClick={() => move(selectedItem.uid, 1)}
+                >
+                  Move down
+                </button>
+              </>
+            )}
             <button
               type="button"
               className="bh-mini bh-mini--danger"
@@ -355,6 +478,24 @@ export function BuildComposer({
               {ALL_STYLES.map((k) => (
                 <option key={k} value={k}>
                   {STYLE_NAMES[k]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="bh-knob">
+            <label htmlFor="bh-layout" className="bh-knob__label">
+              Layout
+            </label>
+            <select
+              id="bh-layout"
+              className="bh-select"
+              value={layout}
+              onChange={(e) => setLayout(e.target.value as LayoutKey)}
+            >
+              {LAYOUTS.map((l) => (
+                <option key={l.key} value={l.key}>
+                  {l.label}
                 </option>
               ))}
             </select>
@@ -436,32 +577,70 @@ export function BuildComposer({
           </div>
 
           {view === "stack" ? (
-            <div className="bh-stage" data-style={skin}>
+            <div className={`bh-stage bh-stage--${layout}`} data-style={skin}>
               <h2 className="bh-stage__title">{title}</h2>
-              {stack.map((item) => (
-                <div
-                  key={item.uid}
-                  className={`bh-slot${selected === item.uid ? " is-selected" : ""}`}
-                >
+              <div className={`bh-area bh-area--${layout}`}>
+                {stack.map((item) => {
+                  const isSel = selected === item.uid;
+                  const style =
+                    layout === "layered"
+                      ? {
+                          left: item.layer?.x ?? 28,
+                          top: item.layer?.y ?? 28,
+                          zIndex: item.layer?.z ?? 1,
+                        }
+                      : undefined;
+                  return (
+                    <div
+                      key={item.uid}
+                      className={`bh-slot${isSel ? " is-selected" : ""}${
+                        layout === "layered" ? " bh-slot--layered" : ""
+                      }`}
+                      style={style}
+                      onPointerDown={
+                        layout === "layered"
+                          ? (e) => onLayerPointerDown(e, item)
+                          : undefined
+                      }
+                      onPointerMove={layout === "layered" ? onLayerPointerMove : undefined}
+                      onPointerUp={layout === "layered" ? onLayerPointerUp : undefined}
+                    >
+                      <button
+                        type="button"
+                        className="bh-slot__hit"
+                        onClick={() => setSelected(item.uid)}
+                        aria-label={
+                          layout === "layered"
+                            ? `Select and drag ${item.name}`
+                            : `Select ${item.name}`
+                        }
+                      />
+                      {isSel && (
+                        <span className="bh-slot__tag">{item.name} · selected</span>
+                      )}
+                      <CanvasItem item={item} />
+                    </div>
+                  );
+                })}
+                {layout !== "layered" && (
                   <button
                     type="button"
-                    className="bh-slot__hit"
-                    onClick={() => setSelected(item.uid)}
-                    aria-label={`Select ${item.name}`}
-                  />
-                  {selected === item.uid && (
-                    <span className="bh-slot__tag">{item.name} · selected</span>
-                  )}
-                  <CanvasItem item={item} />
-                </div>
-              ))}
-              <button
-                type="button"
-                className="bh-drop"
-                onClick={() => setSheet("tray")}
-              >
-                Drop a component here
-              </button>
+                    className="bh-drop"
+                    onClick={() => setSheet("tray")}
+                  >
+                    Drop a component here
+                  </button>
+                )}
+              </div>
+              {layout === "layered" && (
+                <button
+                  type="button"
+                  className="bh-drop bh-drop--layered"
+                  onClick={() => setSheet("tray")}
+                >
+                  ＋ Add a layer
+                </button>
+              )}
             </div>
           ) : (
             <div className="bh-code">

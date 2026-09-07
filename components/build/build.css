@@ -769,3 +769,56 @@
   overflow-x: auto;
   white-space: pre;
 }
+
+/* =============================================================================
+   Canvas layouts — flow / grid / asymmetric / split / bento / layered.
+   The stage stays a flex column (title on top); .bh-area holds the items and
+   changes shape per layout. Layered = free absolute positioning + z-index.
+   ============================================================================= */
+.bh-area { flex: 1; min-width: 0; }
+.bh-area--flow { display: flex; flex-direction: column; gap: 14px; }
+.bh-area--two-col { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+.bh-area--asym { display: grid; grid-template-columns: 1.6fr 0.4fr; gap: 14px; align-items: start; }
+.bh-area--split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: stretch; }
+.bh-area--bento {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-auto-rows: minmax(88px, auto);
+  grid-auto-flow: dense;
+  gap: 12px;
+}
+.bh-area--layered { position: relative; min-height: 460px; }
+
+/* The drop target spans the full width in every grid layout. */
+.bh-area--two-col .bh-drop,
+.bh-area--asym .bh-drop,
+.bh-area--split .bh-drop,
+.bh-area--bento .bh-drop { grid-column: 1 / -1; }
+
+@media (max-width: 620px) {
+  .bh-area--two-col,
+  .bh-area--asym,
+  .bh-area--split,
+  .bh-area--bento { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Layered slots: absolutely placed, positioned inline (left/top/z-index). */
+.bh-slot--layered {
+  position: absolute;
+  width: min(300px, 72%);
+  cursor: grab;
+  background: var(--dl-surface);
+  box-shadow: 0 8px 24px oklch(24% 0.06 305 / 0.14);
+}
+.bh-slot--layered:active { cursor: grabbing; }
+.bh-slot--layered.is-selected { box-shadow: 0 10px 30px oklch(42% 0.145 305 / 0.28); }
+
+.bh-drop--layered {
+  flex: none;
+  margin-top: 12px;
+  min-height: 44px;
+}
+
+/* Layered position controls in the inspector. */
+.bh-xy { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.bh-xy .bh-input { min-height: 40px; padding: 8px 9px; }
