@@ -47,7 +47,13 @@ function seed(slug: string, name: string, category: string): StackItem {
   };
 }
 
-export function BuildComposer({ tray }: { tray: TrayItem[] }) {
+export function BuildComposer({
+  tray,
+  onAudit,
+}: {
+  tray: TrayItem[];
+  onAudit?: (html: string) => void;
+}) {
   const [title, setTitle] = useState("Signup screen");
   const [skin, setSkin] = useState<string>("ujg");
   const [target, setTarget] = useState<string>(DEFAULT_TARGET);
@@ -376,6 +382,16 @@ export function BuildComposer({ tray }: { tray: TrayItem[] }) {
           <button type="button" className="bh-btn" onClick={copy}>
             {copied ? "Copied" : "Copy code"}
           </button>
+          {onAudit && (
+            <button
+              type="button"
+              className="bh-btn"
+              onClick={() => onAudit(generate(stack, "html", skin, title))}
+              title="Run the accessibility auditor on this build's HTML"
+            >
+              Audit
+            </button>
+          )}
           <button type="button" className="bh-btn bh-btn--primary" disabled title="Export ZIP lands in Phase 4">
             Export ZIP
           </button>

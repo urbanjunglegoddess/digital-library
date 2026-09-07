@@ -503,6 +503,29 @@ body {
 .detail__block {
   margin-bottom: 40px;
 }
+.detail__playcta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  border-radius: 12px;
+  border: 1px solid var(--dl-line-2);
+  background: var(--dl-surface-2);
+  color: var(--dl-ink);
+  text-decoration: none;
+  transition: border-color 0.14s, background-color 0.14s;
+}
+.detail__playcta:hover { border-color: var(--dl-primary); background: var(--dl-surface); }
+.detail__playcta:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
+.detail__playcta strong { display: block; font-size: 1rem; }
+.detail__playcta-sub {
+  display: block;
+  margin-top: 3px;
+  font-size: 0.84rem;
+  color: var(--dl-ink-soft);
+}
+.detail__playcta > span:last-child { font-size: 1.4rem; color: var(--dl-primary); }
 .detail__h2 {
   font-family: var(--font-display);
   font-size: 1.35rem;
