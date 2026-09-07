@@ -8,7 +8,7 @@ import type { TrayItem } from "@/components/build/types";
 export const metadata: Metadata = {
   title: "Workspace — Digital Asset Library",
   description:
-    "Your playground: pick a component, flip its props, switch across all 11 skins, and read the generated code.",
+    "Your playground: pick a component, flip its props, switch across every skin, and read the generated code.",
 };
 
 /**

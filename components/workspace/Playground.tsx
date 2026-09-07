@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { STYLE_NAMES } from "@/lib/styles";
+import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
 import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
 import { pickSnippet } from "@/lib/snippets";
@@ -20,8 +20,6 @@ import "@/styles/workspace.css";
  * languages the doc doesn't cover.
  */
 
-// Style order per the spec: Flat first, UJG last.
-const STYLE_ORDER = ["flat", "material", "glass", "liquid", "neu", "skeu", "brut", "clay", "aurora", "swiss", "ujg"];
 const STATES = ["default", "hover", "focus", "active", "disabled"] as const;
 type StateKey = (typeof STATES)[number];
 
@@ -169,7 +167,7 @@ export function Playground({ tray, initialSlug }: { tray: TrayItem[]; initialSlu
         <div className="pg-group">
           <h3 className="pg-group__title">Style</h3>
           <div className="pg-options">
-            {STYLE_ORDER.map((k) => chip(STYLE_NAMES[k] ?? k, skin === k, () => setSkin(k), k))}
+            {ALL_STYLES.map((k) => chip(STYLE_NAMES[k] ?? k, skin === k, () => setSkin(k), k))}
           </div>
         </div>
 
