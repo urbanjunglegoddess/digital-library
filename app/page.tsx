@@ -1,104 +1,185 @@
 import Link from "next/link";
-import { Button } from "@/components/button/Button";
-import { getAllComponents, getCategories, STYLE_NAMES } from "@/lib/content";
+import "@/styles/home.css";
+import {
+  ALL_STYLES,
+  getAllComponents,
+  getCategories,
+} from "@/lib/content";
 
 /**
- * Home / Landing — the front door. Sets the frame and routes into the eight
- * product surfaces. Live figures read from content/docs.
+ * Home / landing — the "spec sheet" front door.
+ * Light ground, numbered sections, real counts read from content/docs.
+ * The composer lives behind the primary CTA; the portal is at /portal.
  */
 
-const STYLES = Object.keys(STYLE_NAMES);
-
-const SURFACES: { href: string; label: string; glyph: string; blurb: string }[] = [
-  { href: "/portal", label: "Portal", glyph: "⇄", blurb: "Where items move — runs, pipeline, and what's in flight." },
-  { href: "/dashboard", label: "Dashboard", glyph: "▤", blurb: "Where items report — coverage, status, and health at a glance." },
-  { href: "/knowledge", label: "Knowledge Hub", glyph: "❋", blurb: "The reference library — every component, doc, and skin." },
-  { href: "/build", label: "Build Hub", glyph: "⚒", blurb: "Compose and assemble components into real output." },
-  { href: "/templates", label: "Template Hub", glyph: "❐", blurb: "Reusable starters and kits, ready to export." },
-  { href: "/workspace", label: "Workspace", glyph: "◱", blurb: "Your saved snippets, collections, and drafts." },
-  { href: "/settings", label: "Settings", glyph: "⚙", blurb: "Account, theme, and configuration." },
+const DOMAINS = [
+  {
+    name: "Websites & marketing",
+    blurb:
+      "Hero, nav, cards, forms, footer. The shapes a client site is actually made of.",
+    categories: ["Marketing & Content", "Navigation", "Layout & Structure"],
+  },
+  {
+    name: "Data reports & dashboards",
+    blurb:
+      "Metrics, tables, tabs, filters, status. The reporting spine, wired to your data.",
+    categories: ["Data Display", "Feedback & Status"],
+  },
+  {
+    name: "Mobile apps",
+    blurb:
+      "Tab bars, sheets, toasts, switches — with 44px targets held at every size.",
+    categories: ["Actions", "Inputs & Forms", "Overlays & Popouts"],
+  },
 ];
+
+const ENTRIES = [
+  {
+    key: "A",
+    name: "Pick assets",
+    blurb:
+      "Browse, add to the build, set skin and target per piece. Deliberate, and the fastest to audit afterward.",
+  },
+  {
+    key: "B",
+    name: "Describe the intent",
+    blurb:
+      "A sentence in, a proposed asset list out. Approve, cut, generate. Best when the shape isn't decided yet.",
+  },
+  {
+    key: "C",
+    name: "Start from a template",
+    blurb:
+      "A known shape with the parts pre-chosen. Swap what differs. Best when the job rhymes with the last one.",
+  },
+];
+
+const TARGET_COUNT = 12;
+const CATEGORY_TOTAL = 10;
 
 export default function Home() {
   const components = getAllComponents();
   const categories = getCategories();
-  const count = components.length;
+
+  const written = components.length;
+  const audited = components.filter(
+    (c) => c.status === "audited" || c.status === "reusable",
+  ).length;
+  const auditedPct = written ? Math.round((audited / written) * 100) : 0;
+  const countIn = (names: string[]) =>
+    components.filter((c) => names.includes(c.category)).length;
 
   return (
-    <main className="page home">
-      <section className="hero">
-        <p className="eyebrow">Urban Jungle Goddess</p>
-        <h1 className="hero__title">Digital Asset Library</h1>
-        <p className="hero__lede">
-          A searchable catalog of reusable, accessibility-audited UI components
-          and code assets — across <strong>11 visual styles</strong> and{" "}
-          <strong>12 language targets</strong>. Documented, previewable, and
-          copy-ready.
-        </p>
-        <div className="hero__cta">
-          <Link
-            href="/knowledge"
-            className="btn btn--primary btn--lg"
-            style={{ textDecoration: "none" }}
-          >
-            Open the Knowledge Hub{count ? ` · ${count}` : ""}
-          </Link>
-          <Link href="/portal" className="hero__link">
-            Go to the Portal →
-          </Link>
-        </div>
-      </section>
-
-      <section className="home-surfaces">
-        <h2 className="home-styles__title">The eight surfaces</h2>
-        <p className="home-styles__lede">
-          Everything in the library lives in one of these. Pick where you&rsquo;re
-          headed.
-        </p>
-        <div className="surface-grid">
-          {SURFACES.map((s) => (
-            <Link key={s.href} href={s.href} className="surface-card">
-              <span className="surface-card__glyph" aria-hidden="true">
-                {s.glyph}
-              </span>
-              <span className="surface-card__name">{s.label}</span>
-              <span className="surface-card__blurb">{s.blurb}</span>
+    <main className="lp">
+      <section className="lp-hero">
+        <div className="lp-hero__lead">
+          <p className="lp-eyebrow">01 · What this is</p>
+          <h1 className="lp-h1">One library. Three ways in. Four things out.</h1>
+          <p className="lp-pull">
+            I stopped rebuilding the same button and started building the thing
+            that builds it.
+          </p>
+          <p className="lp-body">
+            Every component in here is documented to a seventeen-section bar,
+            audited for accessibility, and written in {TARGET_COUNT} language
+            targets across {ALL_STYLES.length} visual skins. Choosing is the
+            work. The code is already done.
+          </p>
+          <div className="lp-cta">
+            <Link href="/build" className="btn btn--primary btn--lg lp-btn">
+              Start an Adventure
             </Link>
-          ))}
+            <Link href="/knowledge" className="lp-link">
+              Read the specs →
+            </Link>
+          </div>
         </div>
+
+        <aside className="lp-manifest">
+          <p className="lp-eyebrow lp-eyebrow--tight">The manifest</p>
+          <dl className="lp-manifest__list">
+            <div>
+              <dt>Component specs</dt>
+              <dd>{written}</dd>
+            </div>
+            <div>
+              <dt>Visual skins</dt>
+              <dd>{ALL_STYLES.length}</dd>
+            </div>
+            <div>
+              <dt>Language targets</dt>
+              <dd>{TARGET_COUNT}</dd>
+            </div>
+            <div>
+              <dt>Categories seeded</dt>
+              <dd>
+                {categories.length} / {CATEGORY_TOTAL}
+              </dd>
+            </div>
+            <div>
+              <dt>Status ladder</dt>
+              <dd className="lp-manifest__ladder">Idea → Reusable</dd>
+            </div>
+          </dl>
+          <div className="lp-meter">
+            <div className="lp-meter__head">
+              <span>Written and audited</span>
+              <span>{auditedPct}%</span>
+            </div>
+            <div className="lp-meter__track">
+              <div
+                className="lp-meter__fill"
+                style={{ width: `${auditedPct}%` }}
+              />
+            </div>
+          </div>
+        </aside>
       </section>
 
-      <section className="home-styles">
-        <h2 className="home-styles__title">One component, eleven skins</h2>
-        <p className="home-styles__lede">
-          Every component&rsquo;s structure and behavior is fixed; the skin comes
-          from a <code>[data-style]</code> wrapper in the token layer.
-        </p>
-        <div className="skin-grid">
-          {STYLES.map((key) => (
-            <div key={key} className="skin-cell" data-style={key}>
-              <Button variant="primary" size="md">
-                {STYLE_NAMES[key]}
-              </Button>
-              <span className="skin-cell__key">{key}</span>
+      <section className="lp-section">
+        <p className="lp-eyebrow">02 · How you drive it</p>
+        <div className="lp-entries">
+          {ENTRIES.map((e) => (
+            <div key={e.key} className="lp-entry">
+              <span className="lp-entry__key">{e.key}</span>
+              <h3 className="lp-h3">{e.name}</h3>
+              <p className="lp-body lp-body--sm">{e.blurb}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {categories.length > 0 && (
-        <section className="home-cats">
-          <h2 className="home-styles__title">Browse by category</h2>
-          <div className="cat-grid">
-            {categories.map((c) => (
-              <Link key={c.category} href="/knowledge" className="cat-cell">
-                <span className="cat-cell__name">{c.category}</span>
-                <span className="cat-cell__count">{c.components.length}</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
+      <section className="lp-section">
+        <p className="lp-eyebrow">03 · What it builds</p>
+        <div className="lp-domains">
+          {DOMAINS.map((d) => (
+            <Link key={d.name} href="/knowledge" className="lp-domain">
+              <h3 className="lp-h3">{d.name}</h3>
+              <p className="lp-body lp-body--sm">{d.blurb}</p>
+              <span className="lp-domain__count">
+                {countIn(d.categories)} parts ready
+              </span>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <section className="lp-section lp-section--last">
+        <p className="lp-eyebrow">04 · What you get back</p>
+        <ul className="lp-outputs">
+          <li className="lp-chip lp-chip--solid">Runnable scaffold · .zip</li>
+          <li className="lp-chip">Spec document · .md</li>
+          <li className="lp-chip">Assembled code · {TARGET_COUNT} targets</li>
+          <li className="lp-chip lp-chip--outline">Pushed repo · git</li>
+        </ul>
+        <p className="lp-pull lp-pull--closing">
+          Most libraries hand you a picture of the thing. This one hands you the
+          thing.
+        </p>
+        <Link href="/portal" className="lp-link lp-link--portal">
+          Already running builds? Open the portal →
+        </Link>
+      </section>
     </main>
   );
 }
