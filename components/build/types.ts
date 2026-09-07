@@ -6,6 +6,15 @@
  * canvas, carrying its own editable props.
  */
 
+/** A code snippet as documented in a component's content/docs frontmatter. */
+export interface DocSnippet {
+  language: string;
+  framework?: string | null;
+  label?: string;
+  code: string;
+  primary?: boolean;
+}
+
 export interface TrayItem {
   slug: string;
   name: string;
@@ -13,6 +22,8 @@ export interface TrayItem {
   status: string;
   /** Whether the composer has a live canvas renderer for this slug. */
   renderable: boolean;
+  /** Real code snippets from the component's doc (content/docs), if any. */
+  snippets?: DocSnippet[];
 }
 
 export interface StackItem {

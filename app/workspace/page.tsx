@@ -2,7 +2,25 @@ import type { Metadata } from "next";
 import { getAllComponents } from "@/lib/content";
 import { hasRenderer } from "@/lib/composer";
 import { Playground } from "@/components/workspace/Playground";
-import type { TrayItem } from "@/components/build/types";
+import type { DocSnippet, TrayItem } from "@/components/build/types";
+
+/**
+ * Pull the first fenced code block of each language out of a doc body, so
+ * components whose code lives in the Markdown body (not frontmatter snippets)
+ * still show real documented code in the Playground.
+ */
+function extractBodySnippets(body: string): DocSnippet[] {
+  const out = new Map<string, DocSnippet>();
+  const re = /```([a-zA-Z0-9+#-]*)\r?\n([\s\S]*?)```/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(body))) {
+    const language = (m[1] || "text").toLowerCase();
+    const code = m[2].replace(/\s+$/, "");
+    if (!code || language === "text" || language === "plain") continue;
+    if (!out.has(language)) out.set(language, { language, code });
+  }
+  return [...out.values()];
+}
 
 export const metadata: Metadata = {
   title: "Workspace — Digital Asset Library",
@@ -29,6 +47,9 @@ export default async function WorkspacePage({
     category: comp.category,
     status: comp.status,
     renderable: hasRenderer(comp.slug),
+    // Prefer the curated frontmatter snippets; fall back to code documented in
+    // the Markdown body so every component shows real doc code where it exists.
+    snippets: comp.snippets?.length ? comp.snippets : extractBodySnippets(comp.body),
   }));
 
   return <Playground tray={tray} initialSlug={c} />;
