@@ -3,10 +3,10 @@
 # Design Styles
 The visual languages you render components in. Same component, different aesthetic: pick per project, client, and era. This is library-wide reference, it applies to every component, not just buttons.
 **See them live:** the
-[undefined/8495850/3af4a439-25aa-4ba8-aa05-9204f278dfa6/design-styles-gallery.html](undefined/8495850/3af4a439-25aa-4ba8-aa05-9204f278dfa6/design-styles-gallery.html)
-> renders one control across all thirty-one styles. Hover and click to feel the behavior, not just the look.
+[undefined/8495850/3af4a439-25aa-4ba8-aa05-9204f278dfa6/design-styles-gallery.html](http://undefined/8495850/3af4a439-25aa-4ba8-aa05-9204f278dfa6/design-styles-gallery.html)
+> renders one control across all forty-four styles. Hover and click to feel the behavior, not just the look.
 * * *
-## The Thirty-One Styles
+## The Forty-Four Styles
 ### 1\. Flat (2012–present)
 **The philosophy:** Strip everything to pure shape and color. No gradients, no shadows, no texture. Information hierarchy comes from size, weight, and whitespace alone.
 
@@ -820,6 +820,344 @@ The visual languages you render components in. Same component, different aesthet
 
 **Performance:** Medium. SVG animations and rotating elements are GPU-friendly via `transform: rotate()`. Avoid animating `stroke-dashoffset` on many paths simultaneously.
 * * *
+### 32\. Maximalism (abundance as identity)
+**The philosophy:** More is more. Layer pattern on pattern, color on color, texture on texture. Every surface carries visual weight. Abundance and richness as identity, not excess.
+
+**Origin:** Counter-reaction to decades of minimalism. Rooted in Baroque, Art Nouveau, and Moroccan/Indian interior design traditions. Digital maximalism emerged ~2020 as designers rebelled against "clean" SaaS sameness. Gucci's Alessandro Michele era (2015–2022) brought maximalism to mainstream luxury.
+
+**Key CSS signatures:** Multiple `background-image` layers stacked, `mix-blend-mode` for pattern overlays, `border-image` with decorative patterns, overlapping elements via negative `margin` or absolute positioning, rich color fills on every surface (no whitespace left "empty"), `filter: saturate(1.3)` for over-rich color.
+
+**Typography:** Mixed typefaces deliberately. Decorative display + serif body + handwriting accent on the same page. Varied sizes, weights, and colors within a single section. Type as texture: large background text at low opacity, overlapping headlines, rotated pull quotes.
+
+**Color theory:** 5+ colors simultaneously. Deep jewel tones (emerald, ruby, sapphire, amethyst) or saturated warm tones (terracotta, gold, magenta, teal). No "neutral" zones. Every background has color. The palette should feel like walking through a Moroccan souk or an Indian temple.
+
+**Motion:** Layered and overlapping. Multiple elements animate simultaneously at different speeds and directions. Parallax at aggressive rates (0.5x+). Hover states that trigger cascading changes across nearby elements. Scroll-triggered reveals that are theatrical, not subtle.
+
+**Common pitfalls:** Without hierarchy, everything screams and nothing communicates. Maximalism still needs ONE focal point per viewport. The "more" should be structured: primary, secondary, and decorative layers. Also: performance craters fast with multiple blend modes, layered backgrounds, and simultaneous animations.
+
+**Token structure:** `--max-layer-1: url(pattern1.svg)`, `--max-layer-2: url(pattern2.svg)`, `--max-blend: multiply`, `--max-jewel-1: #1B5E20`, `--max-jewel-2: #880E4F`, `--max-jewel-3: #E65100`, `--max-jewel-4: #01579B`.
+
+**When to use:** Fashion, luxury, entertainment, cultural institutions, editorial with rich visual content, brands that want to signal abundance and depth.
+
+**Real-world:** [Gucci.com](http://Gucci.com) (Michele era), Dolce & Gabbana, Indian luxury brands, maximalist editorial sites.
+
+**Pairs with:** Art Deco (luxury maximalism), Victorian (historical maximalism), Bohemian (warm maximalism).
+
+**Performance:** Heavy. Multiple background layers, blend modes, and rich imagery stack up. Lazy-load images aggressively, limit animated layers to 2–3 per viewport.
+
+* * *
+### 33\. Surrealism (dreamlike interface)
+**The philosophy:** Break reality. Unexpected juxtapositions, dreamlike compositions, impossible physics. The UI defies spatial logic and everyday perception.
+
+**Origin:** Salvador Dalí, René Magritte, and the surrealist art movement (1920s). In digital design, it surfaces as unexpected scale shifts (a tiny button on a massive canvas), impossible object relationships, and UI elements that defy physics. Studios like Kuon Yagi and immersive web agencies push this in interactive experiences.
+
+**Key CSS signatures:** `transform: perspective(800px) rotateY(5deg)` for impossible angles, `clip-path` for dreamlike masked shapes, `mix-blend-mode: difference` for reality-breaking overlays, extreme `scale()` contrasts between elements, floating elements with `animation: float 6s ease-in-out infinite` (gentle bob), `filter: hue-rotate()` on hover for color shifts that feel "wrong."
+
+**Typography:** Distorted, stretched, or masked type. `transform: skewX()` on headlines. Type that clips into or behind images (via `clip-path` or `overflow: hidden` + layered z-index). Serif or display fonts that feel classical but placed impossibly.
+
+**Color theory:** Dreamlike palettes: soft pastels with one jarring saturated element, or muted earths with a surreal neon accent. Think Magritte's blue sky with unnatural objects. The palette should feel 90% "normal" with 10% deeply wrong.
+
+**Motion:** Slow, hypnotic, physics-defying. Elements that float without anchoring. Scroll-linked transformations that warp perspective. Hover states that alter surrounding elements (not just the hovered one). Timing: 600ms–2s, ease-in-out or custom curves that feel dreamy.
+
+**Common pitfalls:** Unusable for anything requiring clear information hierarchy. Surrealism as a FULL product style is exhausting. Best as hero moments, 404 pages, or campaign microsites. Also: the line between "surreal" and "broken" is perception-dependent; test with users.
+
+**Token structure:** `--surreal-bg: #F0EDE8`, `--surreal-accent: #FF006E`, `--surreal-float: 6s ease-in-out infinite`, `--surreal-skew: skewX(-3deg)`, `--surreal-perspective: perspective(800px)`.
+
+**When to use:** Art galleries, creative agencies, fashion campaigns, experimental portfolios, microsites, 404 pages, music videos.
+
+**Real-world:** Experimental creative agency sites, Awwwards-nominated microsites, fashion campaign pages.
+
+**Pairs with:** Editorial (grounded surrealism), Kinetic (motion as unreality), Psychedelic (heightened surrealism).
+
+**Performance:** Medium. Perspective transforms and blend modes are moderate GPU cost. Floating animations are cheap if using `transform` only.
+
+* * *
+### 34\. Scrapbook (handmade collage)
+**The philosophy:** Handmade collage. Layered photos, torn paper, washi tape, stickers, handwritten notes. The UI feels assembled by hand from physical materials, like opening someone's personal journal.
+
+**Origin:** Physical scrapbooking, zine culture, Tumblr aesthetics (2010s), and collage art. Digital scrapbook style emerged on Pinterest and was adopted by lifestyle brands, fan communities, and nostalgia-driven design. It's the visual equivalent of a mood board made physical.
+
+**Key CSS signatures:** `transform: rotate(-2deg to 5deg)` on each photo/card (slightly askew), `box-shadow: 2px 3px 6px rgba(0,0,0,0.2)` for paper-lift effect, tape/sticker decorations via positioned `::before`/`::after` pseudo-elements with background images, torn-edge SVG `clip-path` on paper layers, layered `z-index` with overlapping elements, `background-image: url(paper-texture.png)`.
+
+**Typography:** Mixed: handwriting fonts (Caveat, Kalam) for captions and notes, typewriter fonts (Special Elite, Courier Prime) for "typed" labels, serif body text printed on "paper." Each text element can have its own font as if cut from different sources.
+
+**Color theory:** Warm, nostalgic. Cream and off-white paper tones, faded pastels (dusty rose, sage, powder blue), kraft paper brown. Photos may have warm filters applied (`filter: sepia(0.2) contrast(1.05)`). The palette should feel like a box of old photographs and craft supplies.
+
+**Motion:** Physical. Photos that "drop" into place with slight rotation. Tape that peels on hover. Stickers with subtle bounce (`scale(0.95)` to `scale(1)` with overshoot). Pages that flip. Nothing digital-feeling; motion should mimic hands placing things on a table.
+
+**Common pitfalls:** Gets cluttered fast. Even in maximalism, scrapbook pages need breathing room between collage clusters. The rotation/overlap should be controlled (±5deg max). Also: accessibility suffers because reading order is non-linear; ensure DOM order is logical even if visual layout is scattered.
+
+**Token structure:** `--scrap-paper: #FFF8F0`, `--scrap-kraft: #C4A77D`, `--scrap-tape: rgba(255,228,181,0.7)`, `--scrap-rotate-range: -3deg to 4deg`, `--scrap-shadow: 2px 3px 6px rgba(0,0,0,0.2)`, `--scrap-texture: url(paper-grain.svg)`.
+
+**When to use:** Lifestyle blogs, wedding sites, personal portfolios, fan communities, nostalgia marketing, DIY/craft brands, photo galleries.
+
+**Real-world:** Pinterest-style layouts, wedding planning sites, creative blog themes, fan sites.
+
+**Pairs with:** Hand-drawn (shared handmade energy), Bohemian (warm layering), Grunge (edgier collage).
+
+**Performance:** Medium. Texture images and positioned decorations add HTTP requests. Keep texture tiles small and use CSS `repeating-linear-gradient` where possible. Overlap via `position` is layout-cheap.
+
+* * *
+### 35\. Bohemian (free-spirited warmth)
+**The philosophy:** Free-spirited warmth. Rich textures, warm earth tones, ethnic patterns, handcrafted feeling. The UI feels like a global bazaar or a well-traveled artist's studio.
+
+**Origin:** Bohemian culture (19th century Parisian artists and Roma aesthetics), 1960s–70s counterculture, and modern "boho" lifestyle branding. In digital: Anthropologie, Free People, and global artisan marketplaces. It blends Moroccan tilework, Indian textiles, Turkish kilims, and organic natural materials into a warm, layered aesthetic.
+
+**Key CSS signatures:** Patterned `background-image` borders (ethnic/geometric tile patterns as `border-image`), warm textured backgrounds (linen, burlap, woven via `background-image`), `border-radius: 0` (handcrafted feel, not tech-smooth) OR ornate frame-like borders, decorative dividers (SVG botanical or geometric separators), `filter: saturate(0.9) sepia(0.1)` for warmth.
+
+**Typography:** Serif with personality (Cormorant Garamond, Playfair Display) for headlines. Rounded humanist sans (Nunito, Quicksand) for body. Occasional handwritten accent font (Amatic SC, Dancing Script). The typography should feel curated and eclectic, not systematic.
+
+**Color theory:** Earth and jewel tones: terracotta, burnt sienna, mustard, deep teal, dusty rose, sage green, rust orange. Warm metallics (aged gold, copper) as accents. Cream or warm white backgrounds. The palette should feel like spices in a market.
+
+**Motion:** Gentle and organic. Parallax on textile/pattern backgrounds. Fade-in reveals with slight upward drift. Nothing mechanical or snappy. 300–500ms ease-out. Elements should feel like they were placed carefully by hand.
+
+**Common pitfalls:** Pattern overload. If every surface has a different ethnic pattern, the eye has nowhere to rest. Use patterns surgically (one border pattern, one background texture) and let solid warm tones carry the majority. Also: cultural appropriation concerns. Source patterns respectfully, credit origins.
+
+**Token structure:** `--boho-terra: #C1440E`, `--boho-mustard: #D4A843`, `--boho-teal: #2A6478`, `--boho-sage: #7C9082`, `--boho-cream: #FDF6EC`, `--boho-gold: #B8860B`, `--boho-pattern: url(kilim-tile.svg)`.
+
+**When to use:** Lifestyle/fashion brands, artisan marketplaces, travel/hospitality, wellness, home decor, wedding, brands signaling warmth and worldliness.
+
+**Real-world:** Free People, Anthropologie, Etsy brand pages, boutique hotel sites.
+
+**Pairs with:** Organic (shared natural warmth), Maximalism (richer layering), Scrapbook (handmade feel).
+
+**Performance:** Light to medium. Pattern tiles are small SVGs. Textured backgrounds add some overhead. No expensive filters.
+
+* * *
+### 36\. Victorian (ornate elegance)
+**The philosophy:** Ornate elegance from the Industrial Age. Elaborate borders, serif typography, decorative flourishes, symmetrical compositions. Maximum craftsmanship, maximum detail.
+
+**Origin:** Victorian era (1837–1901) graphic design: advertising posters, book covers, calling cards, and architectural ornamentation. Revived periodically in steampunk culture, craft beer/whiskey branding, and "vintage premium" aesthetics. The digital version translates engraving-style illustrations, ornamental frames, and structured symmetry to screen.
+
+**Key CSS signatures:** Ornamental `border-image` (SVG frames with corner flourishes), decorative `::before`/`::after` dividers (scrollwork SVGs), structured symmetrical layouts (`text-align: center`, centered columns), `font-variant: small-caps` headers, sepia/aged color treatments (`filter: sepia(0.15)`), engraving-style SVG illustrations with fine line detail.
+
+**Typography:** High-contrast didone serif (Didot, Bodoni, Playfair Display) for headlines. Decorative/ornamental display faces for logos and titles. Small caps with generous tracking for subheads. Body in transitional serif (Baskerville, Libre Baskerville). Script fonts (Great Vibes, Tangerine) for ornamental moments.
+
+**Color theory:** Deep, rich, regal. Burgundy, forest green, navy, gold, ivory, mahogany. Black and cream as the primary pair. Metallic gold accents (`linear-gradient(135deg, #BF953F, #FCF6BA, #B38728)`). The palette should feel like leather, velvet, and gilding.
+
+**Motion:** Stately and measured. Slow reveals (500ms+). Ornamental elements that draw themselves (SVG `stroke-dashoffset` animation). No bounce, no playfulness. Motion should feel like curtains parting or a book opening.
+
+**Common pitfalls:** Ornamental SVGs at small viewport sizes become mud. The fine detail that makes Victorian work at large sizes disappears on mobile. Simplify decorative elements below tablet breakpoints. Also: the symmetry must be pixel-perfect; asymmetric Victorian looks broken, not artistic.
+
+**Token structure:** `--vic-burgundy: #800020`, `--vic-navy: #1B2A4A`, `--vic-gold: linear-gradient(135deg, #BF953F, #FCF6BA, #B38728)`, `--vic-ivory: #FFFFF0`, `--vic-serif: 'Playfair Display', serif`, `--vic-ornament: url(victorian-frame.svg)`.
+
+**When to use:** Luxury spirits, heritage brands, law firms, vintage/antique marketplaces, steampunk projects, theater, historic institutions.
+
+**Real-world:** Craft whiskey brands, heritage hotel sites, steampunk-themed projects, antique marketplace branding.
+
+**Pairs with:** Art Deco (fellow luxury), Maximalism (ornate energy), Skeuomorphism (shared detail obsession).
+
+**Performance:** Medium. Ornamental SVGs can be complex (many path points). Inline critical decorative SVGs, lazy-load the rest. Gradient borders are CSS-cheap.
+
+* * *
+### 37\. Gothic (dark grandeur)
+**The philosophy:** Dark grandeur. Pointed arches, dramatic contrast, deep blacks, cathedral-like verticality. Romantic darkness, not horror. Elegance through shadow.
+
+**Origin:** Gothic architecture (12th–16th century) and its revival in literature, fashion (Alexander McQueen, Rick Owens), and subculture. Digital gothic draws from blackletter typography, stained glass color, and the dramatic light/dark contrast of cathedral interiors. It's not "Halloween." It's the aesthetic of Notre-Dame.
+
+**Key CSS signatures:** Near-black backgrounds (`#0D0D0D`, `#111118`) with deep color accents, blackletter/fraktur display fonts, pointed arch shapes via `clip-path: polygon()` or SVG, tall/narrow column proportions (vertical emphasis), `border: 1px solid rgba(255,255,255,0.1)` (faint tracery), `text-shadow: 0 0 30px rgba(R,G,B,0.5)` for stained-glass glow effect, ornamental thin-line dividers.
+
+**Typography:** Blackletter/Fraktur for display (UnifrakturCook, Cloister Black, or custom). Transitional serif for body (Garamond, Crimson Pro). Extreme weight contrast between display and body. Tall, narrow letterforms preferred. `letter-spacing: 0.05–0.1em` on body for readability against dark backgrounds.
+
+**Color theory:** Deep blacks and near-blacks as the foundation. Accent colors drawn from stained glass: deep ruby (`#8B0000`), sapphire (`#1B2A5F`), amethyst (`#4B0082`), aged gold (`#8B7536`). Never bright or saturated; colors should feel like light filtered through colored glass in a dim cathedral.
+
+**Motion:** Slow, dramatic, reverent. Content that emerges from shadow (opacity + slight `translateY`). Subtle parallax suggesting depth through vertical space. Candle-flicker effects on glow accents (`opacity` jitter between 0.7–1 via keyframes). 500ms+ timing, ease-in-out.
+
+**Common pitfalls:** Slips into "Halloween" or "horror" if heavy-handed. Gothic is about elegance and grandeur, not skulls and blood. The blackletter must be used sparingly (headlines only; it's illegible at body sizes). Also: dark-on-dark needs careful contrast management. Body text must be light enough to read (Platinum or warm white, never pure #FFF).
+
+**Token structure:** `--goth-void: #0D0D0D`, `--goth-surface: #1A1A1F`, `--goth-ruby: #8B0000`, `--goth-amethyst: #4B0082`, `--goth-gold: #8B7536`, `--goth-text: #D4CFC4`, `--goth-display: 'UnifrakturCook', cursive`, `--goth-glow: 0 0 20px`.
+
+**When to use:** Luxury fashion (dark luxury), music (metal, dark wave, classical), high-end spirits, Gothic architecture/heritage sites, dark-themed editorial, perfume brands.
+
+**Real-world:** Alexander McQueen branding, dark luxury fashion sites, metal music industry, Gothic architecture museum sites.
+
+**Pairs with:** Art Deco (dark luxury crossover), Victorian (historical ornate cousin), Cyberpunk (modern darkness).
+
+**Performance:** Light. Dark solid backgrounds, text shadows, and subtle glows are all cheap. No expensive filters.
+
+* * *
+### 38\. Graffiti (street art interface)
+**The philosophy:** Street art as interface. Spray-paint textures, bold letterforms, drip effects, raw urban energy. The UI looks like it was tagged on a wall, not designed in Figma.
+
+**Origin:** Street art and graffiti culture (1970s NYC subway art, Basquiat, Banksy, KAWS). In digital: streetwear brands, music industry, urban culture platforms. The style translates spray-paint techniques (drips, fades, stencils, fill patterns) and the energy of illegal public art into controlled digital layouts.
+
+**Key CSS signatures:** Spray-paint texture overlays via `background-image` with `mix-blend-mode: multiply`, drip effects as SVG `clip-path` on bottom edges, bold neon or primary fills on dark concrete/brick textures, stencil-effect type (via SVG mask or `text-shadow` layering), splatter decorations (`::before` pseudo-elements with radial gradient dots), `border: none` (graffiti bleeds, no borders).
+
+**Typography:** Graffiti/tag-style display fonts (Permanent Marker, Bungee Shade, custom tag fonts), stencil faces (Allerta Stencil, Stencil) for headers. Body text in a clean condensed sans (Barlow Condensed, Oswald) for contrast and readability. The display type should feel like someone wrote it with a fat marker or spray can.
+
+**Color theory:** High-energy primary colors on dark surfaces: neon green, hot pink, electric blue, bright yellow on concrete gray, brick red, or flat black. Colors should feel like spray paint: slightly translucent where layers overlap, saturated in the center, fading at edges. White is used as a base coat (whitewashed wall effect).
+
+**Motion:** Aggressive, fast, street-energy. Elements that spray/reveal (mask animation expanding from center), drips that animate downward (`transform: translateY` + `scaleY` grow), stencil stamps (scale 1.2 to 1 with slight rotation on entry). Fast timing: 100–250ms. Nothing graceful; it should feel urgent.
+
+**Common pitfalls:** Actual graffiti textures (photos of real spray paint) are heavy image assets. Use CSS-generated approximations where possible. Also: without careful hierarchy, graffiti style becomes illegible fast. The "chaos" must be composed. Keep body content in clean, readable zones with graffiti as decorative framing. Cultural context matters: graffiti carries real history of marginalized expression.
+
+**Token structure:** `--graf-bg: #2C2C2C`, `--graf-neon-1: #39FF14`, `--graf-neon-2: #FF1493`, `--graf-neon-3: #00BFFF`, `--graf-texture: url(concrete-grain.svg)`, `--graf-drip: url(drip-edge.svg)`, `--graf-display: 'Permanent Marker', cursive`.
+
+**When to use:** Streetwear/sneaker brands, hip-hop/music industry, urban culture platforms, skateboarding, youth marketing, street art galleries, festival/event branding.
+
+**Real-world:** Supreme, Nike SB campaigns, urban festival sites, hip-hop artist pages, streetwear drops.
+
+**Pairs with:** Neo-Brutalism (shared raw energy), Cyberpunk (neon on dark), Punk Grunge (subcultural siblings).
+
+**Performance:** Medium. Texture images add weight. SVG drip effects and masks are moderate. Spray-paint radial gradients are CSS-cheap.
+
+* * *
+### 39\. Conceptual Sketch (blueprint thinking)
+**The philosophy:** Blueprint thinking made visible. Wireframe-level fidelity as a deliberate aesthetic: grid lines, annotations, construction marks, dimension labels. The UI looks like the design process itself, revealing the architecture beneath finished products.
+
+**Origin:** Architectural blueprints, engineering drawings, design process documentation, and developer wireframes treated as final art. Differs from Hand-drawn (#30) in intention: Hand-drawn mimics doodling; Conceptual Sketch mimics technical drafting. Think: the whiteboard session becomes the product.
+
+**Key CSS signatures:** Thin `border: 1px dashed` or `1px solid` in blueprint blue or pencil gray, visible grid via `background: repeating-linear-gradient(#e8e8e8 0px, transparent 1px, transparent 24px)` (graph paper), annotation-style labels positioned absolutely near elements, dimension lines (SVG arrows with measurement text), construction circles (dashed `border-radius: 50%` marking alignment points).
+
+**Typography:** Architectural/drafting hand (Architects Daughter, Caveat) for annotations and labels. Monospace (JetBrains Mono, Fira Code) for measurements and data. Geometric sans (Jost, Urbanist) for body when readability matters. Type should feel like notes on a blueprint, not polished copy.
+
+**Color theory:** Blueprint blue (`#4A90D9`) on white/off-white, OR pencil graphite gray (`#555`) on cream/buff paper (`#F5F0E0`). Red for markup and annotations (`#E53E3E`). Minimal palette: 3 colors max. The restraint is what sells the "technical document" illusion.
+
+**Motion:** Drawing itself. Lines that extend via `stroke-dashoffset` animation. Annotations that write in (typewriter effect). Grid lines that fade in as background. Dimension arrows that stretch to their endpoints. Timing: 300–600ms, linear (mechanical, precise, not organic).
+
+**Common pitfalls:** Reads as "unfinished" to most users unfamiliar with the concept. Must be clearly intentional, not accidental wireframe. Annotation labels help signal the intent. Also: the grid background fights with dense content. Use it on hero/decorative sections, keep content areas clean.
+
+**Token structure:** `--sketch-blue: #4A90D9`, `--sketch-pencil: #555555`, `--sketch-paper: #F5F0E0`, `--sketch-red: #E53E3E`, `--sketch-grid: 24px`, `--sketch-border: 1px dashed`, `--sketch-font: 'Architects Daughter', cursive`.
+
+**When to use:** Architecture/design firm portfolios, developer tools, design process case studies, "making of" pages, educational content about design, construction/engineering.
+
+**Real-world:** Architecture studio sites, design process showcases, developer documentation with visual flair, Excalidraw.
+
+**Pairs with:** Hand-drawn (informal cousin), Bauhaus (shared geometric precision), Swiss (structural rigor).
+
+**Performance:** Excellent. CSS grid backgrounds, dashed borders, and SVG line animations are all lightweight. Zero GPU overhead.
+
+* * *
+### 40\. Afro Futurism (Black futures, African roots)
+**The philosophy:** Black futures imagined through African aesthetics, speculative fiction, and technology. Geometric patterns from West African textiles meet space-age surfaces. Ancestral knowledge encoded in futuristic interfaces. Reclaiming the future by grounding it in culture.
+
+**Origin:** Sun Ra, Octavia Butler, Black Panther (Wakanda design language by Hannah Beachler), Janelle Monáe, and the broader Afrofuturist movement (coined by Mark Dery, 1993). In design: blends Kente geometry, Adinkra symbolism, Ndebele patterns, and Egyptian motifs with sci-fi materials (holographic, iridescent, dark metallics). It's not one African culture flattened; it's a speculative synthesis that honors specificity.
+
+**Key CSS signatures:** Geometric pattern borders derived from African textile geometry (`border-image` with SVG Kente/Ndebele-inspired patterns), dark rich backgrounds with metallic/iridescent accents (`background: linear-gradient(135deg, #0A0A0A, #1A0A2E, #0A1A1A)`), warm metallic highlights (gold, copper, bronze via gradient text or borders), `clip-path` with angular/geometric African-pattern-inspired shapes, `box-shadow: 0 0 20px rgba(220,164,36,0.4)` warm glow effects.
+
+**Typography:** Futuristic display faces (Orbitron, Rajdhani, Exo, or custom geometric display) that feel technologically forward. Body in a clean humanist sans (Urbanist, DM Sans) that's warm and readable. The key: the type should feel advanced but grounded, not cold or alien. Warm geometry.
+
+**Color theory:** Deep cosmic darks (space black, midnight purple, deep indigo) as base. Warm metallics (gold, copper, bronze) as primary accents. Deep earth tones (terracotta, umber) as secondary. Occasional iridescent or holographic accents (rainbow gradient at low opacity). The palette should feel like: looking at the stars from African soil.
+
+**Motion:** Cosmic and rhythmic. Elements that pulse subtly (like a heartbeat). Geometric patterns that shift and tessellate on scroll. Warm glow that breathes (opacity 0.3 to 0.5 to 0.3). Star-field particle backgrounds (CSS dots or canvas). Timing: 400–800ms, ease-in-out, deliberate. The rhythm should feel ceremonial, not mechanical.
+
+**Common pitfalls:** Conflating all African visual cultures into one. Research specific traditions (Kente = Akan/Ghana, Ndebele = South Africa, Nsibidi = Southeast Nigeria, Adinkra = Ashanti). Also: Afro Futurism is optimistic, not dystopian. Keep the energy hopeful and abundant, not dark and oppressive. Gold/warm metallics signal hope and abundance.
+
+**Token structure:** `--afro-void: #0A0A0A`, `--afro-cosmos: #1A0A2E`, `--afro-gold: #DCA424`, `--afro-copper: #B87333`, `--afro-terra: #8B4513`, `--afro-iridescent: linear-gradient(135deg, #FF6B6B, #DCA424, #4ECDC4, #A78BFA)`, `--afro-glow: rgba(220,164,36,0.4)`, `--afro-pattern: url(kente-geo.svg)`.
+
+**When to use:** Black-owned brands, African diaspora businesses, Afrofuturist art/media, music (Afrobeats, electronic, jazz fusion), tech companies with African-rooted identity, cultural institutions, speculative fiction platforms.
+
+**Real-world:** Black Panther production design, Afrobeats festival branding, African tech startup sites, UJG Brand (house variant).
+
+**Pairs with:** UJG Brand (house implementation of Afro Futurism), Cyberpunk (shared futurism, different cultural root), Aurora (cosmic glow), Art Deco (geometric luxury).
+
+**Performance:** Light to medium. Pattern borders and glow effects are cheap. Iridescent gradients are CSS-only. Particle backgrounds need `will-change` and should be limited.
+
+* * *
+### 41\. Psychedelic (altered perception)
+**The philosophy:** Altered perception rendered on screen. Vibrating color contrasts, flowing organic forms, kaleidoscopic patterns, visual distortion. The UI pulsates and shifts like looking through a prism.
+
+**Origin:** 1960s counterculture (Wes Wilson's concert posters, Peter Max, Yellow Submarine), op art (Bridget Riley), and contemporary festival/music culture. In digital: music visualization, festival branding, and creative agency sites. The aesthetic translates the visual experience of perceptual expansion: color vibration, form-flow, and pattern recursion.
+
+**Key CSS signatures:** Vibrating color combos (complementary colors at high saturation: red/green, blue/orange, purple/yellow), `animation: hue-rotate 10s linear infinite` on gradient backgrounds, kaleidoscopic effects via CSS `clip-path` + repeated/mirrored sections, wavy distortion via SVG `feTurbulence` + `feDisplacementMap` filters, `background: conic-gradient(from 0deg, ...)` for radial color wheels, `border-radius: 40% 60% 60% 40% / 40% 40% 60% 60%` organic blob shapes that morph.
+
+**Typography:** Art Nouveau-influenced or custom psychedelic display fonts (flowing, melting, or vibrating letterforms). Body in readable humanist sans (the body text must survive the visual chaos). Display type often warped via SVG text-path (letters following wavy paths) or layered with color-shifted duplicates for "vibration" effect.
+
+**Color theory:** Maximum saturation, maximum contrast. Rainbow spectrum used freely. Vibrating color pairs that create optical illusion (equiluminant complementaries). Gradient flows that cycle through the full hue wheel. The palette should feel like: light through a prism, a peacock tail, or bioluminescence.
+
+**Motion:** Flowing, morphing, continuously cycling. Hue rotation on backgrounds (8–20s loops). Organic blob shapes that morph via `border-radius` keyframes. Ripple/wave effects on scroll. Kaleidoscope rotations. Timing: slow and hypnotic (4s+ for ambient) or pulsed to rhythm (for music-tied contexts). CRITICAL: `prefers-reduced-motion` must kill all of this.
+
+**Common pitfalls:** Photosensitive seizure risk is REAL. Vibrating complementary colors and rapidly cycling hues can trigger seizures. MUST throttle animation speed, provide reduced-motion fallback, and avoid pure red/blue vibration combos. Also: completely unusable for dense information. Use for splash/hero/artistic moments only.
+
+**Token structure:** `--psych-spectrum: conic-gradient(from 0deg, #FF0000, #FF8800, #FFFF00, #00FF00, #0088FF, #8800FF, #FF0000)`, `--psych-vibrate-1: #FF00FF`, `--psych-vibrate-2: #00FF00`, `--psych-hue-speed: 12s`, `--psych-blob: 40% 60% 60% 40% / 40% 40% 60% 60%`, `--psych-distort: url(#turbulence)`.
+
+**When to use:** Music/festival branding, creative agency splash pages, art installations, album/event marketing, retro-themed experiences.
+
+**Real-world:** Coachella branding, music visualization apps, psychedelic art platforms, festival websites.
+
+**Pairs with:** Organic (flowing shapes), Y2K (retro-futurist overlap), Maximalism (shared abundance).
+
+**Performance:** Heavy. SVG displacement filters are expensive. Hue-rotate on large elements uses GPU. Animated blob morphing is moderate. Limit animated psychedelic effects to one focal area per viewport. Always provide static fallback.
+
+* * *
+### 42\. Uli / Nsibidi (Igbo body art and symbolic writing)
+**The philosophy:** Sacred geometry and symbolic communication from Southeast Nigerian traditions rendered as UI language. Uli (body/wall painting) provides the visual grammar: flowing curvilinear lines, organic symmetry, nature-derived forms. Nsibidi provides the conceptual grammar: ideographic symbols encoding complex ideas in minimal marks. Together they create an interface language that communicates through pattern, symbol, and deliberate negative space.
+
+**Origin:** Uli art is an Igbo (Southeast Nigeria) tradition of body and wall painting, historically practiced by women. Its vocabulary: spiraling lines, concentric circles, nature motifs (python, moon, comb, leaf), drawn freehand with deliberate imperfection. Nsibidi is an ancient ideographic script used by the Ekpe society (Cross River/Southeast Nigeria) and broader region, predating European contact. Each symbol encodes a concept (love, conflict, authority, journey). Together they represent one of Africa's oldest design systems. CRITICAL: approach with research and respect. These are living cultural traditions, not decorative assets.
+
+**Key CSS signatures:** Curvilinear SVG patterns (flowing double-lines, concentric circles, spiral motifs) as `border-image` or background decorations, high contrast line-on-surface (dark brown/black lines on warm earth or white backgrounds), organic symmetry (bilateral but hand-drawn, not pixel-perfect), negative space as composition tool (elements breathe, surrounded by open ground), `stroke-linecap: round` and `stroke-linejoin: round` on all SVG paths (Uli lines are smooth, never angular), earth-toned or monochromatic palettes.
+
+**Typography:** Clean modern type that doesn't compete with the symbolic visual language. Humanist sans (Urbanist, Inter, DM Sans) for body. Display type should be simple and geometric. The Uli/Nsibidi patterns and symbols ARE the decorative typography; Roman letterforms stay functional and quiet. If incorporating Nsibidi symbols, treat them as icons/ideograms with proper `aria-label` descriptions.
+
+**Color theory:** Earth and body: uli-dark (charcoal from camwood/charcoal mix: near-black `#2A1F1F`), uli-red (camwood/ufie: warm red-brown `#8B3A2A`), uli-yellow (ochre/nzu: warm cream `#DEB887`), indigo (from woad/indigo plant: deep blue `#2C3E6B`). White surfaces (like whitewashed walls) as canvas. The palette should feel like natural pigments on skin or wall: warm, organic, never synthetic.
+
+**Motion:** Drawing. Uli is drawn by hand, so animation should replicate the act of drawing: `stroke-dashoffset` reveals that trace each line as if a hand is painting it. Slow, meditative timing (800ms–2s per motif). Nsibidi symbols can appear one by one, each pausing briefly as if being considered before being marked. Nothing mechanical; the motion should feel like a ritual practice, not a machine.
+
+**Common pitfalls:** Treating Uli/Nsibidi as generic "African decoration." These are specific cultural traditions with specific meanings. Using Nsibidi symbols without understanding their meanings is disrespectful and potentially nonsensical. Research each symbol. Also: Uli's beauty is in flowing freehand lines. Perfectly geometric reproductions kill the spirit. Allow subtle imperfections in SVG paths.
+
+**Token structure:** `--uli-dark: #2A1F1F`, `--uli-camwood: #8B3A2A`, `--uli-ochre: #DEB887`, `--uli-indigo: #2C3E6B`, `--uli-canvas: #F5F0E5`, `--uli-stroke: 2px`, `--uli-linecap: round`, `--uli-pattern: url(uli-spirals.svg)`, `--nsibidi-symbol-size: 32px`.
+
+**When to use:** Projects honoring Igbo/Southeast Nigerian heritage, Afrocentric luxury brands, cultural institutions, educational platforms about African art/writing systems, UJG projects drawing on this specific tradition (distinct from general Afro Futurism).
+
+**Real-world:** Contemporary Igbo artists' portfolios, African heritage museum sites, cultural festival branding, Afrocentric design showcases.
+
+**Pairs with:** Afro Futurism (speculative extension), Organic (shared curvilinear nature forms), Japanese/Wabi-Sabi (shared reverence for line and negative space), Hand-drawn (shared freehand philosophy).
+
+**Performance:** Light. SVG line patterns are small. `stroke-dashoffset` animation is cheap. The style's power comes from composition and line quality, not expensive effects.
+
+* * *
+### 43\. Sudanese Modernism / Khartoum School (African modernist synthesis)
+**The philosophy:** African modernism rooted in Sudanese identity. Arabic calligraphic abstraction meets geometric African form. The visual language of the Khartoum School (1960s): artists who rejected both Western abstraction and traditional replication, instead synthesizing Arabic letterforms, African geometric patterns, and modernist composition into something entirely new.
+
+**Origin:** The Khartoum School (1960s–80s), led by Ibrahim El-Salahi, Ahmed Shibrain, and Kamala Ibrahim Ishaq. Post-independence Sudanese artists searching for a visual identity that was neither colonial-Western nor traditionally replicated. El-Salahi's work fuses Arabic calligraphy with African masks and modernist abstraction. Shibrain's hurufiyya (letter art) transforms Arabic script into pure visual composition. This is African modernism: forward-looking, culturally rooted, compositionally bold.
+
+**Key CSS signatures:** Calligraphic curve elements (thick-to-thin SVG strokes mimicking Arabic brush calligraphy, `stroke-width` varies along path), geometric pattern sections (triangles, diamonds, cross-hatching from Sudanese textile/scarification traditions), warm earth tones on textured surfaces, asymmetric compositions with strong vertical movement (calligraphic influence), `mix-blend-mode: multiply` for layered calligraphic/geometric elements, visible brushstroke textures.
+
+**Typography:** Arabic-influenced display type that foregrounds calligraphic beauty (Aref Ruqaa, Noto Naskh Arabic, or custom calligraphic faces for display). For Latin body text: modern serif with calligraphic heritage (Crimson Pro, Libre Baskerville) or geometric sans that echoes Arabic letter geometry. Bilingual layouts (Arabic RTL + Latin LTR) should be considered and handled with CSS `direction` and logical properties.
+
+**Color theory:** Sudan's landscape palette: Saharan sand (`#D4A574`), Nile blue (`#2A5F8F`), red-earth/laterite (`#A0522D`), desert white (`#FAF0E6`), deep charcoal (`#2A2A2A`). Accent: indigo (`#3B4D82`, from traditional Sudanese toub dye). The palette should feel like: warm earth under clear blue sky, calligraphy ink on parchment.
+
+**Motion:** Calligraphic drawing. Strokes that paint themselves with varying thickness (`stroke-dashoffset` combined with animated `stroke-width` or SVG path morphing). Geometric patterns that tessellate and grow from a seed point. Slow, considered timing (600ms–2s). Motion should feel like a calligrapher's brush: deliberate, unhurried, each stroke a commitment.
+
+**Common pitfalls:** Reducing Sudanese visual culture to "generic Arabic calligraphy." The Khartoum School's innovation was specifically the synthesis of Arabic calligraphic tradition WITH African geometric form. Both elements must be present. Also: Arabic calligraphy has its own rules of beauty; arbitrary letter distortion looks wrong to anyone who reads Arabic. Consult references.
+
+**Token structure:** `--sudan-sand: #D4A574`, `--sudan-nile: #2A5F8F`, `--sudan-earth: #A0522D`, `--sudan-parchment: #FAF0E6`, `--sudan-ink: #2A2A2A`, `--sudan-indigo: #3B4D82`, `--sudan-stroke: url(calligraphic-brush.svg)`, `--sudan-pattern: url(sudanese-geometric.svg)`.
+
+**When to use:** North/East African heritage projects, Arabic-language platforms with African identity, cultural institutions, luxury brands with Sudanese/North African roots, educational content about African modernism, dual-language (Arabic/English) products.
+
+**Real-world:** El-Salahi retrospective exhibition materials, Sudanese cultural organization sites, North African heritage brands.
+
+**Pairs with:** Afro Futurism (African futurity), Uli/Nsibidi (fellow African design tradition), Art Deco (geometric luxury), Japanese/Wabi-Sabi (shared calligraphic reverence).
+
+**Performance:** Light to medium. Calligraphic SVG animations are moderate (complex paths). Static patterns are cheap. The style's impact comes from composition, not computation.
+
+* * *
+### 44\. Punk Grunge (subcultural raw)
+**The philosophy:** DIY or die. Xeroxed zines, cut-and-paste type, safety pins, aggressive messaging, anti-polish. The UI looks like it was assembled in a squat with a photocopier and a glue stick. Punk isn't a look; it's an attitude that produces a look.
+
+**Origin:** Punk rock (1976: Sex Pistols, Ramones) and its visual language created by Jamie Reid (Sex Pistols' ransom-note typography), Crass Records' anarchist graphics, and generations of zine makers. Distinct from Grunge (#25): Grunge is textured and worn (worn jeans), Punk is aggressive and constructed (torn jeans held together with safety pins). It's collage as weapon.
+
+**Key CSS signatures:** Ransom-note typography (mixed fonts, sizes, weights, colors per word via nested `<span>` styling), high-contrast stark black and white with one aggressive accent (red, neon pink, or yellow), xerox/photocopy texture overlay (`filter: contrast(1.5) brightness(1.1)` + grain), `transform: rotate(-2deg to 3deg)` on text blocks (askew pasting), `border: 3–4px solid #000` (zine-cut rectangles), `mix-blend-mode: multiply` for photocopied-layering effect, strikethrough and handwritten annotation overlays.
+
+**Typography:** THE defining element. Ransom-note assembly: each word or phrase in a different face (Impact, Courier, Times New Roman, a handwriting font, an ultra-black sans). Words deliberately cut (CSS `overflow: hidden` + `clip-path` for "torn" word edges). All-caps screaming headlines next to tiny lowercase body. Typewriter text for manifestos. The "wrongness" of mismatched type IS the aesthetic.
+
+**Color theory:** Binary: black and white, plus ONE accent. Classic punk: black + white + red. Riot grrrl: black + white + hot pink. Anarcho: black + white only. The accent is used for emphasis (circled words, underlines, X marks), never for decoration. If you need a second color, you've lost the punk energy.
+
+**Motion:** Abrupt and confrontational. No easing: `transition: 0ms`. Elements that slam into position. Glitch-style flickering (`clip-path: inset()` with random keyframes at 50ms intervals). Content that appears as if slapped down. Anti-smooth. If it feels designed, it's wrong.
+
+**Common pitfalls:** Punk aesthetic without punk substance is cosplay. The style only works when the content matches the energy (counter-cultural messaging, independent projects, anti-establishment). A corporate brand in punk clothing reads as deeply inauthentic. Also: the ransom-note type must still be READABLE. Keep paragraphs short, use clean type for any body text over 2 sentences.
+
+**Token structure:** `--punk-black: #000000`, `--punk-white: #FFFFFF`, `--punk-accent: #FF0000`, `--punk-xerox: contrast(1.5) brightness(1.1)`, `--punk-grain: url(photocopy-noise.svg)`, `--punk-grain-opacity: 0.08`, `--punk-rotate-range: -3deg to 3deg`.
+
+**When to use:** Independent music, activist/political movements, zine culture, skateboarding, independent publishing, counter-cultural brands, DIY communities, small venue/bar promotion.
+
+**Real-world:** Punk label sites, independent zine platforms, activist campaign pages, underground music venue promotion.
+
+**Pairs with:** Grunge (textured cousin), Neo-Brutalism (shared rawness, more "designed"), Graffiti (shared street energy), Retro/Pixel (DIY digital heritage).
+
+**Performance:** Excellent. Black and white with high-contrast filters is computationally free. Grain overlay is a tiny SVG. The style's power is in typography and composition, which cost nothing.
+
+* * *
 ## How to choose
 **Scales safely across a whole product (200+ screens):** Flat, Material, Swiss, Corporate, Scandinavian, and your UJG brand. These are "system" styles that work without fatigue.
 
@@ -834,18 +1172,22 @@ The visual languages you render components in. Same component, different aesthet
 **Client-matching guide:**
 *   Enterprise / B2B → Flat, Material, Swiss, Corporate
 *   Consumer / playful → Claymorphism, Aurora, Organic, Bento Grid
-*   Luxury / high-end → Art Deco, Swiss, Editorial, Scandinavian, Japanese/Wabi-Sabi
-*   Tech / developer → Cyberpunk, Aurora, Minimal, Monochrome
-*   Youth / culture → Y2K, Memphis, Neo-Brutalism, Hand-drawn
-*   Wellness / eco → Organic, Scandinavian, Japanese/Wabi-Sabi
-*   Retro / nostalgic → Skeuomorphism, Retro/Pixel, Y2K, Grunge
+*   Luxury / high-end → Art Deco, Swiss, Editorial, Scandinavian, Japanese/Wabi-Sabi, Victorian, Gothic
+*   Tech / developer → Cyberpunk, Aurora, Minimal, Monochrome, Conceptual Sketch
+*   Youth / culture → Y2K, Memphis, Neo-Brutalism, Hand-drawn, Graffiti, Punk Grunge
+*   Wellness / eco → Organic, Scandinavian, Japanese/Wabi-Sabi, Bohemian
+*   Retro / nostalgic → Skeuomorphism, Retro/Pixel, Y2K, Grunge, Scrapbook
 *   Content / media → Editorial, Swiss, Bento Grid
-*   Children / education → Claymorphism, Paper Cut, Hand-drawn, Memphis
-*   Art / culture institutions → Bauhaus, Swiss, Editorial, Kinetic
-*   Music / entertainment → Cyberpunk, Grunge, Aurora, Neo-Brutalism
-*   Craft / handmade → Hand-drawn, Organic, Paper Cut, Japanese
-*   Sci-fi / gaming → Futurism/HUD, Cyberpunk, Retro/Pixel
+*   Children / education → Claymorphism, Paper Cut, Hand-drawn, Memphis, Scrapbook
+*   Art / culture institutions → Bauhaus, Swiss, Editorial, Kinetic, Surrealism
+*   Music / entertainment → Cyberpunk, Grunge, Aurora, Neo-Brutalism, Psychedelic, Punk Grunge, Graffiti
+*   Craft / handmade → Hand-drawn, Organic, Paper Cut, Japanese, Bohemian, Scrapbook
+*   Sci-fi / gaming → Futurism/HUD, Cyberpunk, Retro/Pixel, Afro Futurism
 *   Premium DTC → Scandinavian, Minimal, Bento Grid, Monochrome
+*   African diaspora / heritage → Afro Futurism, Uli/Nsibidi, Sudanese Modernism, UJG Brand
+*   Fashion / maximalist → Maximalism, Victorian, Gothic, Bohemian, Art Deco
+*   Counter-cultural / independent → Punk Grunge, Neo-Brutalism, Graffiti, Grunge
+*   Festival / experiential → Psychedelic, Aurora, Y2K, Graffiti, Kinetic
 * * *
 ## Combining styles (layering)
 Most shipped products blend 2–3 styles. Rules:
@@ -877,16 +1219,27 @@ Most shipped products blend 2–3 styles. Rules:
 *   **Kinetic / Motion-First:** Must provide COMPLETE static fallback. The site must be fully usable with zero animation. No content gated behind animation completion.
 *   **Japanese / Wabi-Sabi:** Extreme whitespace works for sighted users but adds scrolling burden for motor-impaired users on mobile. Balance spacing with content density.
 *   **High Contrast:** This style IS the accessibility standard. Use it as the forced-colors / high-contrast mode fallback for any other style.
+*   **Maximalism:** Multiple overlapping layers and patterns can overwhelm screen readers and low-vision users. Maintain clear focus rings above all decorative layers. Pattern-heavy backgrounds need solid fallbacks.
+*   **Surrealism:** Physics-defying layouts disorient users with cognitive disabilities. Keep navigation and core actions in predictable positions regardless of decorative surrealism.
+*   **Scrapbook / Bohemian:** Non-linear visual layout must still have logical DOM order. Rotated elements can clip focus rings. Test tab order carefully.
+*   **Victorian / Gothic:** Ornamental SVGs and blackletter type are illegible at small sizes. Simplify below tablet breakpoints. Gothic's dark-on-dark needs careful contrast testing.
+*   **Graffiti:** Spray-paint overlays on text destroy readability. Keep body text in clean zones. Texture overlays must not interfere with interactive element recognition.
+*   **Conceptual Sketch:** Blueprint/graph-paper backgrounds can create visual noise for users with visual processing disorders. Keep grid subtle (low opacity). Annotation labels help clarify intent.
+*   **Afro Futurism:** Warm glow effects and particle backgrounds must honor `prefers-reduced-motion`. Gold-on-dark passes contrast at display sizes but must be tested at 14px body.
+*   **Psychedelic:** HIGHEST seizure risk of any style. Vibrating complementary colors and rapid hue cycling are dangerous. MUST provide complete static fallback. Never use as a full-page treatment for any production product.
+*   **Uli / Nsibidi:** Nsibidi symbols used as icons need `aria-label` descriptions. Line-drawing animations should freeze under `prefers-reduced-motion`.
+*   **Sudanese Modernism:** Bilingual Arabic/Latin layouts require proper `dir="rtl"` handling and logical CSS properties. Calligraphic animations should freeze under `prefers-reduced-motion`.
+*   **Punk Grunge:** Ransom-note typography is inherently hard to read. Keep it to headlines; body text must be clean and accessible. High-contrast black/white base actually helps focus visibility.
 *   **All styles:** The component's semantics, keyboard behavior, and 44px target never change. Style is skin; behavior is the skeleton (see the Private ([https://app.clickup.com/8495850/docs/838qa-81211/838qa-200531](https://app.clickup.com/8495850/docs/838qa-81211/838qa-200531))).
 * * *
 ## Performance budget by style
 
 | Tier | Styles | GPU Cost | Notes |
 | ---| ---| ---| --- |
-| Zero-cost | Flat, Swiss, Corporate, High Contrast, Bauhaus, Pixel Art | None | Pure CSS, no filters, no animation |
-| Light | Material, Claymorphism, Neumorphism, Neo-Brutalism, Scandinavian, Paper Cut, Monochrome, UJG Brand | Low | Simple shadows and transitions |
-| Medium | Aurora, Cyberpunk, Organic, Y2K, Bento Grid, Grunge, Futurism/HUD, Hand-drawn | Moderate | Filters, blend modes, SVG animation |
-| Heavy | Glassmorphism, Kinetic/Motion-First, Isometric (3D) | High | backdrop-filter, continuous animation, 3D transforms |
+| Zero-cost | Flat, Swiss, Corporate, High Contrast, Bauhaus, Pixel Art, Conceptual Sketch, Punk Grunge | None | Pure CSS, no filters, no animation |
+| Light | Material, Claymorphism, Neumorphism, Neo-Brutalism, Scandinavian, Paper Cut, Monochrome, UJG Brand, Gothic, Bohemian, Uli/Nsibidi, Afro Futurism | Low | Simple shadows, glows, and transitions |
+| Medium | Aurora, Cyberpunk, Organic, Y2K, Bento Grid, Grunge, Futurism/HUD, Hand-drawn, Victorian, Graffiti, Scrapbook, Surrealism, Sudanese Modernism | Moderate | Filters, blend modes, SVG animation, texture images |
+| Heavy | Glassmorphism, Kinetic/Motion-First, Isometric (3D), Maximalism, Psychedelic | High | backdrop-filter, continuous animation, 3D transforms, layered blend modes, hue cycling |
 
 **Rule of thumb:** Budget for 16ms frames (60fps). If your chosen style's effects cause jank on a mid-range Android phone, dial back or provide a simpler fallback via `@media (prefers-reduced-motion)` or feature detection.
 * * *
