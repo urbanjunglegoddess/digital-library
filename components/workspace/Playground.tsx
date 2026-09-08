@@ -1,10 +1,11 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
 import { ALL_TARGETS, DEFAULT_TARGET, TARGETS_BY_KEY } from "@/lib/targets";
 import { specFor } from "@/lib/composer";
 import { pickSnippet } from "@/lib/snippets";
+import { PREF_SKIN, PREF_TARGET, getPref } from "@/lib/prefs";
 import { CanvasItem } from "@/components/build/CanvasItem";
 import { generate } from "@/components/build/generate";
 import type { StackItem, TrayItem } from "@/components/build/types";
@@ -37,6 +38,15 @@ export function Playground({ tray, initialSlug }: { tray: TrayItem[]; initialSlu
   const [state, setState] = useState<StateKey>("default");
   const [copied, setCopied] = useState(false);
   const [propsBySlug, setPropsBySlug] = useState<Record<string, StackItem["props"]>>({});
+
+  // Honor the defaults saved in Settings (applied post-mount to avoid a
+  // hydration mismatch).
+  useEffect(() => {
+    const s = getPref(PREF_SKIN);
+    const t = getPref(PREF_TARGET);
+    if (s && ALL_STYLES.includes(s as (typeof ALL_STYLES)[number])) setSkin(s);
+    if (t && ALL_TARGETS.some((x) => x.key === t)) setTarget(t);
+  }, []);
 
   const meta = tray.find((t) => t.slug === slug);
   const spec = specFor(slug);

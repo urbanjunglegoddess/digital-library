@@ -110,7 +110,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       <div className="app-main">{children}</div>
 
       {/* Mobile: five tabs, the rest behind More. */}
-      <nav className="app-tabs" aria-label="Primary">
+      <nav className="app-tabs" aria-label="Primary (mobile)">
         {TABS.map((s) => {
           const active = isActive(pathname, s.href);
           return (

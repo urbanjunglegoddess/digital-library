@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/site/AppShell";
+import { ALL_STYLES } from "@/lib/styles";
+import { ALL_TARGETS } from "@/lib/targets";
 
 export const metadata: Metadata = {
   title: "Digital Asset Library — Urban Jungle Goddess",
-  description:
-    "A searchable catalog of reusable, accessibility-audited UI components and code assets across 11 visual styles and 12 language targets.",
+  description: `A searchable catalog of reusable, accessibility-audited UI components and code assets across ${ALL_STYLES.length} visual styles and ${ALL_TARGETS.length} language targets.`,
 };
 
 export default function RootLayout({
