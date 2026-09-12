@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { STYLE_NAMES } from "@/lib/styles";
+import { PREF_SKIN, getPref } from "@/lib/prefs";
 
 /**
  * The style switcher. Renders a live preview of the component inside a
@@ -29,23 +30,13 @@ export function StyleSwitcher({
   const touched = useRef(false);
   const previewLabel = label ?? name;
 
+  // Read the preferred skin after mount, not during render, so the static HTML
+  // and the first client render agree. lib/prefs is one synchronous source: the
+  // app shell has already mirrored any account value into it.
   useEffect(() => {
-    let cancelled = false;
-    fetch("/api/preferences")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        const preferred = data?.preferences?.default_style;
-        if (cancelled || touched.current) return;
-        if (typeof preferred === "string" && styles.includes(preferred)) {
-          setActive(preferred);
-        }
-      })
-      .catch(() => {
-        // Signed out or offline: the built-in default is already showing.
-      });
-    return () => {
-      cancelled = true;
-    };
+    if (touched.current) return;
+    const preferred = getPref(PREF_SKIN);
+    if (preferred && styles.includes(preferred)) setActive(preferred);
   }, [styles]);
 
   function choose(key: string) {

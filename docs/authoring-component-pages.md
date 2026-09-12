@@ -1,9 +1,9 @@
 # Authoring component reference pages (markdown)
 
 Component docs live in **`content/docs/<slug>.mdx`** — one file per component. Each
-is YAML frontmatter followed by a Markdown body. Drop a file in, and the catalog
-renders it automatically: a card on `/catalog`, a detail page at
-`/catalog/<slug>`, the 11-style switcher, copyable code tabs, references, and a
+is YAML frontmatter followed by a Markdown body. Drop a file in, and the
+Knowledge Hub renders it automatically: a card on `/knowledge`, a detail page at
+`/knowledge/<slug>`, the style switcher, copyable code tabs, references, and a
 ClickUp source link. No code changes needed.
 
 Start from **`content/docs/_TEMPLATE.mdx`** (copy it to `<slug>.mdx`).

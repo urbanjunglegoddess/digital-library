@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getViewer } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 
 /**
  * GET /api/auth/me — who the caller is, for the app shell.
@@ -18,14 +19,30 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const viewer = await getViewer();
 
+  if (!viewer) {
+    return NextResponse.json(
+      { signed_in: false, display_name: null, is_admin: false, preferences: null },
+      { headers: { "Cache-Control": "private, no-store" } },
+    );
+  }
+
+  // Preferences ride along rather than needing their own round trip: the shell
+  // mirrors them into localStorage, which is where the Playground, the composer
+  // and the style switcher read them from synchronously.
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("profiles")
+    .select("preferences")
+    .eq("id", viewer.id)
+    .maybeSingle();
+
   return NextResponse.json(
-    viewer
-      ? {
-          signed_in: true,
-          display_name: viewer.displayName,
-          is_admin: viewer.isAdmin,
-        }
-      : { signed_in: false, display_name: null, is_admin: false },
+    {
+      signed_in: true,
+      display_name: viewer.displayName,
+      is_admin: viewer.isAdmin,
+      preferences: data?.preferences ?? {},
+    },
     { headers: { "Cache-Control": "private, no-store" } },
   );
 }

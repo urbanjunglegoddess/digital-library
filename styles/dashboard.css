@@ -125,7 +125,7 @@
 .dsh-row { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
 @media (max-width: 820px) { .dsh-row { grid-template-columns: 1fr; } }
 .dsh-card { background: var(--night-2); border: 1px solid var(--hair); border-radius: 13px; padding: 15px 16px; }
-.dsh-card h3 {
+.dsh-card h2 {
   font-family: var(--dsh-disp);
   font-weight: 600;
   font-size: 0.72rem;
@@ -207,7 +207,7 @@
 .dsh-seg__track { height: 8px; border-radius: 5px; background: rgba(232, 230, 225, 0.1); overflow: hidden; }
 .dsh-seg__fill { height: 100%; border-radius: 5px; }
 .dsh-seg--idea .dsh-seg__fill { background: rgba(232, 230, 225, 0.3); }
-.dsh-seg--draft .dsh-seg__fill { background: var(--sienna); }
+.dsh-seg--drafting .dsh-seg__fill { background: var(--sienna); }
 .dsh-seg--built .dsh-seg__fill { background: var(--green-lift); }
 .dsh-seg--audited .dsh-seg__fill { background: var(--gold); }
 .dsh-seg--reusable .dsh-seg__fill { background: linear-gradient(90deg, var(--gold), #f2c14e); }

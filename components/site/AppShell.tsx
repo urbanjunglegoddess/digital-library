@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { mirrorAccountPreferences } from "@/lib/prefs";
 import "@/styles/shell.css";
 
 /**
@@ -76,6 +77,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             ? { displayName: data.display_name, isAdmin: Boolean(data.is_admin) }
             : null,
         );
+        // Account preferences are the source of truth when signed in. Mirroring
+        // them into localStorage here means the Playground, the composer and the
+        // style switcher keep reading one synchronous source and never need to
+        // know an account exists.
+        if (data?.signed_in) mirrorAccountPreferences(data.preferences);
         setViewerKnown(true);
       })
       .catch(() => {
@@ -192,7 +198,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Mobile: five tabs, the rest behind More. */}
-      <nav className="app-tabs" aria-label="Primary">
+      <nav className="app-tabs" aria-label="Primary (mobile)">
         {TABS.map((s) => {
           const active = isActive(pathname, s.href);
           return (

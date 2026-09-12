@@ -32,7 +32,7 @@ interface Run {
 const RUNS: Run[] = [
   {
     name: "Melanaxis report shell",
-    detail: "11 assets · Obsidian Bloom skin",
+    detail: "11 assets · UJG skin",
     domain: "Data",
     output: "Zip · Spec · Repo",
     status: "shipped",
@@ -40,7 +40,7 @@ const RUNS: Run[] = [
   },
   {
     name: "UJG marketing rebuild",
-    detail: "9 assets · Vibranium Court skin",
+    detail: "9 assets · Aurora skin",
     domain: "Website",
     output: "Zip · Spec",
     status: "shipped",
@@ -85,7 +85,7 @@ export default function Portal() {
 
   const kpis = [
     { label: "Reference specs", value: String(written), delta: "+3 this week", trend: "up" },
-    { label: "Runs generated", value: String(RUNS.length + 5), delta: "+2 this week", trend: "up" },
+    { label: "Runs generated", value: String(RUNS.length), delta: "+2 this week", trend: "up" },
     { label: "Specs audited", value: String(audited), unit: `/ ${written}`, delta: "in review", trend: "flat" },
     { label: "Targets filled", value: String(FILLED_TARGETS), unit: `/ ${TARGET_COUNT}`, delta: "1 stale", trend: "down" },
   ];
@@ -128,7 +128,7 @@ export default function Portal() {
             <div className="pt-colhead">
               <h2 className="pt-h2">Recent runs</h2>
               <span className="pt-meta">
-                {RUNS.length + 5} total · {blocked} blocked
+                {RUNS.length} total · {blocked} blocked
               </span>
             </div>
 
@@ -243,7 +243,7 @@ export default function Portal() {
               <p className="pt-eyebrow pt-eyebrow--muted">Activity</p>
               <ul className="pt-activity">
                 <li><span>Metric spec audited</span><span>4h</span></li>
-                <li><span>Skin added · Cyber Mirage</span><span>1d</span></li>
+                <li><span>Skin added · Cyberpunk</span><span>1d</span></li>
                 <li><span>Repo pushed · melanaxis-report</span><span>2d</span></li>
                 <li><span>Tabs spec promoted to Reusable</span><span>5d</span></li>
               </ul>

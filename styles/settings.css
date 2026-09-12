@@ -1,0 +1,95 @@
+/* =============================================================================
+   Settings — preferences cards. Light surface, --dl-* tokens.
+   ============================================================================= */
+
+.set-card {
+  max-width: 720px;
+  margin: 0 0 20px;
+  padding: 20px 22px;
+  border: 1px solid var(--dl-line);
+  border-radius: 14px;
+  background: var(--dl-surface);
+}
+.set-card--muted { background: var(--dl-surface-2); }
+.set-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.set-card__title {
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0;
+}
+.set-saved {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: oklch(52% 0.13 150);
+  opacity: 0;
+  transition: opacity 0.16s;
+}
+.set-saved.is-on { opacity: 1; }
+
+.set-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 560px) { .set-grid { grid-template-columns: 1fr; } }
+.set-field { display: flex; flex-direction: column; gap: 6px; }
+.set-field__label { font-weight: 600; font-size: 0.9rem; }
+.set-field__hint { font-size: 0.76rem; color: var(--dl-ink-soft); }
+.set-select {
+  min-height: 44px;
+  padding: 10px 12px;
+  border-radius: 9px;
+  border: 1.5px solid var(--dl-line-2);
+  background: var(--dl-surface);
+  color: var(--dl-ink);
+  font: 500 0.9rem/1.2 var(--font-sans);
+}
+.set-select:focus-visible {
+  outline: 3px solid var(--dl-focus);
+  outline-offset: 2px;
+  border-color: var(--dl-primary);
+}
+
+.set-reset {
+  margin-top: 18px;
+  min-height: 40px;
+  padding: 9px 16px;
+  border-radius: 9px;
+  border: 1px solid var(--dl-line-2);
+  background: var(--dl-surface);
+  color: var(--dl-ink);
+  font: 500 0.82rem/1 var(--font-sans);
+  cursor: pointer;
+}
+.set-reset:hover { border-color: var(--dl-danger); color: var(--dl-danger); }
+.set-reset:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
+
+.set-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
+.set-list li { font-size: 0.88rem; line-height: 1.5; color: var(--dl-ink-soft); }
+.set-list strong { color: var(--dl-ink); }
+
+/* Tier note: says plainly whether a preference is per-browser or synced. */
+.set-note {
+  margin: 14px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--dl-ink-soft);
+}
+
+.set-note a {
+  color: var(--dl-primary);
+}
+
+/* The saved indicator doubles as a warning when the account write failed. */
+.set-saved.is-warn {
+  color: var(--dl-danger);
+}

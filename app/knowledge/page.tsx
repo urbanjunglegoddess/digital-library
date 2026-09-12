@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { getAllComponents, getAllTags, getCategories } from "@/lib/content";
+import { ALL_STYLES } from "@/lib/styles";
 import { CatalogBrowser, type CatalogItem } from "@/components/catalog/CatalogBrowser";
 
 export const metadata: Metadata = {
+  // Bare title: the root layout's title template appends the site name.
   title: "Knowledge Hub",
-  description:
-    "The reference library: every component documented, previewable across 11 visual styles, and copy-ready across language targets — browse by category and tag.",
+  description: `The reference library: every component documented, previewable across ${ALL_STYLES.length} visual styles, and copy-ready across language targets — browse by category and tag.`,
 };
 
 export default function KnowledgeHubPage() {
@@ -20,7 +21,7 @@ export default function KnowledgeHubPage() {
     summary: c.summary,
     status: c.status,
     tags: c.tags,
-    styleCount: c.styles?.length ?? 11,
+    styleCount: c.styles?.length ?? ALL_STYLES.length,
   }));
 
   const tags = getAllTags();
@@ -31,9 +32,8 @@ export default function KnowledgeHubPage() {
         <p className="eyebrow">Knowledge Hub</p>
         <h1 className="page__title">Component reference library</h1>
         <p className="page__lede">
-          {components.length} reusable, accessibility-audited components. Each is
-          documented to the 17-section bar, previewable across the 11 visual
-          styles, and copy-ready across language targets.
+          {components.length} components, each documented to the 17-section bar,
+          previewable across every skin, and copy-ready across language targets.
         </p>
         <p className="page__lede">
           For the system-level references — style languages, the atomic design
