@@ -6,7 +6,7 @@ import { BuildHub } from "@/components/build/BuildHub";
 import type { TrayItem } from "@/components/build/types";
 
 export const metadata: Metadata = {
-  title: "Build Hub — Digital Asset Library",
+  title: "Build Hub",
   description:
     "Compose library components into real output, and audit any markup for accessibility — pick a skin and a language target, arrange the stack, copy the code, and run the checks.",
 };

@@ -3,18 +3,22 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { mirrorAccountPreferences } from "@/lib/prefs";
 import "@/styles/shell.css";
 
 /**
- * Global app shell — the eight product surfaces, at three sizes.
+ * Global app shell — the nine product surfaces, at three sizes.
  *
  *   ≥1024px   full 256px rail, label + hint
  *   768–1023  64px icon rail (labels move into title/aria-label)
- *   ≤767px    bottom tab bar of five, the other three behind More
+ *   ≤767px    bottom tab bar of four plus More, the other five in the sheet
  *
  * The rail order is the information architecture; the mobile tab bar picks the
- * five surfaces you move through daily and pushes the rest into the sheet, so
- * nobody meets an eight-item nav wall before they meet the content.
+ * surfaces you move through daily and pushes the rest into the sheet, so nobody
+ * meets a nine-item nav wall before they meet the content. The bar is a
+ * five-column grid, so exactly four surfaces may carry a `tab` — Portal and
+ * Dashboard are status surfaces you visit deliberately, not in passing, so they
+ * live in the sheet and Search takes the slot.
  */
 
 interface Surface {
@@ -28,9 +32,10 @@ interface Surface {
 
 const SURFACES: Surface[] = [
   { href: "/", label: "Home", glyph: "◈", hint: "Landing", tab: "Home" },
-  { href: "/portal", label: "Portal", glyph: "⇄", hint: "Where items move", tab: "Portal" },
+  { href: "/portal", label: "Portal", glyph: "⇄", hint: "Where items move" },
   { href: "/dashboard", label: "Dashboard", glyph: "▤", hint: "Where items report" },
   { href: "/knowledge", label: "Knowledge Hub", glyph: "❋", hint: "Reference library", tab: "Library" },
+  { href: "/search", label: "Search", glyph: "⌕", hint: "Find anything", tab: "Search" },
   { href: "/build", label: "Build Hub", glyph: "⚒", hint: "Compose & assemble", tab: "Build" },
   { href: "/templates", label: "Template Hub", glyph: "❐", hint: "Starters & kits" },
   { href: "/workspace", label: "Workspace", glyph: "◱", hint: "Your saved work" },
@@ -45,9 +50,47 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(`${href}/`);
 }
 
+export interface ShellViewer {
+  displayName: string | null;
+  isAdmin: boolean;
+}
+
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname() ?? "/";
   const [moreOpen, setMoreOpen] = useState(false);
+  const [viewer, setViewer] = useState<ShellViewer | null>(null);
+  // Distinguishes "not signed in" from "have not asked yet", so the rail can
+  // stay blank for a beat instead of flashing "Sign in" at a signed-in user.
+  const [viewerKnown, setViewerKnown] = useState(false);
+
+  // Fetched here rather than passed down from the layout: reading the session
+  // server-side in the layout would opt every route out of static rendering.
+  // Re-runs on navigation so signing in or out is reflected without a reload.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/auth/me")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        setViewer(
+          data?.signed_in
+            ? { displayName: data.display_name, isAdmin: Boolean(data.is_admin) }
+            : null,
+        );
+        // Account preferences are the source of truth when signed in. Mirroring
+        // them into localStorage here means the Playground, the composer and the
+        // style switcher keep reading one synchronous source and never need to
+        // know an account exists.
+        if (data?.signed_in) mirrorAccountPreferences(data.preferences);
+        setViewerKnown(true);
+      })
+      .catch(() => {
+        if (!cancelled) setViewerKnown(true);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
 
   // Route change closes the sheet; Escape closes it from the keyboard.
   useEffect(() => setMoreOpen(false), [pathname]);
@@ -64,7 +107,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="app">
-      <aside className="app-rail" aria-label="Primary">
+      {/* First focusable thing on every page: lets keyboard and screen-reader
+          users jump the nine-item rail instead of tabbing through it on each
+          navigation. Visible only while focused. */}
+      <a href="#main" className="skip-link">
+        Skip to content
+      </a>
+
+      <aside className="app-rail">
         <Link href="/" className="app-brand">
           <span className="app-brand__glyph" aria-hidden="true">
             ◈
@@ -75,7 +125,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </span>
         </Link>
 
-        <nav className="app-nav">
+        <nav className="app-nav" aria-label="Primary">
           <ul>
             {SURFACES.map((s) => {
               const active = isActive(pathname, s.href);
@@ -101,13 +151,51 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </ul>
         </nav>
 
+        <div className="app-rail__account">
+          {!viewerKnown ? null : viewer ? (
+            <>
+              <Link href="/account" className="app-account">
+                <span className="app-account__avatar" aria-hidden="true">
+                  {(viewer.displayName ?? "?").charAt(0).toUpperCase()}
+                </span>
+                <span className="app-account__labels">
+                  <span className="app-account__name">
+                    {viewer.displayName ?? "Your account"}
+                  </span>
+                  <span className="app-account__hint">
+                    {viewer.isAdmin ? "Admin" : "Signed in"}
+                  </span>
+                </span>
+              </Link>
+              {/* POST, so no prefetch or cross-site link can sign you out. */}
+              <form action="/auth/signout" method="post">
+                <button type="submit" className="app-account__out">
+                  Sign out
+                </button>
+              </form>
+            </>
+          ) : (
+            <Link href="/login" className="app-account app-account--out">
+              <span className="app-account__avatar" aria-hidden="true">
+                →
+              </span>
+              <span className="app-account__labels">
+                <span className="app-account__name">Sign in</span>
+                <span className="app-account__hint">Save your work</span>
+              </span>
+            </Link>
+          )}
+        </div>
+
         <div className="app-rail__foot">
-          <span>Phase 1 · v0.1.0</span>
+          <span>Phase 5 · v0.1.0</span>
           <span className="app-rail__foot-sub">Next.js + Supabase</span>
         </div>
       </aside>
 
-      <div className="app-main">{children}</div>
+      <div className="app-main" id="main" tabIndex={-1}>
+        {children}
+      </div>
 
       {/* Mobile: five tabs, the rest behind More. */}
       <nav className="app-tabs" aria-label="Primary (mobile)">
@@ -173,8 +261,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 );
               })}
             </ul>
+            <div className="app-more__account">
+              {!viewerKnown ? null : viewer ? (
+                <>
+                  <Link href="/account" className="app-more__item">
+                    <span className="app-more__glyph" aria-hidden="true">
+                      ◍
+                    </span>
+                    <span className="app-more__labels">
+                      <span className="app-more__label">
+                        {viewer.displayName ?? "Your account"}
+                      </span>
+                      <span className="app-more__hint">
+                        Collections &amp; profile
+                      </span>
+                    </span>
+                  </Link>
+                  <form action="/auth/signout" method="post">
+                    <button type="submit" className="app-account__out">
+                      Sign out
+                    </button>
+                  </form>
+                </>
+              ) : (
+                <Link href="/login" className="app-more__item">
+                  <span className="app-more__glyph" aria-hidden="true">
+                    →
+                  </span>
+                  <span className="app-more__labels">
+                    <span className="app-more__label">Sign in</span>
+                    <span className="app-more__hint">Save your work</span>
+                  </span>
+                </Link>
+              )}
+            </div>
+
             <div className="app-more__foot">
-              <span>Phase 1 · v0.1.0</span>
+              <span>Phase 5 · v0.1.0</span>
               <span>Next.js + Supabase</span>
             </div>
           </div>

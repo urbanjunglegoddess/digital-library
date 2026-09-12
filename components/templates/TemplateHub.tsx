@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
 import { specFor } from "@/lib/composer";
+import { ALL_TARGETS, DEFAULT_TARGET } from "@/lib/targets";
 import { CanvasItem } from "@/components/build/CanvasItem";
 import type { StackItem, TrayItem } from "@/components/build/types";
 import "@/styles/templates.css";
@@ -12,8 +14,15 @@ import "@/styles/templates.css";
  *
  * A template is an ordered list of component slugs. Pick one, then add or
  * remove components and reorder them; the preview re-renders live under the
- * chosen skin. Local state for now — Phase 4 persists templates to the
- * Supabase `templates` table (owner-scoped via RLS).
+ * chosen skin.
+ *
+ * Persistence (Phase 4): a signed-in user's templates live in the Supabase
+ * `templates` table, owner-scoped by RLS, and load in over the curated seeds on
+ * mount. The seeds stay available to everyone as starting points — editing one
+ * and saving it creates your own copy rather than changing the seed.
+ *
+ * Export produces a real project ZIP through /api/templates/export, which
+ * generates from the same module the preview renders from.
  */
 
 interface Template {
@@ -21,6 +30,8 @@ interface Template {
   name: string;
   description: string;
   components: string[]; // slugs, in order
+  /** Row id in `templates` once saved; null for an unsaved seed or draft. */
+  savedId?: string | null;
 }
 
 const SEED: Template[] = [
@@ -69,8 +80,130 @@ export function TemplateHub({ tray }: { tray: TrayItem[] }) {
   const [selectedId, setSelectedId] = useState<string>(SEED[0].id);
   const [skin, setSkin] = useState<string>("ujg");
   const [addSlug, setAddSlug] = useState<string>(tray[0]?.slug ?? "");
+  const [target, setTarget] = useState<string>(DEFAULT_TARGET);
+  const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [busy, setBusy] = useState<null | "saving" | "exporting">(null);
+  const [status, setStatus] = useState<{ kind: "ok" | "err"; text: string } | null>(null);
 
   const selected = templates.find((t) => t.id === selectedId) ?? templates[0];
+
+  // Load the viewer's saved templates over the curated seeds. A 401 just means
+  // signed out, which is a normal state here, not an error to show.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/templates")
+      .then(async (res) => {
+        if (res.status === 401) {
+          if (!cancelled) setSignedIn(false);
+          return null;
+        }
+        return res.ok ? res.json() : null;
+      })
+      .then((data) => {
+        if (cancelled || !data) return;
+        setSignedIn(true);
+        const saved: Template[] = (data.templates ?? []).map((row: any) => ({
+          id: `db:${row.id}`,
+          savedId: row.id,
+          name: row.name,
+          description: row.description ?? "",
+          components: Array.isArray(row.config?.components) ? row.config.components : [],
+        }));
+        if (saved.length) {
+          setTemplates((current) => [...saved, ...current]);
+          setSelectedId(saved[0].id);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setSignedIn(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const saveTemplate = useCallback(async () => {
+    if (!selected) return;
+    setBusy("saving");
+    setStatus(null);
+
+    const res = await fetch("/api/templates", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: selected.savedId ?? undefined,
+        name: selected.name,
+        description: selected.description,
+        config: { components: selected.components, skin },
+      }),
+    }).catch(() => null);
+
+    setBusy(null);
+
+    if (res?.status === 401) {
+      setSignedIn(false);
+      setStatus({ kind: "err", text: "Sign in to save templates." });
+      return;
+    }
+    if (!res || !res.ok) {
+      const detail = res ? ((await res.json().catch(() => null))?.message ?? "") : "";
+      setStatus({ kind: "err", text: detail || "Could not save that template." });
+      return;
+    }
+
+    const { template } = await res.json();
+    // Re-key the local entry onto the saved row so the next save updates
+    // rather than creating a duplicate.
+    setTemplates((ts) =>
+      ts.map((t) =>
+        t.id === selected.id
+          ? { ...t, id: `db:${template.id}`, savedId: template.id }
+          : t,
+      ),
+    );
+    setSelectedId(`db:${template.id}`);
+    setStatus({ kind: "ok", text: `Saved “${template.name}”.` });
+  }, [selected, skin]);
+
+  const exportZip = useCallback(async () => {
+    if (!selected || selected.components.length === 0) return;
+    setBusy("exporting");
+    setStatus(null);
+
+    const res = await fetch("/api/templates/export", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        title: selected.name,
+        target,
+        skin,
+        stack: selected.components.map((slug) => toStackItem(slug, tray)),
+      }),
+    }).catch(() => null);
+
+    setBusy(null);
+
+    if (!res || !res.ok) {
+      setStatus({ kind: "err", text: "Could not build that export." });
+      return;
+    }
+
+    // Hand the blob to the browser as a download, then release the object URL.
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const filename =
+      res.headers.get("Content-Disposition")?.match(/filename="([^"]+)"/)?.[1] ??
+      "composition.zip";
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+
+    setStatus({ kind: "ok", text: `Downloaded ${filename}.` });
+  }, [selected, skin, target, tray]);
 
   const nameFor = (slug: string) => tray.find((t) => t.slug === slug)?.name ?? slug;
 
@@ -115,12 +248,20 @@ export function TemplateHub({ tray }: { tray: TrayItem[] }) {
     setSelectedId(t.id);
   }
 
-  function deleteTemplate(id: string) {
+  async function deleteTemplate(id: string) {
+    const template = templates.find((t) => t.id === id);
+    // Remove the stored row too, otherwise it would reappear on next load.
+    if (template?.savedId) {
+      await fetch(`/api/templates?id=${encodeURIComponent(template.savedId)}`, {
+        method: "DELETE",
+      }).catch(() => null);
+    }
     setTemplates((ts) => {
       const next = ts.filter((t) => t.id !== id);
       if (id === selectedId && next[0]) setSelectedId(next[0].id);
       return next;
     });
+    setStatus(null);
   }
 
   return (
@@ -140,7 +281,14 @@ export function TemplateHub({ tray }: { tray: TrayItem[] }) {
                 className={`th-listitem${t.id === selectedId ? " is-active" : ""}`}
                 onClick={() => setSelectedId(t.id)}
               >
-                <span className="th-listitem__name">{t.name}</span>
+                <span className="th-listitem__name">
+                  {t.name}
+                  {t.savedId && (
+                    <span className="th-saved" title="Saved to your account">
+                      ●
+                    </span>
+                  )}
+                </span>
                 <span className="th-listitem__count">{t.components.length}</span>
               </button>
             </li>
@@ -160,14 +308,58 @@ export function TemplateHub({ tray }: { tray: TrayItem[] }) {
               onChange={(e) => patch(selected.id, { name: e.target.value })}
               aria-label="Template name"
             />
-            <button
-              type="button"
-              className="th-mini th-mini--danger"
-              onClick={() => deleteTemplate(selected.id)}
-            >
-              Delete template
-            </button>
+            <div className="th-editor__actions">
+              <select
+                className="th-select th-select--sm"
+                value={target}
+                onChange={(e) => setTarget(e.target.value)}
+                aria-label="Export target"
+              >
+                {ALL_TARGETS.map((t) => (
+                  <option key={t.key} value={t.key}>
+                    {t.label}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                className="th-mini"
+                onClick={exportZip}
+                disabled={busy !== null || selected.components.length === 0}
+              >
+                {busy === "exporting" ? "Building…" : "Export ZIP"}
+              </button>
+              <button
+                type="button"
+                className="th-mini th-mini--primary"
+                onClick={saveTemplate}
+                disabled={busy !== null}
+              >
+                {busy === "saving" ? "Saving…" : selected.savedId ? "Save" : "Save to account"}
+              </button>
+              <button
+                type="button"
+                className="th-mini th-mini--danger"
+                onClick={() => deleteTemplate(selected.id)}
+              >
+                Delete template
+              </button>
+            </div>
           </header>
+
+          <div aria-live="polite" className="th-status">
+            {status && (
+              <p className={`th-status__msg th-status__msg--${status.kind}`}>
+                {status.text}
+              </p>
+            )}
+            {signedIn === false && !status && (
+              <p className="th-status__msg th-status__msg--hint">
+                <Link href="/login?next=/templates">Sign in</Link> to save
+                templates to your account. Export works either way.
+              </p>
+            )}
+          </div>
           <input
             className="th-descinput"
             value={selected.description}

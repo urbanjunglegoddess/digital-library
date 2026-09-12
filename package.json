@@ -17,7 +17,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "db:push": "node scripts/db-push.mjs",
+    "db:status": "node scripts/db-push.mjs --status",
+    "db:seed": "node scripts/seed.mjs",
+    "db:seed:dry": "node scripts/seed.mjs --dry-run",
+    "verify:rls": "node scripts/verify-rls.mjs",
+    "verify:app": "node scripts/verify-app.mjs"
   },
   "exports": {
     "./styles/tokens.css": "./styles/tokens.css",
@@ -25,7 +31,7 @@
   },
   "dependencies": {
     "@supabase/server": "^1.4.1",
-    "@supabase/ssr": "^0.6.1",
+    "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.112.0",
     "gray-matter": "^4.0.3",
     "next": "^15.4.0",
@@ -41,6 +47,7 @@
     "@types/react-dom": "^19.1.0",
     "eslint": "^9.18.0",
     "eslint-config-next": "^15.4.0",
+    "pg": "^8.23.0",
     "tailwindcss": "^4.1.0",
     "typescript": "^5.7.0"
   },

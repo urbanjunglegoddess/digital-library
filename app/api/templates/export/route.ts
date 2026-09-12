@@ -1,0 +1,190 @@
+import { NextResponse, type NextRequest } from "next/server";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { createZip, type ZipEntry } from "@/lib/zip";
+import { generate } from "@/components/build/generate";
+import { TARGETS_BY_KEY } from "@/lib/targets";
+import { specFor } from "@/lib/composer";
+import { STYLE_NAMES } from "@/lib/styles";
+import type { StackItem } from "@/components/build/types";
+
+/**
+ * POST /api/templates/export — turn a composition into a downloadable project
+ * (Phase 4).
+ *
+ * Body: { title, target, skin, stack: StackItem[] }
+ * Returns: a ZIP containing the generated source, the design-token stylesheet,
+ * the CSS for any component that ships one, and a README explaining the pieces.
+ *
+ * The generation itself reuses `components/build/generate.ts` — the same module
+ * the Build Hub previews with — so a download can never disagree with what the
+ * canvas showed. This runs on the server because it reads real files from the
+ * repo (tokens.css and the per-component CSS) that the browser has no access to.
+ *
+ * Export needs no account: it composes public catalog material. Saving a
+ * template is the part that requires one.
+ */
+export const runtime = "nodejs";
+
+const MAX_STACK = 200;
+
+/** Read a repo file if it exists — a missing one is not an error, just absent. */
+async function readIfPresent(relative: string): Promise<string | null> {
+  try {
+    return await fs.readFile(path.join(process.cwd(), relative), "utf8");
+  } catch {
+    return null;
+  }
+}
+
+export async function POST(request: NextRequest) {
+  let body: {
+    title?: string;
+    target?: string;
+    skin?: string;
+    stack?: StackItem[];
+  };
+
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json(
+      { error: "bad_request", message: "Expected a JSON body." },
+      { status: 400 },
+    );
+  }
+
+  const title = String(body.title ?? "Composition").slice(0, 80);
+  const target = String(body.target ?? "react-ts");
+  const skin = String(body.skin ?? "ujg");
+  const stack = Array.isArray(body.stack) ? body.stack : [];
+
+  if (stack.length === 0) {
+    return NextResponse.json(
+      { error: "empty_stack", message: "Add at least one component before exporting." },
+      { status: 400 },
+    );
+  }
+  if (stack.length > MAX_STACK) {
+    return NextResponse.json(
+      { error: "too_large", message: `A composition is limited to ${MAX_STACK} components.` },
+      { status: 413 },
+    );
+  }
+
+  const targetSpec = TARGETS_BY_KEY[target];
+  if (!targetSpec) {
+    return NextResponse.json(
+      { error: "unknown_target", message: `No such target “${target}”.` },
+      { status: 400 },
+    );
+  }
+
+  // Match the PascalCase transform `generate()` applies to the component name,
+  // so the file is not called Signupscreen.tsx while the export inside it is
+  // called SignupScreen.
+  const baseName =
+    title
+      .replace(/[^a-zA-Z0-9]+(.)/g, (_, c: string) => c.toUpperCase())
+      .replace(/^./, (c) => c.toUpperCase())
+      .replace(/[^a-zA-Z0-9]/g, "") || "Composition";
+
+  // A canvas item always carries its spec defaults; a hand-built request may
+  // not. Fill them in so an export never renders `undefined` as a prop value.
+  const resolved: StackItem[] = stack.map((item) => ({
+    ...item,
+    props: { ...specFor(item.slug).defaults, ...(item.props ?? {}) },
+  }));
+
+  const source = generate(resolved, target, skin, title);
+
+  const entries: ZipEntry[] = [
+    { path: `${baseName}.${targetSpec.ext}`, content: source },
+  ];
+
+  const tokens = await readIfPresent("styles/tokens.css");
+  if (tokens) {
+    entries.push({ path: "styles/tokens.css", content: tokens });
+  }
+
+  // Ship the stylesheet for every distinct component that has one in the repo.
+  const slugs = [...new Set(resolved.map((item) => item.slug))].sort();
+  const bundledCss: string[] = [];
+  for (const slug of slugs) {
+    const css = await readIfPresent(path.join("components", slug, `${slug}.css`));
+    if (css) {
+      entries.push({ path: `styles/${slug}.css`, content: css });
+      bundledCss.push(slug);
+    }
+  }
+
+  entries.push({
+    path: "README.md",
+    content: readme({ title, target: targetSpec.label, skin, slugs, bundledCss, baseName, ext: targetSpec.ext }),
+  });
+
+  const zip = createZip(entries);
+  const filename = `${baseName || "composition"}-${skin}.zip`;
+
+  return new NextResponse(new Uint8Array(zip), {
+    headers: {
+      "Content-Type": "application/zip",
+      "Content-Disposition": `attachment; filename="${filename}"`,
+      "Content-Length": String(zip.length),
+      "Cache-Control": "no-store",
+    },
+  });
+}
+
+function readme(opts: {
+  title: string;
+  target: string;
+  skin: string;
+  slugs: string[];
+  bundledCss: string[];
+  baseName: string;
+  ext: string;
+}): string {
+  const skinName = STYLE_NAMES[opts.skin] ?? opts.skin;
+  const missingCss = opts.slugs.filter((s) => !opts.bundledCss.includes(s));
+
+  return `# ${opts.title}
+
+Generated by the Urban Jungle Goddess **Digital Asset Library**.
+
+- **Target:** ${opts.target}
+- **Visual style:** ${skinName} (\`data-style="${opts.skin}"\`)
+- **Components:** ${opts.slugs.join(", ")}
+
+## What's in here
+
+| File | What it is |
+| ---- | ---------- |
+| \`${opts.baseName}.${opts.ext}\` | The composition itself. |
+| \`styles/tokens.css\` | The design-token layer. Every skin is defined here. |
+${opts.bundledCss.map((s) => `| \`styles/${s}.css\` | Styles for the ${s} component. |`).join("\n")}
+
+## Using it
+
+1. Copy \`styles/tokens.css\` into your project and import it once, globally.
+2. Copy the component stylesheets alongside it.
+3. Drop \`${opts.baseName}.${opts.ext}\` in and render it.
+
+The skin is chosen by the \`data-style\` attribute on the wrapper. Change that
+one value to re-skin the whole composition — the markup does not change:
+
+\`\`\`html
+<div data-style="${opts.skin}"> … </div>
+\`\`\`
+${
+  missingCss.length
+    ? `
+## Note
+
+These components have no stylesheet in the library package yet, so they are not
+bundled here: ${missingCss.join(", ")}. Their full specs and code live on their
+Knowledge Hub pages.
+`
+    : ""
+}`;
+}

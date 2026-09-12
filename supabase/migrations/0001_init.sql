@@ -58,24 +58,6 @@ begin
 end;
 $$;
 
--- ---------------------------------------------------------------------------
--- Helper: is_admin() — SECURITY DEFINER so it reads profiles without tripping
--- RLS (and without recursive policy evaluation on the profiles table).
--- ---------------------------------------------------------------------------
-create or replace function public.is_admin()
-returns boolean
-language sql
-stable
-security definer
-set search_path = public
-as $$
-  select exists (
-    select 1
-    from public.profiles p
-    where p.id = auth.uid()
-      and p.role = 'admin'
-  );
-$$;
 
 -- =============================================================================
 -- Core content tables  (Phase 0 create · Phase 2 live)
@@ -225,6 +207,25 @@ create table if not exists public.collections (
 create index if not exists collections_owner_id_idx
   on public.collections (owner_id);
 
+-- ---------------------------------------------------------------------------
+-- Helper: is_admin() — SECURITY DEFINER so it reads profiles without tripping
+-- RLS (and without recursive policy evaluation on the profiles table).
+-- ---------------------------------------------------------------------------
+create or replace function public.is_admin()
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.profiles p
+    where p.id = auth.uid()
+      and p.role = 'admin'
+  );
+$$;
+
 -- collection_items (M:N) -----------------------------------------------------
 create table if not exists public.collection_items (
   collection_id uuid not null references public.collections (id) on delete cascade,
@@ -297,38 +298,49 @@ alter table public.collection_items  enable row level security;
 
 -- --- Reference data: public read, admin write ------------------------------
 -- categories
+drop policy if exists categories_public_read on public.categories;
 create policy categories_public_read on public.categories
   for select using (true);
+drop policy if exists categories_admin_write on public.categories;
 create policy categories_admin_write on public.categories
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- visual_styles
+drop policy if exists visual_styles_public_read on public.visual_styles;
 create policy visual_styles_public_read on public.visual_styles
   for select using (true);
+drop policy if exists visual_styles_admin_write on public.visual_styles;
 create policy visual_styles_admin_write on public.visual_styles
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- tags
+drop policy if exists tags_public_read on public.tags;
 create policy tags_public_read on public.tags
   for select using (true);
+drop policy if exists tags_admin_write on public.tags;
 create policy tags_admin_write on public.tags
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- component_tags
+drop policy if exists component_tags_public_read on public.component_tags;
 create policy component_tags_public_read on public.component_tags
   for select using (true);
+drop policy if exists component_tags_admin_write on public.component_tags;
 create policy component_tags_admin_write on public.component_tags
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- --- components: public read on published rows; admin sees & writes all -----
+drop policy if exists components_public_read on public.components;
 create policy components_public_read on public.components
   for select using (
     status in ('built', 'audited', 'reusable') or public.is_admin()
   );
+drop policy if exists components_admin_write on public.components;
 create policy components_admin_write on public.components
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- --- code_snippets: visible when parent component is published (or admin) ---
+drop policy if exists code_snippets_public_read on public.code_snippets;
 create policy code_snippets_public_read on public.code_snippets
   for select using (
     public.is_admin() or exists (
@@ -337,54 +349,66 @@ create policy code_snippets_public_read on public.code_snippets
         and c.status in ('built', 'audited', 'reusable')
     )
   );
+drop policy if exists code_snippets_admin_write on public.code_snippets;
 create policy code_snippets_admin_write on public.code_snippets
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- --- references: standalone rows public; component-bound follow the component
+drop policy if exists references_public_read on public.references;
 create policy references_public_read on public.references
   for select using (
     public.is_admin()
     or component_id is null
     or exists (
       select 1 from public.components c
-      where c.id = references.component_id
+      where c.id = "references".component_id
         and c.status in ('built', 'audited', 'reusable')
     )
   );
+drop policy if exists references_admin_write on public.references;
 create policy references_admin_write on public.references
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- --- assets: public read, admin write --------------------------------------
+drop policy if exists assets_public_read on public.assets;
 create policy assets_public_read on public.assets
   for select using (true);
+drop policy if exists assets_admin_write on public.assets;
 create policy assets_admin_write on public.assets
   for all to authenticated using (public.is_admin()) with check (public.is_admin());
 
 -- --- profiles: read own (or admin any); update own; role changes admin-only -
+drop policy if exists profiles_self_read on public.profiles;
 create policy profiles_self_read on public.profiles
   for select to authenticated using (id = auth.uid() or public.is_admin());
+drop policy if exists profiles_self_insert on public.profiles;
 create policy profiles_self_insert on public.profiles
   for insert to authenticated with check (id = auth.uid() or public.is_admin());
+drop policy if exists profiles_self_update on public.profiles;
 create policy profiles_self_update on public.profiles
   for update to authenticated
   using (id = auth.uid() or public.is_admin())
   with check (id = auth.uid() or public.is_admin());
+drop policy if exists profiles_admin_delete on public.profiles;
 create policy profiles_admin_delete on public.profiles
   for delete to authenticated using (public.is_admin());
 
 -- --- templates: private to owner -------------------------------------------
+drop policy if exists templates_owner_all on public.templates;
 create policy templates_owner_all on public.templates
   for all to authenticated
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
 -- --- collections: private to owner -----------------------------------------
+drop policy if exists collections_owner_all on public.collections;
 create policy collections_owner_all on public.collections
   for all to authenticated
   using (owner_id = auth.uid())
   with check (owner_id = auth.uid());
 
 -- --- collection_items: gated through the parent collection's ownership ------
+drop policy if exists collection_items_owner_all on public.collection_items;
 create policy collection_items_owner_all on public.collection_items
   for all to authenticated
   using (

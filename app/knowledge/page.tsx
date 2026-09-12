@@ -5,7 +5,8 @@ import { ALL_STYLES } from "@/lib/styles";
 import { CatalogBrowser, type CatalogItem } from "@/components/catalog/CatalogBrowser";
 
 export const metadata: Metadata = {
-  title: "Knowledge Hub — Digital Asset Library",
+  // Bare title: the root layout's title template appends the site name.
+  title: "Knowledge Hub",
   description: `The reference library: every component documented, previewable across ${ALL_STYLES.length} visual styles, and copy-ready across language targets — browse by category and tag.`,
 };
 

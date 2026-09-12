@@ -76,3 +76,20 @@
 .set-list { margin: 0; padding-left: 18px; display: grid; gap: 8px; }
 .set-list li { font-size: 0.88rem; line-height: 1.5; color: var(--dl-ink-soft); }
 .set-list strong { color: var(--dl-ink); }
+
+/* Tier note: says plainly whether a preference is per-browser or synced. */
+.set-note {
+  margin: 14px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.5;
+  color: var(--dl-ink-soft);
+}
+
+.set-note a {
+  color: var(--dl-primary);
+}
+
+/* The saved indicator doubles as a warning when the account write failed. */
+.set-saved.is-warn {
+  color: var(--dl-danger);
+}

@@ -3,20 +3,33 @@
 import { useEffect, useState } from "react";
 import { ALL_STYLES, STYLE_NAMES } from "@/lib/styles";
 import { ALL_TARGETS, DEFAULT_TARGET } from "@/lib/targets";
-import { PREF_SKIN, PREF_TARGET, getPref, setPref, clearPref } from "@/lib/prefs";
+import {
+  PREF_SKIN,
+  PREF_TARGET,
+  getPref,
+  setPref,
+  clearPref,
+  saveAccountPreferences,
+} from "@/lib/prefs";
 import "@/styles/settings.css";
 
 /**
- * Settings — working preferences (localStorage). The default skin and language
- * target chosen here are what the Playground and Build Hub composer open with.
- * Account / profile settings arrive with auth in Phase 3.
+ * Working preferences: the default skin and language target the Playground and
+ * the Build Hub composer open with.
+ *
+ * Writes to both tiers (see lib/prefs.ts). localStorage updates immediately so
+ * the change is live before any request finishes; when signed in the value is
+ * also persisted to the account, which is what makes it follow you to another
+ * device. The status line says which of the two actually happened rather than
+ * implying a sync that did not occur.
  */
-export function SettingsPanel() {
+export function SettingsPanel({ signedIn = false }: { signedIn?: boolean }) {
   const [skin, setSkin] = useState<string>("flat");
   const [target, setTarget] = useState<string>(DEFAULT_TARGET);
-  const [saved, setSaved] = useState(false);
+  const [status, setStatus] = useState<"idle" | "local" | "synced" | "failed">("idle");
 
-  // Load saved prefs after mount (avoids a hydration mismatch).
+  // Load saved prefs after mount (avoids a hydration mismatch). The app shell
+  // has already mirrored any account values into localStorage by now.
   useEffect(() => {
     const s = getPref(PREF_SKIN);
     const t = getPref(PREF_TARGET);
@@ -24,48 +37,65 @@ export function SettingsPanel() {
     if (t && ALL_TARGETS.some((x) => x.key === t)) setTarget(t);
   }, []);
 
-  function flash() {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 1400);
+  async function persist(nextSkin: string, nextTarget: string) {
+    setPref(PREF_SKIN, nextSkin);
+    setPref(PREF_TARGET, nextTarget);
+
+    if (!signedIn) {
+      setStatus("local");
+      return;
+    }
+    const ok = await saveAccountPreferences({
+      default_style: nextSkin,
+      default_target: nextTarget,
+    });
+    setStatus(ok ? "synced" : "failed");
   }
+
   function changeSkin(v: string) {
     setSkin(v);
-    setPref(PREF_SKIN, v);
-    flash();
+    void persist(v, target);
   }
+
   function changeTarget(v: string) {
     setTarget(v);
-    setPref(PREF_TARGET, v);
-    flash();
+    void persist(skin, v);
   }
-  function reset() {
+
+  async function reset() {
     clearPref(PREF_SKIN);
     clearPref(PREF_TARGET);
     setSkin("flat");
     setTarget(DEFAULT_TARGET);
-    flash();
+
+    if (!signedIn) {
+      setStatus("local");
+      return;
+    }
+    // Empty strings clear the stored values server-side.
+    const ok = await saveAccountPreferences({ default_style: "", default_target: "" });
+    setStatus(ok ? "synced" : "failed");
   }
 
-  return (
-    <main className="page">
-      <div className="page__intro">
-        <p className="eyebrow">Settings</p>
-        <h1 className="page__title">Preferences</h1>
-        <p className="page__lede">
-          Per-browser defaults for now. The skin and language target you choose
-          here are what the Playground and the Build Hub composer open with.
-          Account, profile, and sync arrive with sign-in in Phase 3.
-        </p>
-      </div>
+  const statusText =
+    status === "synced"
+      ? "Saved to your account"
+      : status === "local"
+        ? "Saved in this browser"
+        : status === "failed"
+          ? "Saved here, but not to your account"
+          : "";
 
+  return (
+    <>
       <section className="set-card" aria-label="Defaults">
         <div className="set-card__head">
           <h2 className="set-card__title">Defaults</h2>
           <span
-            className={`set-saved${saved ? " is-on" : ""}`}
+            className={`set-saved${status !== "idle" ? " is-on" : ""}${status === "failed" ? " is-warn" : ""}`}
             aria-live="polite"
           >
-            Saved
+            {statusText}
           </span>
         </div>
 
@@ -98,7 +128,7 @@ export function SettingsPanel() {
               {ALL_TARGETS.map((t) => (
                 <option key={t.key} value={t.key}>
                   {t.label}
-                  {t.emit ? "" : " · Phase 4"}
+                  {t.emit ? "" : " · docs only"}
                 </option>
               ))}
             </select>
@@ -111,25 +141,14 @@ export function SettingsPanel() {
         <button type="button" className="set-reset" onClick={reset}>
           Reset to defaults
         </button>
-      </section>
 
-      <section className="set-card set-card--muted" aria-label="Coming with accounts">
-        <h2 className="set-card__title">With sign-in (Phase 3)</h2>
-        <ul className="set-list">
-          <li>
-            <strong>Profile</strong> — display name and role, backed by the{" "}
-            <code>profiles</code> table.
-          </li>
-          <li>
-            <strong>Sync</strong> — these preferences follow you across devices
-            instead of living in one browser.
-          </li>
-          <li>
-            <strong>Data &amp; privacy</strong> — export or delete your
-            workspace data; deletion cascades across collections and templates.
-          </li>
-        </ul>
+        {!signedIn && (
+          <p className="set-note">
+            These are per-browser while you are signed out. Sign in and they
+            follow you across devices.
+          </p>
+        )}
       </section>
-    </main>
+    </>
   );
 }

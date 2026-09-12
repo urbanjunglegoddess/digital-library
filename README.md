@@ -1,13 +1,15 @@
 # Digital Asset Library
 
 Urban Jungle Goddess component library — a full-stack, searchable catalog of
-reusable, accessibility-audited UI components and code assets across **11 visual
-styles** and **12 language/framework targets**, plus templates and web-search
-integration.
+reusable, accessibility-audited UI components and code assets across **30 visual
+styles** (the locked base 11 plus 19 extended skins) and **12 language/framework
+targets**, plus templates, file storage and web-search integration.
 
 This repo is both the published UJG **component-library package** (design-token
 layer + components in `styles/` and `components/`) and the **Next.js app** that
 consumes it.
+
+See [`CLAUDE.md`](./CLAUDE.md) for the locked build context, schema and roadmap.
 
 ## Stack
 
@@ -18,53 +20,112 @@ consumes it.
   `tsvector` + `pg_trgm`
 - **Host:** Vercel (auto-deploys `main`)
 
-See [`CLAUDE.md`](./CLAUDE.md) for the locked build context, schema, and roadmap.
+## Quick start
 
-## Local development
-
-Requires Node 20+ (Node 22 recommended).
+Requires Node 20+ (Node 22 or 24 recommended).
 
 ```bash
-# 1. Install
 npm install
-
-# 2. Configure env — copy the example and fill in real Supabase keys
-cp .env.example .env.local
-#   then edit .env.local (see "Environment" below)
-
-# 3. Run the dev server
-npm run dev          # http://localhost:3000
+cp .env.example .env.local     # then fill in the real Supabase values
+npm run db:push                # apply migrations
+npm run db:seed                # load content/docs into Postgres
+npm run dev                    # http://localhost:3000
 ```
 
-### Scripts
+## Scripts
 
-| Command             | What it does                    |
-| ------------------- | ------------------------------- |
-| `npm run dev`       | Start the dev server            |
-| `npm run build`     | Production build                |
-| `npm run start`     | Serve the production build      |
-| `npm run lint`      | ESLint (`next/core-web-vitals`) |
-| `npm run typecheck` | `tsc --noEmit` (strict)         |
+| Command               | What it does                                        |
+| --------------------- | --------------------------------------------------- |
+| `npm run dev`         | Start the dev server                                 |
+| `npm run build`       | Production build                                     |
+| `npm run start`       | Serve the production build                           |
+| `npm run lint`        | ESLint (`next/core-web-vitals`)                      |
+| `npm run typecheck`   | `tsc --noEmit` (strict)                              |
+| `npm run db:status`   | Which migrations are applied                         |
+| `npm run db:push`     | Apply pending migrations                             |
+| `npm run db:seed`     | Port `content/docs` into Supabase (idempotent)       |
+| `npm run db:seed:dry` | Report what seeding would change, write nothing      |
+| `npm run verify:rls`  | Prove the row-level-security boundary still holds    |
+| `npm run verify:app`  | Authenticated end-to-end smoke test (server must be running) |
 
-### Environment
+## How the data flows
+
+```
+content/docs/*.mdx  ──(npm run db:seed)──>  Postgres  ──>  /search, /api/*
+        │                                                        
+        └──(build time)──>  118 prerendered pages
+```
+
+`content/docs/*.mdx` is the **authoring source of truth** — YAML frontmatter plus
+the deep-spec Markdown body ported from ClickUp `838qa-81211`. It is what the
+component detail pages render, statically, at build time.
+
+Postgres is the **derived index**: seeding mirrors every doc into `components`,
+`code_snippets`, `tags`, `references` and `component_styles` so the catalog can be
+searched, filtered and joined to user data. Editing a doc means re-running
+`npm run db:seed`.
+
+That split is deliberate. Docs stay reviewable in git and render without a
+database; search, collections and templates need a database and get one.
+
+## Architecture notes
+
+**Row-level security is the authorization boundary.** Route handlers and server
+components do not re-check ownership in JavaScript — they query as the caller,
+and the policies in `supabase/migrations/0001_init.sql` decide what comes back.
+`npm run verify:rls` exercises that boundary from the outside (both the positive
+paths and the negative ones: cross-user reads, forged inserts, privilege
+escalation) and fails loudly if a policy stops working.
+
+**Static first.** The 98 component pages and 11 reference pages are prerendered.
+Per-viewer fragments — the account block in the rail, "save to collection", the
+preferred skin — hydrate against small JSON endpoints instead of forcing those
+pages to render per request. Reading the session in `app/layout.tsx` would undo
+this for the entire app; don't.
+
+**Graceful degradation.** Every Supabase read returns `null` rather than throwing
+when the database is unreachable, and callers fall back to the file-backed
+content layer. A preview deploy with no env vars renders the catalog rather than
+a 500.
+
+## Environment
 
 Set these in `.env.local` (git-ignored) and mirror them in the Vercel dashboard
-(Production + Preview + Development). See `.env.example` for the template.
+(Production + Preview + Development). See `.env.example` for the annotated
+template.
 
-| Variable                        | Scope       | Notes                                      |
-| ------------------------------- | ----------- | ------------------------------------------ |
-| `NEXT_PUBLIC_SUPABASE_URL`      | public      | `https://cmluzusujsbxscljszbn.supabase.co` |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public      | anon key, RLS-scoped                       |
-| `SUPABASE_SERVICE_ROLE_KEY`     | server-only | bypasses RLS — never ship to the client    |
+| Variable                        | Required | Notes                                              |
+| ------------------------------- | -------- | -------------------------------------------------- |
+| `NEXT_PUBLIC_SUPABASE_URL`      | yes      | Project URL                                         |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | yes      | Anon **or** publishable key; RLS-scoped             |
+| `SUPABASE_SERVICE_ROLE_KEY`     | yes      | Service-role **or** secret key; bypasses RLS        |
+| `SUPABASE_DB_URL`               | scripts  | Session pooler (port 5432) — used by the CLI scripts |
+| `NEXT_PUBLIC_SITE_URL`          | prod     | Canonical origin; also enables search indexing       |
+| `NEXT_PUBLIC_AUTH_OAUTH_PROVIDERS` | no    | e.g. `github,google` — must also be on in Supabase   |
+| `WEBSEARCH_PROVIDER` / `WEBSEARCH_API_KEY` | no | `brave` or `tavily`; falls back to scoped links |
+
+Supabase renamed its API keys (anon → publishable, service_role → secret). The
+app accepts either spelling; `lib/env.ts` is the single place that resolves them.
 
 The service-role key is used only by `lib/supabase/server.ts`
-(`createAdminClient`). Never import it into a client component.
+(`createAdminClient`) and the CLI scripts. Never import it into a client
+component.
 
-### Database migrations
+## Database migrations
 
-Schema v1 lives in `supabase/migrations/0001_init.sql` (all tables, the 11
-`visual_styles` seed rows, full-text + trigram search indexes, and RLS policies).
-Apply it with the Supabase CLI linked to **this** project:
+| File                          | What it adds                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------- |
+| `0001_init.sql`               | Schema v1: all tables, enums, RLS policies, the 11 seed visual styles.                    |
+| `0002_search.sql`             | `component_styles`, the 19 extended skins, `components.meta`, `search_components()`.      |
+| `0003_assets_templates.sql`   | Asset ownership, the private `assets` Storage bucket, template timestamps, `preferences`. |
+
+`npm run db:push` applies anything not yet applied, one transaction per file,
+recording each in `public.schema_migrations`. It talks to Postgres directly over
+the **session-mode pooler** (port 5432), so it needs neither Docker nor the
+Supabase CLI — useful because the direct host `db.<ref>.supabase.co` is IPv6-only
+and does not resolve on most networks, and transaction mode (6543) cannot run DDL.
+
+The Supabase CLI still works if you prefer it:
 
 ```bash
 supabase link --project-ref cmluzusujsbxscljszbn
@@ -73,143 +134,66 @@ supabase db push
 
 > Do **not** point the CLI at any other Supabase project.
 
-### Health check (Phase 0 gate)
+## API
 
-`GET /api/health` counts the seeded `visual_styles` rows through the server
-Supabase client, proving the server client + keys + RLS read path all work:
+| Route                     | Method            | Purpose                                            |
+| ------------------------- | ----------------- | -------------------------------------------------- |
+| `/api/health`             | GET               | Connection + seed state                             |
+| `/api/search`             | GET               | Ranked full-text search with filters                |
+| `/api/components`         | GET               | Catalog index with the same filters, ordered by name |
+| `/api/collections`        | GET/POST          | A user's saved sets; toggle membership               |
+| `/api/templates`          | GET/POST/DELETE   | Saved compositions                                   |
+| `/api/templates/export`   | POST              | Composition → project ZIP                            |
+| `/api/assets`             | GET/POST/DELETE   | Storage uploads, served via signed URLs              |
+| `/api/preferences`        | GET/PUT           | Per-account UI defaults                              |
+| `/api/websearch`          | GET               | Web-search proxy                                     |
+| `/api/account/export`     | GET               | Everything the account holds, as JSON                |
+| `/api/auth/me`            | GET               | Viewer identity for the app shell                    |
+
+### Health check
 
 ```json
-{ "status": "ok", "supabase": "connected", "visual_styles": 11, "expected": 11 }
+{
+  "status": "ok",
+  "supabase": "connected",
+  "seeded": true,
+  "components": 98,
+  "code_snippets": 601,
+  "visual_styles": 30,
+  "visual_styles_core": 11
+}
 ```
 
 ## Project layout
 
 ```
-app/                       # App Router
-  layout.tsx  page.tsx     # brand shell (palette + 4-font system + 11 skins)
-  globals.css              # Tailwind + UJG tokens
-  api/health/route.ts      # proof-of-life Supabase read
-components/                # component-library package (Button seed component)
-lib/supabase/              # server.ts (SSR + admin), client.ts, types.ts
-styles/tokens.css          # UJG design tokens (11 styles, palette)
-supabase/migrations/       # schema v1+
-playground/                # prebuilt interactive playground(s)
+app/
+  layout.tsx  page.tsx  globals.css   # brand shell (palette + 4-font system + skins)
+  (auth)/{login,signup}/              # sign-in surfaces + server actions
+  auth/{callback,oauth,signout}/      # OAuth + email-link exchange
+  account/  settings/                 # profile, collections, files, defaults
+  knowledge/  knowledge/[slug]/       # the component catalog (prerendered)
+  reference/  reference/[slug]/       # system-level reference docs
+  search/                             # Postgres-backed search + filters
+  build/  templates/  workspace/      # composer, template hub, playground
+  portal/  dashboard/                 # ops surfaces
+  api/…                               # route handlers (see table above)
+  sitemap.ts  robots.ts  not-found.tsx
+components/                           # app UI + the component-library package
+lib/
+  env.ts  site.ts  auth.ts  collections.ts  zip.ts
+  content.ts  reference.ts  styles.ts  targets.ts  snippets.ts  composer.ts
+  supabase/{server,client,middleware,queries,types}.ts
+content/docs/*.mdx                    # 98 component specs — authoring source of truth
+content/reference/*.mdx               # system reference docs
+styles/                               # tokens.css + per-surface stylesheets
+supabase/migrations/                  # schema
+scripts/                              # db-push, seed, verify-rls
+middleware.ts                         # session refresh + route protection
 ```
 
-## Roadmap
+## Roadmap status
 
-Phase 0 (this) — foundation. Phases 1–5 build the catalog, data/search,
-accounts, assets/templates/web-search, then harden & launch. See `CLAUDE.md`.
-
-# Drop-in files for urbanjunglegoddess/digital-library @ main
-
-Paths here mirror the repo. Copy over the same paths and commit.
-
-| File                         | Change                                                                                                                                                                                                                 |
-| ---------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `app/page.tsx`               | **Replaces** the current landing with 1b — the spec-sheet home. Light ground, numbered sections 01–04, counts read live from `lib/content.ts`. Primary CTA "Start an Adventure" → `/build`, secondary link → `/knowledge`; footer link → `/portal`. |
-| `styles/home.css`            | New. Scoped under `.lp`.                                                                                                                                                                                               |
-| `app/portal/page.tsx`        | **New route** `/portal` — 1c. Night ground, 248px rail, KPI row, runs table, library readiness.                                                                                                                        |
-| `styles/portal.css`          | New. Scoped under `.pt`.                                                                                                                                                                                               |
-| `components/site/Header.tsx` | Adds a `Portal` nav link. Otherwise unchanged.                                                                                                                                                                         |
-
-Notes
-
-- Both pages are server components; no client JS added.
-- Library figures (`written`, `categories`, `ALL_STYLES`) come from `lib/content.ts`. Only `PLANNED_TOTAL = 51`, `TARGET_COUNT = 12`, `FILLED_TARGETS = 8`, and the `RUNS` array are hardcoded — the runs array is the Phase 2 Supabase `runs` table stand-in and is marked as such in the file.
-- Type faces use the four families already loaded in `app/layout.tsx` (Playfair Display for display, Inter for body, JetBrains Mono for data/labels). The real UJG faces — Methanerse, Mallong, Omega Sans, Data Control — are not in the repo; swap the `--lp-*`/`--pt-*` font vars once they ship.
-- CSS imports assume the `@/` path alias already used across the app.
-
-# Drop-in: `/build` route + responsive app shell
-
-Generated against `urbanjunglegoddess/digital-library@main` (read 2026-09-06).
-Paths below are relative to the repo root — copy each file to the same path.
-
-## New files
-
-| From                                      | To                                   |
-| ----------------------------------------- | ------------------------------------ |
-| `repo/app/build/page.tsx`                 | `app/build/page.tsx`                 |
-| `repo/components/build/BuildComposer.tsx` | `components/build/BuildComposer.tsx` |
-| `repo/components/build/CanvasItem.tsx`    | `components/build/CanvasItem.tsx`    |
-| `repo/components/build/generate.ts`       | `components/build/generate.ts`       |
-| `repo/components/build/types.ts`          | `components/build/types.ts`          |
-| `repo/components/build/build.css`         | `components/build/build.css`         |
-| `repo/lib/targets.ts`                     | `lib/targets.ts`                     |
-| `repo/lib/composer.ts`                    | `lib/composer.ts`                    |
-| `repo/styles/shell.css`                   | `styles/shell.css`                   |
-
-## Replaced file
-
-| From                                | To                             |
-| ----------------------------------- | ------------------------------ |
-| `repo/components/site/AppShell.tsx` | `components/site/AppShell.tsx` |
-
-## One manual edit to `app/globals.css`
-
-`styles/shell.css` now owns the shell. Delete the old block from `globals.css`
-so the two don't fight — everything from:
-
-```
-/* ==========...
-   App shell — persistent left sidebar (the 8 surfaces) + content area
-   ========== */
-.app { ... }
-```
-
-down to and including:
-
-```
-@media (max-width: 860px) {
-  .app { flex-direction: column; align-items: stretch; }
-  ...
-}
-```
-
-That `860px` rule is the thing being replaced: it flattened the rail into a
-two-column grid of eight nav items stacked _above_ the content. Nothing else in
-`globals.css` is touched — `.page`, `.card*`, `.dash-*`, `.surface-*`, and the
-`doc-prose` block all still apply.
-
-`shell.css` is imported by `AppShell.tsx` directly, so no `@import` is needed.
-
-## What ships
-
-**`/build`** — the route the rail has always linked to. Server component reads
-`lib/content.ts` (same source as the Knowledge Hub) and hands the client
-composer a tray of all 14 documented components.
-
-- **Tray → canvas → inspector**, three panels at desktop.
-- **Skin** switches all 11 styles by setting `data-style` on the canvas, so it
-  is genuinely exercising `styles/tokens.css`, not a mock.
-- **Target** lists all 12 language targets. HTML, React, and React + TypeScript
-  generate real code today; the other nine return an honest Phase 4 note rather
-  than unverified output. Marked `· Phase 4` in the dropdown.
-- **Copy code** works now. **Export ZIP** is disabled with a title explaining
-  why — same Phase 4 dependency the Template Hub waits on.
-- Seven components have composer renderers (`lib/composer.ts`): field,
-  checkbox, button, alert, badge, divider, blockquote. Any other doc still
-  appears in the tray, drops onto the canvas, and renders as a labelled block
-  flagged `doc` — so the tray grows with `content/docs/` for free.
-- `Button` on the canvas is the **real** `components/button/Button.tsx`.
-
-**Responsive shell** — three sizes, replacing the single 860px breakpoint:
-
-| Width      | Nav                                                        | Composer                                        |
-| ---------- | ---------------------------------------------------------- | ----------------------------------------------- |
-| ≥1024px    | 256px rail, label + hint                                   | tray · canvas · inspector                       |
-| 768–1023px | 64px icon rail                                             | canvas · inspector; tray behind "Add component" |
-| ≤767px     | fixed bottom tabs (Home · Portal · Library · Build · More) | canvas only; both panels are sheets             |
-
-The five tab surfaces are the daily ones; Dashboard, Template Hub, Workspace,
-and Settings live in the More sheet. Escape and route changes close it.
-`env(safe-area-inset-bottom)` is respected, every target is ≥44px, and every
-interactive element keeps the house 3px `--dl-focus` ring.
-
-## Not included
-
-- No new colours, fonts, radii, or shadows — every value resolves to a
-  `--dl-*` token or an existing `oklch()` from `globals.css`.
-- No changes to `app/layout.tsx`. It already renders `<AppShell>`.
-- `components/site/Header.tsx` is left alone; it is unused by the shell.
-- No export pipeline, no persistence. Builds live in component state.
+All five phases are implemented. See **Build status** in [`CLAUDE.md`](./CLAUDE.md)
+for the detail, the three gotchas worth knowing, and what still has to be done by
+hand in the Vercel dashboard.

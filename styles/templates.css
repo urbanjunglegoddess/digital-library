@@ -197,3 +197,66 @@
 }
 .th-preview__slot { width: 100%; }
 .th-preview__empty { margin: auto; color: var(--dl-ink-soft); font-size: 0.9rem; }
+
+/* --- Phase 4: persistence + export controls -------------------------------- */
+
+.th-editor__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.th-mini--primary {
+  border-color: var(--dl-primary);
+  background: var(--dl-primary);
+  color: #fff;
+}
+
+.th-mini--primary:hover:not(:disabled) {
+  background: var(--dl-primary-hover);
+  border-color: var(--dl-primary-hover);
+}
+
+.th-mini:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Marks a template that exists in the account, not just this browser tab. */
+.th-saved {
+  margin-left: 0.35rem;
+  font-size: 0.6rem;
+  color: var(--dl-success);
+  vertical-align: middle;
+}
+
+.th-status {
+  min-height: 0;
+}
+
+.th-status__msg {
+  margin: 0.5rem 0 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.83rem;
+}
+
+.th-status__msg--ok {
+  border: 1px solid var(--dl-success);
+  background: color-mix(in srgb, var(--dl-success) 10%, var(--dl-surface));
+}
+
+.th-status__msg--err {
+  border: 1px solid var(--dl-danger);
+  background: color-mix(in srgb, var(--dl-danger) 8%, var(--dl-surface));
+}
+
+.th-status__msg--hint {
+  border: 1px dashed var(--dl-line-2);
+  color: var(--dl-ink-soft);
+}
+
+.th-status__msg--hint a {
+  color: var(--dl-primary);
+}

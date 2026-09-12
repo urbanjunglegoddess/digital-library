@@ -238,3 +238,118 @@
     color: var(--dl-ink-soft);
   }
 }
+
+/* =============================================================================
+   Rail account block (Phase 3)
+   Sits above the version footer in the rail, and in the mobile More sheet.
+   ============================================================================= */
+
+.app-rail__account {
+  margin-top: auto;
+  padding: 0.75rem 0.75rem 0;
+  border-top: 1px solid var(--dl-line);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.app-account {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem;
+  border-radius: 9px;
+  text-decoration: none;
+  color: var(--dl-ink);
+}
+
+.app-account:hover {
+  background: var(--dl-surface-2);
+}
+
+.app-account:focus-visible {
+  outline: 3px solid var(--dl-focus);
+  outline-offset: 2px;
+}
+
+.app-account__avatar {
+  flex: 0 0 auto;
+  width: 1.85rem;
+  height: 1.85rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: var(--dl-primary);
+  color: #fff;
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.app-account--out .app-account__avatar {
+  background: var(--dl-surface-2);
+  border: 1px solid var(--dl-line-2);
+  color: var(--dl-ink-soft);
+}
+
+.app-account__labels {
+  display: grid;
+  min-width: 0;
+}
+
+.app-account__name {
+  font-size: 0.88rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.app-account__hint {
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--dl-ink-soft);
+}
+
+.app-account__out {
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--dl-line);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dl-ink-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  text-align: left;
+  cursor: pointer;
+}
+
+.app-account__out:hover {
+  border-color: var(--dl-danger);
+  color: var(--dl-danger);
+}
+
+.app-account__out:focus-visible {
+  outline: 3px solid var(--dl-focus);
+  outline-offset: 2px;
+}
+
+.app-more__account {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--dl-line);
+  display: grid;
+  gap: 0.4rem;
+}
+
+/* The icon-only rail (768–1023px) hides text labels; the account block follows
+   the same rule so it collapses to just the avatar. */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .app-account__labels,
+  .app-account__out {
+    display: none;
+  }
+
+  .app-rail__account {
+    justify-items: center;
+  }
+}

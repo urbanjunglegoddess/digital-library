@@ -9,7 +9,7 @@ import {
 } from "@/lib/content";
 
 export const metadata: Metadata = {
-  title: "Dashboard — Digital Asset Library",
+  title: "Dashboard",
   description:
     "Where the library reports: live coverage, status, and what needs attention across the component catalog.",
 };
