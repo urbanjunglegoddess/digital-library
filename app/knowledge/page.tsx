@@ -4,7 +4,7 @@ import { getAllComponents, getAllTags, getCategories } from "@/lib/content";
 import { CatalogBrowser, type CatalogItem } from "@/components/catalog/CatalogBrowser";
 
 export const metadata: Metadata = {
-  title: "Knowledge Hub — Digital Asset Library",
+  title: "Knowledge Hub",
   description:
     "The reference library: every component documented, previewable across 11 visual styles, and copy-ready across language targets — browse by category and tag.",
 };

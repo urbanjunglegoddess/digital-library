@@ -5,6 +5,7 @@ import { getAllSlugs, getComponent, STYLE_NAMES } from "@/lib/content";
 import { StyleSwitcher } from "@/components/catalog/StyleSwitcher";
 import { CodeTabs } from "@/components/catalog/CodeTabs";
 import { Markdown } from "@/components/catalog/Markdown";
+import { SaveToCollection } from "@/components/account/SaveToCollection";
 
 export function generateStaticParams() {
   return getAllSlugs().map((slug) => ({ slug }));
@@ -17,9 +18,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const doc = getComponent(slug);
-  if (!doc) return { title: "Not found — Digital Asset Library" };
+  if (!doc) return { title: "Not found" };
   return {
-    title: `${doc.name} — Knowledge Hub`,
+    title: doc.name,
     description: doc.summary,
   };
 }
@@ -57,6 +58,8 @@ export default async function ComponentPage({
         <div className="detail__headtop">
           <h1 className="detail__title">{doc.name}</h1>
           <span className={`status status--${doc.status}`}>{doc.status}</span>
+          {/* Hydrates against /api/collections so this page stays static. */}
+          <SaveToCollection slug={doc.slug} name={doc.name} />
         </div>
         {doc.summary && <p className="detail__summary">{doc.summary}</p>}
         <div className="detail__tags">

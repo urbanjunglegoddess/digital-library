@@ -1,13 +1,62 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AppShell } from "@/components/site/AppShell";
+import { SITE_NAME, SITE_TAGLINE, SITE_URL, IS_PRODUCTION } from "@/lib/site";
+
+const DESCRIPTION =
+  "A searchable catalog of reusable, accessibility-audited UI components and code assets across 11 visual styles and 12 language targets.";
 
 export const metadata: Metadata = {
-  title: "Digital Asset Library — Urban Jungle Goddess",
-  description:
-    "A searchable catalog of reusable, accessibility-audited UI components and code assets across 11 visual styles and 12 language targets.",
+  // Absolute base for canonical, OpenGraph and sitemap URLs. Without it every
+  // page's canonical link resolves against whatever host served the request,
+  // so preview deploys would advertise themselves as canonical.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    // Page titles that set only their own name still get the site suffix.
+    template: `%s — ${SITE_NAME}`,
+  },
+  description: DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: [
+    "component library",
+    "design system",
+    "design tokens",
+    "accessibility",
+    "UI components",
+    "Urban Jungle Goddess",
+  ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME,
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: DESCRIPTION,
+    url: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    description: DESCRIPTION,
+  },
+  // Preview deployments must not be indexed; robots.ts says the same thing.
+  robots: IS_PRODUCTION
+    ? { index: true, follow: true }
+    : { index: false, follow: false },
 };
 
+export const viewport: Viewport = {
+  themeColor: "#ffffff",
+  width: "device-width",
+  initialScale: 1,
+};
+
+/**
+ * Deliberately NOT async and deliberately reading no cookies: touching the
+ * session here would make every route in the app dynamic, so the catalog could
+ * neither be prerendered nor cached. The shell fetches the viewer itself from
+ * /api/auth/me.
+ */
 export default function RootLayout({
   children,
 }: {

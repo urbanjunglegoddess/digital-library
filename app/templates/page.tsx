@@ -5,7 +5,7 @@ import { TemplateHub } from "@/components/templates/TemplateHub";
 import type { TrayItem } from "@/components/build/types";
 
 export const metadata: Metadata = {
-  title: "Template Hub — Digital Asset Library",
+  title: "Template Hub",
   description:
     "Curated compositions you can edit: add and remove components, reorder them, and preview under any skin.",
 };

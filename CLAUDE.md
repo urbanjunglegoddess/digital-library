@@ -99,18 +99,63 @@ at a time), so this project is managed the normal dev way:
   → Settings → Environment Variables (Production + Preview + Development), and mirror them in `.env.local`.
 - **Framework flip:** the Vercel project currently detects `framework: null` (static). After the Next.js
   scaffold lands on `main`, confirm Project Settings → Build & Development shows Framework Preset = Next.js.
-- **Supabase migrations:** run with the Supabase CLI linked to THIS project —
+- **Supabase migrations:** `npm run db:push` (repo-owned runner, no Docker or CLI needed —
+  reads `SUPABASE_DB_URL` from `.env.local`). The Supabase CLI still works if you prefer it:
   `supabase link --project-ref cmluzusujsbxscljszbn` then `supabase db push`.
   **Do NOT point the CLI at the Melanaxis project.**
 - IDs: Vercel project `prj_viUSYKkHJ4qBOs4Vy8dGwlwVOXWQ`, team `team_PDU5UVwmWjZQKNOccYHEeAsX`.
 
-## ⚠️ Open item to verify before Phase 0 exit
-Supabase project `https://cmluzusujsbxscljszbn.supabase.co` was provisioned but is on a different
-account than the one connected in Cowork. **Confirm which Supabase login/org owns it, then put the
-three keys above into `.env.local` and the Vercel dashboard.** (Branch hygiene: already fixed — repo is on `main`.)
+## Build status — Phases 0–5 complete
 
-> Status (Phase 0): confirmed — the Supabase account connected via MCP in the build environment only
-> exposes the **Melanaxis** org/project (`ujrltjzlebxkdbwptsap`); the DAL project
-> `cmluzusujsbxscljszbn` is **not** reachable from it. So the migration and env keys must be applied
-> by the account that owns `cmluzusujsbxscljszbn` (Supabase CLI `db push` + keys into Vercel/.env.local).
-> The migration file is ready and idempotent; `/api/health` will return the live count once the keys land.
+All five roadmap phases are implemented against the live project
+`cmluzusujsbxscljszbn`. What that means concretely:
+
+- **Phase 0 —** `.env.local` holds the real keys; `/api/health` reports a live connection.
+  The Supabase-ownership question below is **resolved**.
+- **Phase 1 —** 98 component docs render from `content/docs`, prerendered as static HTML.
+- **Phase 2 —** the catalog is mirrored into Postgres (98 components, 9 categories, 155 tags,
+  601 snippets, 2,921 style links) and searchable at `/search` in ~40–150 ms.
+- **Phase 3 —** Supabase Auth (password + magic link + optional OAuth), `profiles`,
+  collections. `npm run verify:rls` proves the authorization boundary, 12 checks.
+- **Phase 4 —** Storage uploads, saved templates, ZIP export, web-search proxy.
+- **Phase 5 —** sitemap, robots, canonical/OG metadata, skip link, reduced-motion,
+  and a static-first render (118 prerendered pages; only per-user routes are dynamic).
+
+### Migrations
+| File | What it adds |
+| ---- | ------------ |
+| `0001_init.sql` | Schema v1: all tables, enums, RLS, the 11 seed styles. |
+| `0002_search.sql` | `component_styles`, the 19 extended skins, `components.meta`, `search_components()`. |
+| `0003_assets_templates.sql` | Asset ownership, the private `assets` Storage bucket, template timestamps, `profiles.preferences`. |
+
+Apply them with `npm run db:push` (a repo-owned runner that needs no Docker or
+Supabase CLI — see below), then `npm run db:seed` to load `content/docs` into Postgres.
+
+### Commands
+```bash
+npm run db:status    # which migrations are applied
+npm run db:push      # apply pending migrations
+npm run db:seed      # port content/docs into Supabase (idempotent)
+npm run verify:rls   # prove the RLS boundary still holds (12 checks, direct to Postgres)
+npm run verify:app   # authenticated end-to-end over HTTP (13 checks, server must be running)
+```
+
+### Three notes for whoever picks this up
+1. **`@supabase/ssr` must stay ≥ 0.12.** Version 0.6.1 imports `GenericSchema` from a deep
+   path that no longer exists in supabase-js 2.112, which silently degrades every typed
+   query to `any`/`never` — including `rpc()`. It fails as a type error, not a runtime one.
+2. **Never read the session in `app/layout.tsx`.** Calling `cookies()` there opts the whole
+   app out of static rendering — the catalog stops being prerendered and every request pays a
+   Supabase round trip. The shell fetches `/api/auth/me` instead.
+3. **MDX stays the source of truth.** `content/docs/*.mdx` is what authors edit and what the
+   detail pages render; Postgres is the derived search index. Re-run `npm run db:seed` after
+   editing docs.
+
+## Resolved: Supabase project ownership (was a Phase 0 blocker)
+Supabase project `https://cmluzusujsbxscljszbn.supabase.co` sits on a different account from the
+one connected in Cowork — the MCP connection only exposes the **Melanaxis** org
+(`ujrltjzlebxkdbwptsap`). That is still true, and it is no longer a blocker: the credentials for
+the DAL project are in `.env.local`, and `scripts/db-push.mjs` reaches the database directly over
+the session pooler, so migrations and seeding do not depend on the MCP connector or the Supabase
+CLI. **Still to do by hand:** mirror the same env vars into the Vercel dashboard
+(Production + Preview + Development) and confirm Framework Preset = Next.js.

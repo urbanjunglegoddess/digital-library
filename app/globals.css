@@ -945,3 +945,217 @@ body {
 .surface-point__heading { font-family: var(--font-display); font-size: 1.05rem; font-weight: 600; margin: 0 0 6px; }
 .surface-point__body { font-size: 0.9rem; line-height: 1.5; color: var(--dl-ink-soft); margin: 0; }
 .surface-cta { margin-top: 28px; }
+
+/* =============================================================================
+   Save to collection (Phase 3)
+   A popover on the component detail header. Hydrates per viewer, so the page
+   around it can stay statically generated.
+   ============================================================================= */
+
+.save {
+  position: relative;
+}
+
+.save__cta {
+  padding: 0.4rem 0.8rem;
+  border: 1px solid var(--dl-line-2);
+  border-radius: 999px;
+  background: var(--dl-surface);
+  color: var(--dl-ink-soft);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.save__cta:hover {
+  border-color: var(--dl-primary);
+  color: var(--dl-primary);
+}
+
+.save__cta:focus-visible {
+  outline: 3px solid var(--dl-focus);
+  outline-offset: 2px;
+}
+
+.save__cta.is-saved {
+  border-color: var(--dl-primary);
+  background: color-mix(in srgb, var(--dl-primary) 10%, var(--dl-surface));
+  color: var(--dl-primary);
+}
+
+.save__panel {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  z-index: 30;
+  width: min(20rem, calc(100vw - 2rem));
+  padding: 0.9rem;
+  border: 1px solid var(--dl-line);
+  border-radius: 12px;
+  background: var(--dl-surface);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 12%);
+}
+
+.save__panel-title {
+  margin: 0 0 0.6rem;
+  font-size: 0.85rem;
+  color: var(--dl-ink-soft);
+}
+
+.save__empty {
+  margin: 0 0 0.7rem;
+  font-size: 0.82rem;
+  color: var(--dl-ink-soft);
+}
+
+.save__list {
+  list-style: none;
+  margin: 0 0 0.8rem;
+  padding: 0;
+  display: grid;
+  gap: 0.15rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
+
+.save__row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.4rem;
+  border-radius: 7px;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.save__row:hover {
+  background: var(--dl-surface-2);
+}
+
+.save__row:has(input:focus-visible) {
+  outline: 2px solid var(--dl-focus);
+  outline-offset: 1px;
+}
+
+.save__new {
+  padding-top: 0.7rem;
+  border-top: 1px solid var(--dl-line);
+}
+
+.save__new-label {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--dl-ink-soft);
+  margin-bottom: 0.35rem;
+}
+
+.save__new-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.save__input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  font-size: 0.85rem;
+  color: var(--dl-ink);
+  background: var(--dl-surface-2);
+  border: 1px solid var(--dl-line);
+  border-radius: 8px;
+}
+
+.save__input:focus-visible {
+  outline: 3px solid var(--dl-focus);
+  outline-offset: 2px;
+}
+
+.save__add {
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--dl-primary);
+  border-radius: 8px;
+  background: var(--dl-primary);
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.save__error {
+  margin: 0.6rem 0 0;
+  font-size: 0.8rem;
+  color: var(--dl-danger);
+}
+
+.save__manage {
+  display: inline-block;
+  margin-top: 0.7rem;
+  font-size: 0.8rem;
+  color: var(--dl-primary);
+}
+
+/* =============================================================================
+   Accessibility baseline (Phase 5)
+   ============================================================================= */
+
+/* Skip link: off-canvas until focused, then pinned top-left above everything. */
+.skip-link {
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 100;
+  padding: 0.7rem 1.1rem;
+  background: var(--dl-primary);
+  color: #fff;
+  font-size: 0.9rem;
+  text-decoration: none;
+  border-bottom-right-radius: 8px;
+  transform: translateY(-120%);
+  transition: transform 120ms ease-out;
+}
+
+.skip-link:focus-visible {
+  transform: translateY(0);
+  outline: 3px solid var(--dl-focus);
+  outline-offset: -3px;
+}
+
+/* The skip target is programmatically focusable so focus really moves there,
+   but it is not an interactive control — never show a focus ring on it. */
+.app-main:focus {
+  outline: none;
+}
+
+/* Anchor navigation should not land content under the sticky chrome. */
+html {
+  scroll-padding-top: 1.5rem;
+}
+
+/*
+ * Respect a reduced-motion preference across the whole app. Transitions are
+ * collapsed rather than removed (1ms, not 0) so transitionend handlers still
+ * fire and nothing waits forever on an event that never arrives.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* A visible focus ring everywhere, in the brand focus colour, for anything
+   that has not defined its own. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--dl-focus);
+  outline-offset: 2px;
+}

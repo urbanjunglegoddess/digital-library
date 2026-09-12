@@ -1,13 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { STYLE_NAMES } from "@/lib/styles";
 
 /**
- * The 11-style switcher. Renders a live preview of the component inside a
+ * The style switcher. Renders a live preview of the component inside a
  * `[data-style="…"]` wrapper and lets the visitor flip between the skins the
  * component supports. The skin styling comes entirely from styles/tokens.css —
  * this only swaps the wrapper attribute, proving the token layer works.
+ *
+ * A signed-in user's preferred skin (Settings → Defaults) is applied once on
+ * mount. The page itself is statically generated, so that preference has to
+ * arrive client-side; it is deliberately ignored the moment the visitor picks a
+ * skin themselves, so a late response can never yank the preview out from under
+ * someone mid-comparison.
  */
 export function StyleSwitcher({
   name,
@@ -20,7 +26,32 @@ export function StyleSwitcher({
 }) {
   const initial = styles.includes("ujg") ? "ujg" : styles[0] ?? "ujg";
   const [active, setActive] = useState(initial);
+  const touched = useRef(false);
   const previewLabel = label ?? name;
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/preferences")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        const preferred = data?.preferences?.default_style;
+        if (cancelled || touched.current) return;
+        if (typeof preferred === "string" && styles.includes(preferred)) {
+          setActive(preferred);
+        }
+      })
+      .catch(() => {
+        // Signed out or offline: the built-in default is already showing.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [styles]);
+
+  function choose(key: string) {
+    touched.current = true;
+    setActive(key);
+  }
 
   return (
     <div className="switcher">
@@ -35,7 +66,7 @@ export function StyleSwitcher({
             type="button"
             className={`switcher__chip${key === active ? " is-active" : ""}`}
             aria-pressed={key === active}
-            onClick={() => setActive(key)}
+            onClick={() => choose(key)}
           >
             {STYLE_NAMES[key] ?? key}
           </button>

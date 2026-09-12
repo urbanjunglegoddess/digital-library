@@ -15,8 +15,8 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const doc = getReference(slug);
-  if (!doc) return { title: "Not found — Digital Asset Library" };
-  return { title: `${doc.title} — Reference`, description: doc.summary };
+  if (!doc) return { title: "Not found" };
+  return { title: doc.title, description: doc.summary };
 }
 
 export default async function ReferenceDocPage({

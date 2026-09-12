@@ -6,7 +6,7 @@ import { Playground } from "@/components/workspace/Playground";
 import type { TrayItem } from "@/components/build/types";
 
 export const metadata: Metadata = {
-  title: "Workspace — Digital Asset Library",
+  title: "Workspace",
   description:
     "Your playground: pick a component, flip its props, switch across every skin, and read the generated code.",
 };

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { getReferenceGroups } from "@/lib/reference";
 
 export const metadata: Metadata = {
-  title: "Reference — Digital Asset Library",
+  title: "Reference",
   description:
     "Library-wide reference: design and layout style languages, the atomic design map, screen taxonomies, and feature references by app type.",
 };
