@@ -27,7 +27,7 @@ the stack.**
 ```
 app/                      # App Router
   layout.tsx  page.tsx
-  knowledge/  knowledge/[slug]/  search/  account/
+  knowledge/  knowledge/[slug]/
   api/{components,search,collections,websearch}/route.ts
 components/                # app UI (consumes the design-token layer)
 lib/supabase/{server.ts,client.ts,types.ts}
