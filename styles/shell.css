@@ -29,7 +29,33 @@
   padding: 18px 14px;
   background: var(--dl-surface-2);
   border-right: 1px solid var(--dl-line);
+  transition: width 0.18s ease;
 }
+@media (prefers-reduced-motion: reduce) {
+  .app-rail { transition: none; }
+}
+.app-rail__head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.app-rail__head .app-brand { flex: 1; min-width: 0; }
+.app-rail__toggle {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--dl-line);
+  border-radius: 8px;
+  background: var(--dl-surface);
+  color: var(--dl-ink-soft);
+  font-size: 0.9rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.app-rail__toggle:hover { color: var(--dl-ink); border-color: var(--dl-line-2); }
+.app-rail__toggle:focus-visible { outline: 3px solid var(--dl-focus); outline-offset: 2px; }
 .app-brand {
   display: flex;
   align-items: center;
@@ -56,7 +82,17 @@
   color: var(--dl-ink-soft);
   margin-top: 3px;
 }
-.app-nav { flex: 1; }
+.app-nav { flex: 1; display: flex; flex-direction: column; gap: 12px; }
+.app-nav__group { display: grid; gap: 3px; }
+.app-nav__grouphead {
+  margin: 0 0 1px;
+  padding: 0 10px;
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--dl-ink-soft);
+}
 .app-nav ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
 .app-nav__item {
   display: flex;
@@ -111,7 +147,11 @@
   .app-brand { padding: 0; margin-bottom: 8px; }
   .app-brand__glyph { font-size: 1.35rem; }
   .app-brand__text { display: none; }
-  .app-nav { width: 100%; }
+  .app-rail__head { justify-content: center; margin-bottom: 4px; }
+  .app-rail__head .app-brand { flex: none; margin-bottom: 0; }
+  .app-rail__toggle { display: none; }
+  .app-nav { width: 100%; gap: 6px; }
+  .app-nav__grouphead { display: none; }
   .app-nav ul { justify-items: center; gap: 4px; }
   .app-nav__item {
     width: 44px;
@@ -352,4 +392,40 @@
   .app-rail__account {
     justify-items: center;
   }
+}
+
+/* =============================================================================
+   Desktop collapsed rail (≥1024px) — the header toggle shrinks the full rail
+   to the same 72px glyph-only column the tablet breakpoint uses. Labels, group
+   headings, the account name and the version footer fold away; glyphs keep
+   their `title` tooltips and 44px targets.
+   ============================================================================= */
+@media (min-width: 1024px) {
+  .app-rail--collapsed {
+    width: 72px;
+    padding: 18px 0;
+    align-items: center;
+    gap: 10px;
+  }
+  .app-rail--collapsed .app-rail__head { flex-direction: column; gap: 8px; }
+  .app-rail--collapsed .app-rail__head .app-brand { flex: none; padding: 0; }
+  .app-rail--collapsed .app-brand__text { display: none; }
+  .app-rail--collapsed .app-nav { width: 100%; gap: 8px; }
+  .app-rail--collapsed .app-nav__grouphead { display: none; }
+  .app-rail--collapsed .app-nav ul { justify-items: center; gap: 4px; }
+  .app-rail--collapsed .app-nav__item {
+    width: 44px;
+    height: 44px;
+    min-height: 44px;
+    padding: 0;
+    justify-content: center;
+    gap: 0;
+  }
+  .app-rail--collapsed .app-nav__glyph { width: auto; font-size: 1.05rem; }
+  .app-rail--collapsed .app-nav__labels { display: none; }
+  .app-rail--collapsed .app-rail__foot { display: none; }
+  .app-rail--collapsed .app-rail__account { justify-items: center; padding: 0.75rem 0 0; }
+  .app-rail--collapsed .app-account { padding: 0.4rem; }
+  .app-rail--collapsed .app-account__labels,
+  .app-rail--collapsed .app-account__out { display: none; }
 }

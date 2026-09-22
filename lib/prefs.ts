@@ -22,6 +22,8 @@
 
 export const PREF_SKIN = "dl-pref-skin";
 export const PREF_TARGET = "dl-pref-target";
+/** Sidebar collapsed to the icon rail. Per-browser only ("1" / "0"). */
+export const PREF_RAIL_COLLAPSED = "dl-pref-rail-collapsed";
 
 /** Shape of `profiles.preferences`, as the API stores it. */
 export interface AccountPreferences {
