@@ -3,43 +3,59 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { mirrorAccountPreferences } from "@/lib/prefs";
+import {
+  getPref,
+  setPref,
+  mirrorAccountPreferences,
+  PREF_RAIL_COLLAPSED,
+} from "@/lib/prefs";
 import "@/styles/shell.css";
 
 /**
  * Global app shell — the nine product surfaces, at three sizes.
  *
- *   ≥1024px   full 256px rail, label + hint
+ *   ≥1024px   full 256px rail, grouped, label + hint; collapsible to a 72px
+ *             icon rail via the header toggle (remembered per browser)
  *   768–1023  64px icon rail (labels move into title/aria-label)
  *   ≤767px    bottom tab bar of four plus More, the other five in the sheet
  *
- * The rail order is the information architecture; the mobile tab bar picks the
- * surfaces you move through daily and pushes the rest into the sheet, so nobody
- * meets a nine-item nav wall before they meet the content. The bar is a
- * five-column grid, so exactly four surfaces may carry a `tab` — Portal and
- * Dashboard are status surfaces you visit deliberately, not in passing, so they
- * live in the sheet and Search takes the slot.
+ * The rail groups the surfaces into the path you actually walk — Overview
+ * (where you are) → Library (find) → Create (make) → Account (configure) —
+ * instead of a flat nine-item wall. The mobile tab bar is a five-column grid,
+ * so exactly four surfaces may carry a `tab`; Portal and Dashboard are status
+ * surfaces you visit deliberately, not in passing, so they live in the sheet
+ * and Search takes the slot.
  */
+
+type NavGroup = "Overview" | "Library" | "Create" | "Account";
+
+/** Section order in the rail, top to bottom. */
+const GROUP_ORDER: NavGroup[] = ["Overview", "Library", "Create", "Account"];
 
 interface Surface {
   href: string;
   label: string;
   glyph: string;
   hint: string;
+  group: NavGroup;
   /** Short label for the bottom tab bar. */
   tab?: string;
 }
 
 const SURFACES: Surface[] = [
-  { href: "/", label: "Home", glyph: "◈", hint: "Landing", tab: "Home" },
-  { href: "/portal", label: "Portal", glyph: "⇄", hint: "Where items move" },
-  { href: "/dashboard", label: "Dashboard", glyph: "▤", hint: "Where items report" },
-  { href: "/knowledge", label: "Knowledge Hub", glyph: "❋", hint: "Reference library", tab: "Library" },
-  { href: "/search", label: "Search", glyph: "⌕", hint: "Find anything", tab: "Search" },
-  { href: "/build", label: "Build Hub", glyph: "⚒", hint: "Compose & assemble", tab: "Build" },
-  { href: "/templates", label: "Template Hub", glyph: "❐", hint: "Starters & kits" },
-  { href: "/workspace", label: "Workspace", glyph: "◱", hint: "Your saved work" },
-  { href: "/settings", label: "Settings", glyph: "⚙", hint: "Account & config" },
+  // Overview — where you are and what the library is doing.
+  { href: "/", label: "Home", glyph: "◈", hint: "Landing", group: "Overview", tab: "Home" },
+  { href: "/portal", label: "Portal", glyph: "⇄", hint: "Where items move", group: "Overview" },
+  { href: "/dashboard", label: "Dashboard", glyph: "▤", hint: "Where items report", group: "Overview" },
+  // Library — find and reference.
+  { href: "/knowledge", label: "Knowledge Hub", glyph: "❋", hint: "Reference library", group: "Library", tab: "Library" },
+  { href: "/search", label: "Search", glyph: "⌕", hint: "Find anything", group: "Library", tab: "Search" },
+  { href: "/templates", label: "Template Hub", glyph: "❐", hint: "Starters & kits", group: "Library" },
+  // Create — make and keep work.
+  { href: "/build", label: "Build Hub", glyph: "⚒", hint: "Compose & assemble", group: "Create", tab: "Build" },
+  { href: "/workspace", label: "Workspace", glyph: "◱", hint: "Your saved work", group: "Create" },
+  // Account — configuration.
+  { href: "/settings", label: "Settings", glyph: "⚙", hint: "Account & config", group: "Account" },
 ];
 
 const TABS = SURFACES.filter((s) => s.tab);
@@ -62,6 +78,22 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Distinguishes "not signed in" from "have not asked yet", so the rail can
   // stay blank for a beat instead of flashing "Sign in" at a signed-in user.
   const [viewerKnown, setViewerKnown] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+
+  // Rail collapse is a per-browser preference, read after mount so the server
+  // and first client render agree (both expanded) — no hydration mismatch,
+  // just a one-frame settle for anyone who keeps it collapsed.
+  useEffect(() => {
+    setCollapsed(getPref(PREF_RAIL_COLLAPSED) === "1");
+  }, []);
+
+  const toggleCollapsed = () => {
+    setCollapsed((prev) => {
+      const next = !prev;
+      setPref(PREF_RAIL_COLLAPSED, next ? "1" : "0");
+      return next;
+    });
+  };
 
   // Fetched here rather than passed down from the layout: reading the session
   // server-side in the layout would opt every route out of static rendering.
@@ -114,41 +146,59 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         Skip to content
       </a>
 
-      <aside className="app-rail">
-        <Link href="/" className="app-brand">
-          <span className="app-brand__glyph" aria-hidden="true">
-            ◈
-          </span>
-          <span className="app-brand__text">
-            Digital Asset Library
-            <span className="app-brand__sub">Urban Jungle Goddess</span>
-          </span>
-        </Link>
+      <aside className={`app-rail${collapsed ? " app-rail--collapsed" : ""}`}>
+        <div className="app-rail__head">
+          <Link href="/" className="app-brand" title="Digital Asset Library">
+            <span className="app-brand__glyph" aria-hidden="true">
+              ◈
+            </span>
+            <span className="app-brand__text">
+              Digital Asset Library
+              <span className="app-brand__sub">Urban Jungle Goddess</span>
+            </span>
+          </Link>
+          <button
+            type="button"
+            className="app-rail__toggle"
+            onClick={toggleCollapsed}
+            aria-expanded={!collapsed}
+            aria-controls="app-primary-nav"
+            aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            <span aria-hidden="true">{collapsed ? "»" : "«"}</span>
+          </button>
+        </div>
 
-        <nav className="app-nav" aria-label="Primary">
-          <ul>
-            {SURFACES.map((s) => {
-              const active = isActive(pathname, s.href);
-              return (
-                <li key={s.href}>
-                  <Link
-                    href={s.href}
-                    className={`app-nav__item${active ? " is-active" : ""}`}
-                    aria-current={active ? "page" : undefined}
-                    title={s.label}
-                  >
-                    <span className="app-nav__glyph" aria-hidden="true">
-                      {s.glyph}
-                    </span>
-                    <span className="app-nav__labels">
-                      <span className="app-nav__label">{s.label}</span>
-                      <span className="app-nav__hint">{s.hint}</span>
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+        <nav className="app-nav" aria-label="Primary" id="app-primary-nav">
+          {GROUP_ORDER.map((group) => (
+            <div className="app-nav__group" key={group}>
+              <p className="app-nav__grouphead">{group}</p>
+              <ul>
+                {SURFACES.filter((s) => s.group === group).map((s) => {
+                  const active = isActive(pathname, s.href);
+                  return (
+                    <li key={s.href}>
+                      <Link
+                        href={s.href}
+                        className={`app-nav__item${active ? " is-active" : ""}`}
+                        aria-current={active ? "page" : undefined}
+                        title={s.label}
+                      >
+                        <span className="app-nav__glyph" aria-hidden="true">
+                          {s.glyph}
+                        </span>
+                        <span className="app-nav__labels">
+                          <span className="app-nav__label">{s.label}</span>
+                          <span className="app-nav__hint">{s.hint}</span>
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
 
         <div className="app-rail__account">
