@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glitch Text Reveal — Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=Playfair+Display:wght@400;700&family=Orbitron:wght@400;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --page-bg: #0a0a0a;
+  --page-text: #e8e6e1;
+  --muted: #a8a5a0;
+  --card-bg: #131313;
+  --card-border: rgba(232, 230, 225, .14);
+  --gold: #f2b01e;
+  --ember: #d9531a;
+  --amethyst: #47107d;
+  --alpha-gold-24: rgba(242, 176, 30, .24);
+  --alpha-platinum-24: rgba(232, 230, 225, .24);
+  --platinum: #e8e6e1;
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--page-bg);
+  color: var(--page-text);
+  padding: 48px 24px 96px;
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+h1.page-title { font-size: 40px; line-height: 1.1; font-weight: 400; margin: 12px 0 16px; }
+.lede { color: var(--muted); max-width: 70ch; margin-bottom: 40px; }
+
+.panel {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 10px;
+  padding: 28px;
+  margin-bottom: 24px;
+}
+
+.panel > h2 {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  margin-bottom: 20px;
+}
+
+/* ---------- Stage ---------- */
+.stage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 260px;              /* reserved block: the pass contributes 0 to CLS */
+  padding: 40px 24px;
+  border-radius: 8px;
+  background: #000;
+  border: 1px solid var(--card-border);
+  overflow: hidden;
+  text-align: center;
+}
+
+.stage__inner { display: flex; flex-direction: column; gap: 18px; align-items: center; }
+
+.stage__eyebrow {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+#headline { font-size: 58px; line-height: 1.05; font-weight: 400; margin: 0; }
+
+/* ---------- Controls ---------- */
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+
+.field > label, .field > .legend {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+select, input[type="text"] {
+  background: #0a0a0a;
+  color: var(--page-text);
+  border: 1px solid var(--card-border);
+  border-radius: 4px;
+  padding: 11px 12px;
+  font: inherit;
+  font-size: 14px;
+  min-height: 44px;
+}
+
+input[type="range"] { accent-color: var(--gold); min-height: 44px; }
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-row output { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--gold); min-width: 64px; }
+
+select:focus-visible, input:focus-visible, button:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 2px;
+}
+
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check input { width: 18px; height: 18px; accent-color: var(--gold); }
+.check label { font-size: 14px; color: var(--page-text); }
+
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 10px 18px;
+  background: none;
+  border: 1px solid var(--alpha-platinum-24);
+  border-radius: 4px;
+  color: var(--page-text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+button.primary { background: var(--gold); border-color: var(--gold); color: #0a0a0a; font-weight: 700; }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* ---------- Code output ---------- */
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab { font-size: 11px; }
+.tab[aria-selected="true"] { border-color: var(--gold); color: var(--gold); }
+
+pre {
+  background: #000;
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 20px;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  line-height: 1.7;
+  color: #d6d3cd;
+  max-height: 460px;
+}
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.note { font-size: 14px; color: var(--muted); }
+.note strong { color: var(--page-text); display: block; margin-bottom: 4px; font-weight: 600; }
+.note code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--gold); }
+
+.status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-top: 16px;
+}
+
+.u-visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+
+/* ================= THE COMPONENT ================= */
+.glitch {
+  --glitch-duration: 900ms;
+  --glitch-amplitude: 10px;
+  --glitch-chroma: 3px;
+  --glitch-chroma-a: var(--ember);
+  --glitch-chroma-b: var(--amethyst);
+  --glitch-steps: steps(2, end);
+  position: relative;
+  display: inline-block;
+  /* settle state — note the absence of opacity */
+  transform: none; clip-path: none; text-shadow: none;
+}
+
+.glitch[data-glitch-size="inline"] { --glitch-amplitude: 2px;  --glitch-chroma: 1px; }
+.glitch[data-glitch-size="sm"]     { --glitch-amplitude: 4px;  --glitch-chroma: 1px; }
+.glitch[data-glitch-size="md"]     { --glitch-amplitude: 7px;  --glitch-chroma: 2px; }
+.glitch[data-glitch-size="lg"]     { --glitch-amplitude: 10px; --glitch-chroma: 3px; }
+.glitch[data-glitch-size="xl"]     { --glitch-amplitude: 12px; --glitch-chroma: 3px; }
+
+.glitch[data-glitch="scramble"] .glitch__out { display: none; }
+.glitch[data-glitch="scramble"].is-enhanced .glitch__out {
+  display: inline; font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+}
+.glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+  position: absolute; inset: 0; clip-path: inset(50%); white-space: nowrap; overflow: hidden;
+}
+.glitch[data-glitch="scramble"][data-glitch-state="glitching"] .glitch__out {
+  animation: glitch-chroma var(--glitch-duration) var(--glitch-steps) 1;
+}
+
+.glitch[data-glitch="slice"][data-glitch-state="glitching"] .glitch__truth {
+  animation: glitch-slice var(--glitch-duration) var(--glitch-steps) 1;
+}
+@keyframes glitch-slice {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+         text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a), var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  8%   { clip-path: inset(10% 0 64% 0); transform: translateX(calc(var(--glitch-amplitude) * -1)); }
+  16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+  24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(calc(var(--glitch-amplitude) * -0.7)); }
+  32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+  40%  { clip-path: inset(60% 0 18% 0); transform: translateX(calc(var(--glitch-amplitude) * -0.4)); }
+  48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+  56%  { clip-path: inset(38% 0 44% 0); transform: translateX(-2px); }
+  70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+         text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+  100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+
+.glitch[data-glitch="signal"][data-glitch-state="glitching"] .glitch__truth {
+  animation: glitch-signal var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-signal {
+  0%   { filter: blur(6px) contrast(1.7); }
+  12%  { filter: blur(1px) contrast(1.1); }
+  16%  { filter: blur(5px) contrast(1.6); }
+  28%  { filter: none; }
+  33%  { filter: blur(4px) contrast(1.5); }
+  46%  { filter: none; }
+  52%  { filter: blur(2px) contrast(1.2); }
+  100% { filter: none; }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .glitch[data-glitch="chroma"]:hover .glitch__truth,
+  .glitch[data-glitch="chroma"][data-glitch-state="glitching"] .glitch__truth {
+    animation: glitch-chroma 460ms var(--glitch-steps) 1;
+  }
+}
+@keyframes glitch-chroma {
+  0%   { text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a), var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  18%  { text-shadow: var(--glitch-chroma) 0 var(--glitch-chroma-a), calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-b); }
+  36%  { text-shadow: -2px 1px var(--glitch-chroma-a), 2px -1px var(--glitch-chroma-b); }
+  60%  { text-shadow: 1px 0 var(--glitch-chroma-a), -1px 0 var(--glitch-chroma-b); }
+  100% { text-shadow: none; }
+}
+
+.glitch__scan {
+  position: absolute; inset-inline: -12px; top: 0; height: 14px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24), transparent);
+}
+.glitch[data-glitch-state="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* Honour the real OS setting, and the simulated one via [data-force-reduced]. */
+@media (prefers-reduced-motion: reduce) {
+  .glitch .glitch__truth, .glitch .glitch__out, .glitch .glitch__scan { animation: none !important; }
+  .glitch .glitch__scan { display: none; }
+  .glitch[data-glitch="scramble"].is-enhanced .glitch__out { display: none; }
+  .glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+    position: static; clip-path: none; overflow: visible; white-space: inherit;
+  }
+}
+[data-force-reduced="true"] .glitch .glitch__truth,
+[data-force-reduced="true"] .glitch .glitch__out,
+[data-force-reduced="true"] .glitch .glitch__scan { animation: none !important; }
+[data-force-reduced="true"] .glitch .glitch__scan { display: none; }
+[data-force-reduced="true"] .glitch[data-glitch="scramble"].is-enhanced .glitch__out { display: none; }
+[data-force-reduced="true"] .glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+  position: static; clip-path: none; overflow: visible; white-space: inherit;
+}
+
+/* ================= 11 SKINS ================= */
+[data-style="ujg"]      #headline { font-family: 'Inter', sans-serif; color: var(--platinum); }
+[data-style="ujg"]      .glitch { --glitch-chroma-a: #d9531a; --glitch-chroma-b: #47107d; }
+[data-style="flat"]     #headline { font-family: 'Inter', sans-serif; font-weight: 700; color: #ffffff; }
+[data-style="flat"]     .glitch { --glitch-chroma-a: #2563eb; --glitch-chroma-b: #2563eb; --glitch-chroma: 2px; }
+[data-style="material"] #headline { font-family: 'Inter', sans-serif; font-weight: 500; color: #e6e0e9; letter-spacing: -.5px; }
+[data-style="material"] .glitch { --glitch-chroma-a: #d0bcff; --glitch-chroma-b: #4f378b; --glitch-steps: cubic-bezier(.05,.7,.1,1); }
+[data-style="glass"]    #headline { font-family: 'Inter', sans-serif; color: rgba(255,255,255,.95); }
+[data-style="glass"]    .stage__inner { backdrop-filter: blur(14px); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); border-radius: 18px; padding: 32px 40px; }
+[data-style="liquid"]   #headline { font-family: 'Inter', sans-serif; font-weight: 300; color: #f5f7ff; }
+[data-style="liquid"]   .glitch { --glitch-chroma-a: #7dd3fc; --glitch-chroma-b: #a78bfa; --glitch-chroma: 2px; }
+[data-style="neu"]      #headline { font-family: 'Inter', sans-serif; color: #d7dae0; text-shadow: 2px 2px 4px #16181c, -2px -2px 4px #2c3038; }
+[data-style="neu"]      .stage { background: #22262c; }
+[data-style="neu"]      .glitch { --glitch-chroma: 0px; }
+[data-style="skeu"]     #headline { font-family: 'Space Mono', monospace; color: #9effa8; text-shadow: 0 0 12px rgba(158,255,168,.5); }
+[data-style="skeu"]     .stage { background: #0b1410; }
+[data-style="skeu"]     .glitch { --glitch-chroma-a: #4ade80; --glitch-chroma-b: #16a34a; }
+[data-style="brut"]     #headline { font-family: 'Space Mono', monospace; font-weight: 700; color: #000; background: #ffe600; padding: 8px 16px; box-shadow: 8px 8px 0 #000; }
+[data-style="brut"]     .stage { background: #f2f0eb; }
+[data-style="brut"]     .glitch { --glitch-chroma-a: #ff2d55; --glitch-chroma-b: #00a3ff; --glitch-amplitude: 18px; }
+[data-style="clay"]     #headline { font-family: 'Fredoka', sans-serif; color: #fff; }
+[data-style="clay"]     .stage { background: #6c5ce7; }
+[data-style="clay"]     .glitch { --glitch-chroma-a: #ffeaa7; --glitch-chroma-b: #fd79a8; --glitch-amplitude: 5px; }
+[data-style="aurora"]   #headline { font-family: 'Orbitron', sans-serif; background: linear-gradient(100deg,#a78bfa,#f0abfc,#67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+[data-style="aurora"]   .glitch { --glitch-chroma-a: #f0abfc; --glitch-chroma-b: #67e8f9; }
+[data-style="swiss"]    #headline { font-family: 'Inter', sans-serif; font-weight: 500; letter-spacing: -1.5px; color: #111; }
+[data-style="swiss"]    .stage { background: #fafafa; }
+[data-style="swiss"]    .glitch { --glitch-chroma: 1px; --glitch-chroma-a: #e00; --glitch-chroma-b: #000; --glitch-amplitude: 3px; }
+[data-style="swiss"]    .stage__eyebrow { color: #e00; }
+
+footer { color: var(--muted); font-size: 13px; margin-top: 40px; }
+footer a { color: var(--gold); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Digital Asset Library · Playground</p>
+  <h1 class="page-title">Glitch Text Reveal</h1>
+  <p class="lede">
+    Three one-shot distortions that resolve a headline into place. Every control below changes the
+    live preview and the generated code. The contract never changes: the real text is in the DOM
+    from the first frame, the noise is <code>aria-hidden</code>, and the settle state is the base
+    state — so a stalled or stripped pass still shows a correct headline.
+  </p>
+
+  <!-- ---------- Live preview ---------- -->
+  <section class="panel" aria-labelledby="preview-h">
+    <h2 id="preview-h">Live preview</h2>
+    <div class="stage" id="stage" data-style="ujg">
+      <div class="stage__inner">
+        <p class="stage__eyebrow" id="stage-eyebrow">Urban Jungle Goddess · Est. in the Diaspora</p>
+        <h2 id="headline" class="glitch" data-glitch="scramble" data-glitch-size="lg" data-glitch-state="idle">
+          <span class="glitch__out" aria-hidden="true"></span>
+          <span class="glitch__truth">Built like you.</span>
+          <span class="glitch__scan" aria-hidden="true"></span>
+        </h2>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="primary" id="replay" aria-describedby="replay-help">Replay glitch</button>
+      <button type="button" id="copy">Copy current code</button>
+      <p id="replay-help" class="u-visually-hidden">
+        Replays the decorative animation on the preview heading. The heading text does not change.
+      </p>
+    </div>
+    <p class="status" id="status">state: idle · accessible name unchanged throughout</p>
+  </section>
+
+  <!-- ---------- Controls ---------- -->
+  <section class="panel" aria-labelledby="controls-h">
+    <h2 id="controls-h">Controls</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="variant">Variant</label>
+        <select id="variant">
+          <option value="scramble" selected>scramble — characters resolve (JS)</option>
+          <option value="slice">slice — band tear (CSS only)</option>
+          <option value="signal">signal — blur lock (CSS only)</option>
+          <option value="chroma">chroma — hover pulse (CSS only)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="size">Size tier</label>
+        <select id="size">
+          <option value="inline">inline — 14–16px / 420ms</option>
+          <option value="sm">sm — 20–24px / 600ms</option>
+          <option value="md">md — 32–40px / 800ms</option>
+          <option value="lg" selected>lg — 48–58px / 900ms</option>
+          <option value="xl">xl — 72px+ / 1100ms</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="duration">Duration</label>
+        <div class="range-row">
+          <input type="range" id="duration" min="200" max="1200" step="20" value="900">
+          <output for="duration" id="duration-out">900ms</output>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="skin">Visual style (skin)</label>
+        <select id="skin">
+          <option value="ujg" selected>UJG Brand (house default)</option>
+          <option value="flat">Flat</option>
+          <option value="material">Material</option>
+          <option value="glass">Glassmorphism</option>
+          <option value="liquid">Liquid Glass (2026)</option>
+          <option value="neu">Neumorphism</option>
+          <option value="skeu">Skeuomorphism</option>
+          <option value="brut">Neo-Brutalism</option>
+          <option value="clay">Claymorphism</option>
+          <option value="aurora">Aurora / Gradient</option>
+          <option value="swiss">Minimal / Swiss</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="copytext">Headline text</label>
+        <input type="text" id="copytext" value="Built like you." maxlength="120">
+      </div>
+
+      <div class="field">
+        <span class="legend">Switches</span>
+        <div class="check">
+          <input type="checkbox" id="scanline" checked>
+          <label for="scanline">Scanline</label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="reduced">
+          <label for="reduced">Simulate prefers-reduced-motion</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ---------- Generated code ---------- -->
+  <section class="panel" aria-labelledby="code-h">
+    <h2 id="code-h">Copy-paste code</h2>
+    <div class="tabs" role="tablist" aria-label="Code target">
+      <button type="button" class="tab" role="tab" id="tab-html" aria-selected="true" data-target="html">HTML</button>
+      <button type="button" class="tab" role="tab" id="tab-css" aria-selected="false" data-target="css">CSS</button>
+      <button type="button" class="tab" role="tab" id="tab-react" aria-selected="false" data-target="react">React · TS</button>
+      <button type="button" class="tab" role="tab" id="tab-js" aria-selected="false" data-target="js">Vanilla JS</button>
+      <button type="button" class="tab" role="tab" id="tab-tw" aria-selected="false" data-target="tw">Tailwind</button>
+    </div>
+    <pre id="code" tabindex="0" aria-live="off"></pre>
+  </section>
+
+  <!-- ---------- Audit notes ---------- -->
+  <section class="panel" aria-labelledby="audit-h">
+    <h2 id="audit-h">Audit checklist — what this playground proves</h2>
+    <div class="notes">
+      <p class="note"><strong>The accessible name never changes.</strong>
+        Inspect the heading mid-pass: its name stays the real sentence. The scrambling node is
+        <code>aria-hidden</code>; the truth node is clipped, not <code>display:none</code>.</p>
+      <p class="note"><strong>Reduced motion is a branch.</strong>
+        Tick the simulate switch: no animation is assigned, the scramble loop never starts, the
+        scanline leaves the DOM, and the text renders final immediately.</p>
+      <p class="note"><strong>No layout shift.</strong>
+        The stage holds a reserved <code>min-height</code>, the noise node uses
+        <code>tabular-nums</code>, and displacement is <code>transform</code> only.</p>
+      <p class="note"><strong>The settle net holds.</strong>
+        A timer at <code>duration + 120ms</code> force-lands the final state, so a throttled tab
+        or a dropped <code>animationend</code> cannot strand the headline mid-corruption.</p>
+      <p class="note"><strong>Text stays text.</strong>
+        Select it, search it, zoom it, print it. The noise is written with
+        <code>textContent</code>, never <code>innerHTML</code>.</p>
+      <p class="note"><strong>Targets and focus.</strong>
+        Every control here is a real <code>button</code>, <code>select</code> or
+        <code>input</code> at a ≥44px target with a visible focus ring.</p>
+    </div>
+  </section>
+
+  <footer>
+    Reference doc: <code>content/docs/glitch-text-reveal.mdx</code> ·
+    Component: <code>components/glitch-text/</code> ·
+    Built to Component Asset Template v2.
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  const CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+  const SIZE_DURATION = { inline: 420, sm: 600, md: 800, lg: 900, xl: 1100 };
+  const SIZE_FONT = { inline: 16, sm: 24, md: 40, lg: 58, xl: 76 };
+
+  const host = document.getElementById("headline");
+  const out = host.querySelector(".glitch__out");
+  const truth = host.querySelector(".glitch__truth");
+  const scan = host.querySelector(".glitch__scan");
+  const stage = document.getElementById("stage");
+  const statusEl = document.getElementById("status");
+  const codeEl = document.getElementById("code");
+
+  const el = {
+    variant: document.getElementById("variant"),
+    size: document.getElementById("size"),
+    duration: document.getElementById("duration"),
+    durationOut: document.getElementById("duration-out"),
+    skin: document.getElementById("skin"),
+    text: document.getElementById("copytext"),
+    scanline: document.getElementById("scanline"),
+    reduced: document.getElementById("reduced"),
+    replay: document.getElementById("replay"),
+    copy: document.getElementById("copy"),
+  };
+
+  let raf = null;
+  let settle = null;
+  let activeTab = "html";
+
+  const osReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const isReduced = () => el.reduced.checked || osReduced();
+
+  const state = () => ({
+    variant: el.variant.value,
+    size: el.size.value,
+    duration: Number(el.duration.value),
+    skin: el.skin.value,
+    text: el.text.value || "Built like you.",
+    scanline: el.scanline.checked,
+  });
+
+  function stop() {
+    if (raf) cancelAnimationFrame(raf);
+    if (settle) clearTimeout(settle);
+    raf = settle = null;
+  }
+
+  function land() {
+    stop();
+    const s = state();
+    out.textContent = s.text;
+    host.dataset.glitchState = "idle";
+    el.replay.disabled = false;
+    statusEl.textContent = "state: idle · accessible name unchanged throughout";
+  }
+
+  function run() {
+    const s = state();
+    if (isReduced()) {
+      land();
+      statusEl.textContent = "state: reduced-motion · no pass scheduled, text renders final";
+      return;
+    }
+
+    stop();
+    host.dataset.glitchState = "glitching";
+    el.replay.disabled = true;
+    statusEl.textContent = "state: glitching · " + s.variant + " · " + s.duration + "ms";
+
+    // The settle net: duration + 120ms, regardless of what rAF does.
+    settle = setTimeout(land, s.duration + 120);
+
+    if (s.variant !== "scramble") return;   // CSS owns the other three
+
+    const start = performance.now();
+    const tick = function (now) {
+      const p = Math.min(1, (now - start) / s.duration);
+      const upTo = Math.floor(p * s.text.length);
+      let str = "";
+      for (let i = 0; i < s.text.length; i++) {
+        const ch = s.text[i];
+        str += (i < upTo || ch === " ") ? ch : CHARSET[(Math.random() * CHARSET.length) | 0];
+      }
+      out.textContent = str;                 // textContent, never innerHTML
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else land();
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  function sync() {
+    const s = state();
+
+    truth.textContent = s.text;
+    out.textContent = s.text;
+
+    host.dataset.glitch = s.variant;
+    host.dataset.glitchSize = s.size;
+    host.style.setProperty("--glitch-duration", s.duration + "ms");
+    host.style.fontSize = SIZE_FONT[s.size] + "px";
+    stage.dataset.style = s.skin;
+
+    // Enhance only for scramble, and only when motion is allowed.
+    host.classList.toggle("is-enhanced", s.variant === "scramble" && !isReduced());
+    document.documentElement.dataset.forceReduced = String(el.reduced.checked);
+    scan.style.display = s.scanline && !isReduced() ? "" : "none";
+
+    el.durationOut.textContent = s.duration + "ms";
+    renderCode();
+  }
+
+  // ---------- Code generation ----------
+  function htmlFor(s) {
+    const twoNode = s.variant === "scramble";
+    return [
+      '<link rel="stylesheet" href="components/glitch-text/glitch-text.css">',
+      "",
+      '<h1 class="glitch" data-glitch="' + s.variant + '" data-glitch-size="' + s.size + '"',
+      '    style="--glitch-duration:' + s.duration + 'ms">',
+      twoNode ? '  <!-- Noise: decorative. JS fills it and adds .is-enhanced. -->' : null,
+      twoNode ? '  <span class="glitch__out" aria-hidden="true"></span>' : null,
+      '  <!-- Truth: always present, always in the accessibility tree. -->',
+      '  <span class="glitch__truth">' + s.text + "</span>",
+      s.scanline ? '  <span class="glitch__scan" aria-hidden="true"></span>' : null,
+      "</h1>",
+    ].filter(Boolean).join("\n");
+  }
+
+  function cssFor(s) {
+    if (s.variant === "scramble") {
+      return [
+        "/* Scramble needs the JS tick for glyphs; CSS supplies chroma and holds layout. */",
+        ".glitch[data-glitch=\"scramble\"] .glitch__out { display: none; }",
+        ".glitch[data-glitch=\"scramble\"].is-enhanced .glitch__out {",
+        "  display: inline;",
+        "  font-variant-numeric: tabular-nums;   /* stable width while resolving */",
+        "}",
+        ".glitch[data-glitch=\"scramble\"].is-enhanced .glitch__truth {",
+        "  position: absolute; inset: 0;",
+        "  clip-path: inset(50%);                /* hidden visually, NOT from a11y */",
+        "  white-space: nowrap; overflow: hidden;",
+        "}",
+        "",
+        "@media (prefers-reduced-motion: reduce) {",
+        "  .glitch .glitch__out { display: none; }",
+        "  .glitch .glitch__truth { position: static; clip-path: none; }",
+        "}",
+      ].join("\n");
+    }
+    const name = s.variant === "slice" ? "glitch-slice" : s.variant === "signal" ? "glitch-signal" : "glitch-chroma";
+    const timing = s.variant === "signal" ? "cubic-bezier(.2,.6,.2,1)" : "steps(2, end)";
+    return [
+      "/* " + s.variant + " — pure CSS, no JavaScript at all. */",
+      ".glitch[data-glitch=\"" + s.variant + "\"] { --glitch-duration: " + s.duration + "ms; }",
+      ".glitch[data-glitch=\"" + s.variant + "\"][data-glitch-state=\"glitching\"] .glitch__truth {",
+      "  animation: " + name + " var(--glitch-duration) " + timing + " 1;",
+      "}",
+      "",
+      "@media (prefers-reduced-motion: reduce) {",
+      "  .glitch .glitch__truth { animation: none !important; }",
+      "}",
+      "",
+      "/* Full keyframes: components/glitch-text/glitch-text.css */",
+    ].join("\n");
+  }
+
+  function reactFor(s) {
+    return [
+      'import { GlitchText } from "@/components/glitch-text/GlitchText";',
+      'import "@/components/glitch-text/glitch-text.css";',
+      "",
+      "export function Hero() {",
+      "  return (",
+      "    <GlitchText",
+      '      as="h1"',
+      '      variant="' + s.variant + '"',
+      '      size="' + s.size + '"',
+      '      trigger="in-view"',
+      "      duration={" + s.duration + "}",
+      "      once",
+      (s.scanline ? "      scanline" : "      scanline={false}"),
+      "    >",
+      "      " + s.text,
+      "    </GlitchText>",
+      "  );",
+      "}",
+    ].join("\n");
+  }
+
+  function jsFor(s) {
+    return [
+      'import { GlitchText } from "./components/glitch-text/glitch-text.js";',
+      "",
+      "const host = document.querySelector('.glitch');",
+      "const glitch = new GlitchText(host, {",
+      "  duration: " + s.duration + ",",
+      "  once: true,",
+      "});",
+      "",
+      "// Replay is an explicit user request, so it overrides the once-flag.",
+      "document.querySelector('[data-glitch-replay]')",
+      "  .addEventListener('click', () => { glitch.spent = false; glitch.run(); });",
+    ].join("\n");
+  }
+
+  function twFor(s) {
+    const anim = s.variant === "signal" ? "animate-glitch-signal" : "animate-glitch-slice";
+    return [
+      "<!-- motion-reduce:animate-none is the whole compliance story. -->",
+      '<h1 class="text-[' + SIZE_FONT[s.size] + 'px] leading-[1.05] font-normal text-platinum">',
+      '  <span class="inline-block ' + anim + ' motion-reduce:animate-none">',
+      "    " + s.text,
+      "  </span>",
+      "</h1>",
+      "",
+      "<!-- keyframes + animation entries go in tailwind.config.ts (v3)",
+      "     or @theme (v4) — see §9.5 of the reference doc. -->",
+    ].join("\n");
+  }
+
+  function renderCode() {
+    const s = state();
+    const map = { html: htmlFor, css: cssFor, react: reactFor, js: jsFor, tw: twFor };
+    codeEl.textContent = map[activeTab](s);
+  }
+
+  // ---------- Wiring ----------
+  el.size.addEventListener("change", function () {
+    el.duration.value = String(SIZE_DURATION[el.size.value]);
+    sync();
+    run();
+  });
+
+  ["variant", "skin"].forEach(function (key) {
+    el[key].addEventListener("change", function () { sync(); run(); });
+  });
+
+  el.duration.addEventListener("input", sync);
+  el.text.addEventListener("input", sync);
+  el.scanline.addEventListener("change", sync);
+  el.reduced.addEventListener("change", function () { sync(); land(); });
+  el.replay.addEventListener("click", run);
+
+  el.copy.addEventListener("click", function () {
+    navigator.clipboard.writeText(codeEl.textContent).then(function () {
+      el.copy.textContent = "Copied";
+      setTimeout(function () { el.copy.textContent = "Copy current code"; }, 1600);
+    });
+  });
+
+  document.querySelectorAll('[role="tab"]').forEach(function (tab) {
+    tab.addEventListener("click", function () {
+      document.querySelectorAll('[role="tab"]').forEach(function (t) {
+        t.setAttribute("aria-selected", String(t === tab));
+      });
+      activeTab = tab.dataset.target;
+      renderCode();
+    });
+  });
+
+  sync();
+  if (!isReduced()) run();
+})();
+</script>
+</body>
+</html>

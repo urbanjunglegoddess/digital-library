@@ -1,0 +1,196 @@
+/* Glitch Text Reveal — structure, variants, settle state, reduced motion.
+ * Three variants: scramble (JS), slice (CSS), signal (CSS), plus chroma (hover).
+ * The settle state lives here, in base CSS — never only in a keyframe's 100% stop —
+ * so a stalled, stripped, throttled, or printed render still shows a correct headline.
+ *
+ * Skin comes from an ancestor [data-style] wrapper defined in styles/tokens.css.
+ */
+
+.glitch {
+  --glitch-duration: 900ms;
+  --glitch-amplitude: 10px;
+  --glitch-chroma: 3px;
+  --glitch-chroma-a: var(--ember, #d9531a);
+  --glitch-chroma-b: var(--amethyst, #47107d);
+  --glitch-steps: steps(2, end);
+
+  position: relative;
+  display: inline-block;
+
+  /* THE SETTLE STATE. Note what is absent: opacity. */
+  transform: none;
+  clip-path: none;
+  text-shadow: none;
+}
+
+.glitch[data-glitch-size="inline"] { --glitch-amplitude: 2px;  --glitch-chroma: 1px; --glitch-duration: 420ms; }
+.glitch[data-glitch-size="sm"]     { --glitch-amplitude: 4px;  --glitch-chroma: 1px; --glitch-duration: 600ms; }
+.glitch[data-glitch-size="md"]     { --glitch-amplitude: 7px;  --glitch-chroma: 2px; --glitch-duration: 800ms; }
+.glitch[data-glitch-size="lg"]     { --glitch-amplitude: 10px; --glitch-chroma: 3px; --glitch-duration: 900ms; }
+.glitch[data-glitch-size="xl"]     { --glitch-amplitude: 12px; --glitch-chroma: 3px; --glitch-duration: 1100ms; }
+
+/* ---------- Scramble ---------- */
+/* No-JS and pre-enhancement: the truth node renders, the noise node is absent. */
+.glitch[data-glitch="scramble"] .glitch__out { display: none; }
+
+.glitch[data-glitch="scramble"].is-enhanced .glitch__out {
+  display: inline;
+  /* Stable advance widths while characters resolve — proportional glyphs jitter. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Visually hidden, still in the accessibility tree.
+   NOT display:none, NOT visibility:hidden, NOT aria-hidden. */
+.glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.glitch[data-glitch="scramble"][data-glitch-state="glitching"] .glitch__out {
+  animation: glitch-chroma var(--glitch-duration) var(--glitch-steps) 1;
+}
+
+/* ---------- Slice tear ---------- */
+.glitch[data-glitch="slice"][data-glitch-state="glitching"] .glitch__truth {
+  animation: glitch-slice var(--glitch-duration) var(--glitch-steps) 1;
+}
+
+@keyframes glitch-slice {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+         text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                      var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  8%   { clip-path: inset(10% 0 64% 0); transform: translateX(calc(var(--glitch-amplitude) * -1)); }
+  16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+  24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(calc(var(--glitch-amplitude) * -0.7)); }
+  32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+  40%  { clip-path: inset(60% 0 18% 0); transform: translateX(calc(var(--glitch-amplitude) * -0.4)); }
+  48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+  56%  { clip-path: inset(38% 0 44% 0); transform: translateX(-2px); }
+  70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+         text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+  100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+
+/* ---------- Signal lock ---------- */
+.glitch[data-glitch="signal"][data-glitch-state="glitching"] .glitch__truth {
+  animation: glitch-signal var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+
+@keyframes glitch-signal {
+  0%   { filter: blur(6px) contrast(1.7); }
+  12%  { filter: blur(1px) contrast(1.1); }
+  16%  { filter: blur(5px) contrast(1.6); }
+  28%  { filter: none; }
+  33%  { filter: blur(4px) contrast(1.5); }
+  46%  { filter: none; }
+  52%  { filter: blur(2px) contrast(1.2); }
+  100% { filter: none; }
+}
+
+/* ---------- Chroma pulse (hover micro-variant) ---------- */
+/* Pointer only. Never :focus-visible — a keyboard user must not glitch every tab stop. */
+@media (hover: hover) and (pointer: fine) {
+  .glitch[data-glitch-trigger="hover"]:hover .glitch__truth {
+    animation: glitch-chroma 460ms var(--glitch-steps) 1;
+  }
+}
+
+@keyframes glitch-chroma {
+  0%   { text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                      var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  18%  { text-shadow: var(--glitch-chroma) 0 var(--glitch-chroma-a),
+                      calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-b); }
+  36%  { text-shadow: -2px 1px var(--glitch-chroma-a), 2px -1px var(--glitch-chroma-b); }
+  60%  { text-shadow: 1px 0 var(--glitch-chroma-a), -1px 0 var(--glitch-chroma-b); }
+  100% { text-shadow: none; }
+}
+
+/* ---------- Scanline ---------- */
+.glitch__scan {
+  position: absolute;
+  inset-inline: -12px;
+  top: 0;
+  height: 14px;
+  pointer-events: none;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24, rgba(242,176,30,.24)), transparent);
+  opacity: 0;
+}
+
+.glitch[data-glitch-state="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+
+@keyframes glitch-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* ---------- Replay control ---------- */
+.glitch__replay {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;                 /* house target, above the WCAG 2.5.8 minimum */
+  padding: 10px 16px;
+  background: none;
+  border: 1px solid var(--alpha-platinum-24, rgba(232,230,225,.24));
+  border-radius: 4px;
+  color: var(--platinum, #e8e6e1);
+  font: inherit;
+  font-size: 0.6875rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.glitch__replay:focus-visible {
+  outline: 2px solid var(--gold, #f2b01e);
+  outline-offset: 2px;
+}
+
+.glitch__replay[disabled] { opacity: .5; cursor: not-allowed; }
+
+/* ---------- Scroll-driven variant (2026): no JS, no observer ---------- */
+@supports (animation-timeline: view()) {
+  .glitch[data-glitch-trigger="scroll"] .glitch__truth {
+    animation: glitch-slice linear both;
+    animation-timeline: view();
+    animation-range: entry 10% entry 60%;
+  }
+}
+
+/* ---------- Reduced motion: a branch, not a tweak ---------- */
+@media (prefers-reduced-motion: reduce) {
+  .glitch .glitch__truth,
+  .glitch .glitch__out,
+  .glitch .glitch__scan { animation: none !important; }
+
+  .glitch .glitch__scan { display: none; }
+
+  /* If JS enhanced before the query was read, put the truth node back in flow. */
+  .glitch[data-glitch="scramble"].is-enhanced .glitch__out { display: none; }
+  .glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+    position: static;
+    clip-path: none;
+    overflow: visible;
+    white-space: inherit;
+  }
+}
+
+/* ---------- Print: settle state, no chroma ghosts ---------- */
+@media print {
+  .glitch .glitch__truth {
+    animation: none;
+    text-shadow: none;
+    filter: none;
+    transform: none;
+    clip-path: none;
+  }
+  .glitch__scan,
+  .glitch__replay { display: none; }
+}
