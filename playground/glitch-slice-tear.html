@@ -1,0 +1,722 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glitch Slice Tear — Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --page-bg: #0a0a0a; --page-text: #e8e6e1; --muted: #a8a5a0;
+  --card-bg: #131313; --card-border: rgba(232,230,225,.14);
+  --gold: #f2b01e; --ember: #d9531a; --amethyst: #47107d;
+  --platinum: #e8e6e1; --jungle: #2e6b4f;
+  --alpha-gold-24: rgba(242,176,30,.24);
+  --alpha-platinum-24: rgba(232,230,225,.24);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--page-bg); color: var(--page-text);
+  padding: 48px 24px 96px; min-height: 100vh; line-height: 1.6;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .28em; text-transform: uppercase; color: var(--gold);
+}
+h1.page-title { font-size: 40px; line-height: 1.1; font-weight: 400; margin: 12px 0 16px; }
+.lede { color: var(--muted); max-width: 72ch; margin-bottom: 14px; }
+.siblings { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
+.siblings a { color: var(--gold); }
+
+.panel {
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 28px; margin-bottom: 24px;
+}
+.panel > h2 {
+  font-size: 13px; font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 20px;
+}
+
+.stage {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 260px; padding: 40px 24px; border-radius: 8px;
+  background: #000; border: 1px solid var(--card-border);
+  overflow: hidden; text-align: center;
+}
+.stage__inner { display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.stage__eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .28em; text-transform: uppercase; color: var(--gold);
+}
+#headline { font-size: 58px; line-height: 1.05; font-weight: 400; margin: 0; }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field > label, .field > .legend {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+select, input[type="text"] {
+  background: #0a0a0a; color: var(--page-text); border: 1px solid var(--card-border);
+  border-radius: 4px; padding: 11px 12px; font: inherit; font-size: 14px; min-height: 44px;
+}
+input[type="range"] { accent-color: var(--gold); min-height: 44px; }
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-row output {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  color: var(--gold); min-width: 64px;
+}
+select:focus-visible, input:focus-visible, button:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check input { width: 18px; height: 18px; accent-color: var(--gold); }
+.check label { font-size: 14px; color: var(--page-text); }
+
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 10px 18px; background: none;
+  border: 1px solid var(--alpha-platinum-24); border-radius: 4px; color: var(--page-text);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+}
+button.primary { background: var(--gold); border-color: var(--gold); color: #0a0a0a; font-weight: 700; }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab { font-size: 11px; }
+.tab[aria-selected="true"] { border-color: var(--gold); color: var(--gold); }
+pre {
+  background: #000; border: 1px solid var(--card-border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px; line-height: 1.7; color: #d6d3cd; max-height: 460px;
+}
+
+.meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.meter {
+  border: 1px solid var(--card-border); border-radius: 8px; padding: 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.meter__label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+.meter__value { font-family: 'JetBrains Mono', monospace; font-size: 24px; color: var(--gold); }
+.meter__note { font-size: 13px; color: var(--muted); }
+.meter[data-verdict="pass"] { border-color: var(--jungle); }
+.meter[data-verdict="pass"] .meter__value { color: var(--jungle); }
+.meter[data-verdict="fail"] { border-color: var(--ember); }
+.meter[data-verdict="fail"] .meter__value { color: var(--ember); }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.note { font-size: 14px; color: var(--muted); }
+.note strong { color: var(--page-text); display: block; margin-bottom: 4px; font-weight: 600; }
+.note code, .meter__note code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--gold); }
+
+.status {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin-top: 16px;
+}
+.u-visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+footer { color: var(--muted); font-size: 13px; margin-top: 40px; }
+footer code { font-family: 'JetBrains Mono', monospace; color: var(--gold); }
+
+/* ================= THE COMPONENT ================= */
+
+.glitch {
+  --glitch-duration: 900ms; --glitch-amplitude: 10px; --glitch-chroma: 3px;
+  --glitch-chroma-a: var(--ember); --glitch-chroma-b: var(--amethyst);
+  --glitch-steps: steps(2, end);
+  position: relative; display: inline-block;
+}
+.glitch .glitch__truth {
+  display: inline-block;
+  /* THE SETTLE STATE — no opacity anywhere. */
+  clip-path: none; transform: none; text-shadow: none;
+}
+.glitch[data-glitch-state="glitching"] .glitch__truth { animation: slice-a var(--glitch-duration) var(--glitch-steps) 1; }
+.glitch[data-glitch-state="glitching-alt"] .glitch__truth { animation: slice-b var(--glitch-duration) var(--glitch-steps) 1; }
+.glitch[data-glitch-orientation="vertical"][data-glitch-state="glitching"] .glitch__truth { animation: slice-v var(--glitch-duration) var(--glitch-steps) 1; }
+.glitch[data-glitch-orientation="vertical"][data-glitch-state="glitching-alt"] .glitch__truth { animation: slice-v2 var(--glitch-duration) var(--glitch-steps) 1; }
+
+@keyframes slice-a {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+         text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a), var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  8%   { clip-path: inset(10% 0 64% 0); transform: translateX(calc(var(--glitch-amplitude) * -1)); }
+  16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+  24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(calc(var(--glitch-amplitude) * -0.7)); }
+  32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+  40%  { clip-path: inset(60% 0 18% 0); transform: translateX(calc(var(--glitch-amplitude) * -0.4)); }
+  48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+  56%  { clip-path: inset(38% 0 44% 0); transform: translateX(-2px); }
+  70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+         text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+  100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+@keyframes slice-b {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+         text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a), var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  8%   { clip-path: inset(10% 0 64% 0); transform: translateX(calc(var(--glitch-amplitude) * -1)); }
+  16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+  24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(calc(var(--glitch-amplitude) * -0.7)); }
+  32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+  40%  { clip-path: inset(60% 0 18% 0); transform: translateX(calc(var(--glitch-amplitude) * -0.4)); }
+  48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+  56%  { clip-path: inset(38% 0 44% 0); transform: translateX(-2px); }
+  70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+         text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+  100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+@keyframes slice-v {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0); }
+  14%  { clip-path: inset(0 62% 0 12%); transform: translateY(calc(var(--glitch-amplitude) * -0.8)); }
+  28%  { clip-path: inset(0 28% 0 48%); transform: translateY(var(--glitch-amplitude)); }
+  42%  { clip-path: inset(0 8% 0 76%);  transform: translateY(calc(var(--glitch-amplitude) * -0.5)); }
+  60%  { clip-path: inset(0 0 0 0);     transform: translateY(2px); }
+  100% { clip-path: inset(0 0 0 0); transform: none; }
+}
+@keyframes slice-v2 {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0); }
+  14%  { clip-path: inset(0 62% 0 12%); transform: translateY(calc(var(--glitch-amplitude) * -0.8)); }
+  28%  { clip-path: inset(0 28% 0 48%); transform: translateY(var(--glitch-amplitude)); }
+  42%  { clip-path: inset(0 8% 0 76%);  transform: translateY(calc(var(--glitch-amplitude) * -0.5)); }
+  60%  { clip-path: inset(0 0 0 0);     transform: translateY(2px); }
+  100% { clip-path: inset(0 0 0 0); transform: none; }
+}
+.glitch__scan {
+  position: absolute; inset-inline: -12px; top: 0; height: 14px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24), transparent);
+}
+.glitch[data-glitch-state^="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-scan {
+  0% { transform: translateY(-120%); opacity: 0; } 10% { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glitch .glitch__truth, .glitch .glitch__scan { animation: none !important; }
+  .glitch .glitch__scan { display: none; }
+}
+[data-force-reduced="true"] .glitch .glitch__truth,
+[data-force-reduced="true"] .glitch .glitch__scan { animation: none !important; }
+[data-force-reduced="true"] .glitch .glitch__scan { display: none; }
+
+
+/* ================= 11 SKINS ================= */
+[data-style="ujg"]      #headline { font-family: 'Inter', sans-serif; color: var(--platinum); }
+[data-style="ujg"]      .glitch { --glitch-chroma-a: #d9531a; --glitch-chroma-b: #47107d; }
+[data-style="flat"]     #headline { font-family: 'Inter', sans-serif; font-weight: 700; color: #fff; }
+[data-style="flat"]     .glitch { --glitch-chroma-a: #2563eb; --glitch-chroma-b: #2563eb; --glitch-chroma: 2px; }
+[data-style="material"] #headline { font-family: 'Inter', sans-serif; font-weight: 500; color: #e6e0e9; letter-spacing: -.5px; }
+[data-style="material"] .glitch { --glitch-chroma-a: #d0bcff; --glitch-chroma-b: #4f378b; }
+[data-style="glass"]    #headline { font-family: 'Inter', sans-serif; color: rgba(255,255,255,.95); }
+[data-style="glass"]    .stage__inner { backdrop-filter: blur(14px); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); border-radius: 18px; padding: 32px 40px; }
+[data-style="liquid"]   #headline { font-family: 'Inter', sans-serif; font-weight: 300; color: #f5f7ff; }
+[data-style="liquid"]   .glitch { --glitch-chroma-a: #7dd3fc; --glitch-chroma-b: #a78bfa; --glitch-chroma: 2px; }
+[data-style="neu"]      #headline { font-family: 'Inter', sans-serif; color: #d7dae0; }
+[data-style="neu"]      .stage { background: #22262c; }
+[data-style="neu"]      .glitch { --glitch-chroma: 0px; }
+[data-style="skeu"]     #headline { font-family: 'Space Mono', monospace; color: #9effa8; text-shadow: 0 0 12px rgba(158,255,168,.5); }
+[data-style="skeu"]     .stage { background: #0b1410; }
+[data-style="skeu"]     .glitch { --glitch-chroma-a: #4ade80; --glitch-chroma-b: #16a34a; }
+[data-style="brut"]     #headline { font-family: 'Space Mono', monospace; font-weight: 700; color: #000; background: #ffe600; padding: 8px 16px; box-shadow: 8px 8px 0 #000; }
+[data-style="brut"]     .stage { background: #f2f0eb; }
+[data-style="brut"]     .glitch { --glitch-chroma-a: #ff2d55; --glitch-chroma-b: #00a3ff; --glitch-amplitude: 18px; }
+[data-style="clay"]     #headline { font-family: 'Fredoka', sans-serif; color: #fff; }
+[data-style="clay"]     .stage { background: #6c5ce7; }
+[data-style="clay"]     .glitch { --glitch-chroma-a: #ffeaa7; --glitch-chroma-b: #fd79a8; --glitch-amplitude: 5px; }
+[data-style="aurora"]   #headline { font-family: 'Orbitron', sans-serif; background: linear-gradient(100deg,#a78bfa,#f0abfc,#67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+[data-style="aurora"]   .glitch { --glitch-chroma-a: #f0abfc; --glitch-chroma-b: #67e8f9; }
+[data-style="swiss"]    #headline { font-family: 'Inter', sans-serif; font-weight: 500; letter-spacing: -1.5px; color: #111; }
+[data-style="swiss"]    .stage { background: #fafafa; }
+[data-style="swiss"]    .glitch { --glitch-chroma: 1px; --glitch-chroma-a: #e00; --glitch-chroma-b: #000; --glitch-amplitude: 3px; }
+[data-style="swiss"]    .stage__eyebrow { color: #e00; }
+
+.skin-select-wrap { margin-top: 4px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Digital Asset Library · Playground</p>
+  <h1 class="page-title">Glitch Slice Tear</h1>
+  <p class="lede">Horizontal bands shear sideways in hard steps and snap flush. Pure CSS, zero layout cost, and the only glitch that ships end to end on a platform with no scripting. The controls here are mostly a safety demonstration: step rate over duration <em>is</em> the flash rate, and this is the variant that can cross the threshold.</p>
+  <p class="siblings">Siblings: <a href="glitch-scramble-reveal.html">Scramble Reveal</a> (JS, decodes) · <a href="glitch-signal-lock.html">Signal Lock</a> (CSS-only, restrained)</p>
+
+  <section class="panel" aria-labelledby="preview-h">
+    <h2 id="preview-h">Live preview</h2>
+    <div class="stage" id="stage" data-style="ujg">
+      <div class="stage__inner">
+        <p class="stage__eyebrow" id="stage-eyebrow">Urban Jungle Goddess · Est. in the Diaspora</p>
+        <h2 id="headline" class="glitch" data-glitch="slice" data-glitch-size="lg"
+            data-glitch-state="idle" data-glitch-orientation="horizontal">
+          <span class="glitch__truth">Built like you.</span>
+          <span class="glitch__scan" aria-hidden="true"></span>
+        </h2>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="primary" id="replay" aria-describedby="replay-help">Replay</button>
+      <button type="button" id="copy">Copy current code</button>
+      <p id="replay-help" class="u-visually-hidden">
+        Replays the decorative animation on the preview heading. The heading text does not change.
+      </p>
+    </div>
+    <p class="status" id="status">state: idle</p>
+  </section>
+
+  <section class="panel" aria-labelledby="controls-h">
+    <h2 id="controls-h">Controls</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="amplitude">Displacement amplitude</label>
+        <div class="range-row">
+          <input type="range" id="amplitude" min="1" max="24" step="1" value="10">
+          <output for="amplitude" id="amplitude-out">10px</output>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="steps">Step count (flash-safety lever)</label>
+        <select id="steps">
+          <option value="1">1 — smoothest</option>
+          <option value="2" selected>2 — house ceiling</option>
+          <option value="6">6 — unsafe, watch the meter</option>
+          <option value="12">12 — unsafe, watch the meter</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="orientation">Orientation</label>
+        <select id="orientation">
+          <option value="horizontal" selected>horizontal bands</option>
+          <option value="vertical">vertical bands</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="duration">Duration</label>
+        <div class="range-row">
+          <input type="range" id="duration" min="200" max="1200" step="20" value="900">
+          <output for="duration" id="duration-out">900ms</output>
+        </div>
+      </div>
+      <div class="field">
+        <label for="size">Size tier</label>
+        <select id="size">
+          <option value="inline">inline — 14–16px</option>
+          <option value="sm">sm — 20–24px</option>
+          <option value="md">md — 32–40px</option>
+          <option value="lg" selected>lg — 48–58px</option>
+          <option value="xl">xl — 72px+</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="skin">Visual style (skin)</label>
+        <select id="skin">
+          <option value="ujg" selected>UJG Brand (house default)</option>
+          <option value="flat">Flat</option>
+          <option value="material">Material</option>
+          <option value="glass">Glassmorphism</option>
+          <option value="liquid">Liquid Glass (2026)</option>
+          <option value="neu">Neumorphism</option>
+          <option value="skeu">Skeuomorphism</option>
+          <option value="brut">Neo-Brutalism</option>
+          <option value="clay">Claymorphism</option>
+          <option value="aurora">Aurora / Gradient</option>
+          <option value="swiss">Minimal / Swiss</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="copytext">Headline text</label>
+        <input type="text" id="copytext" value="Built like you." maxlength="160">
+      </div>
+      <div class="field">
+        <span class="legend">Switches</span>
+        <div class="check">
+          <input type="checkbox" id="scanline" checked>
+          <label for="scanline">Scanline</label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="reduced">
+          <label for="reduced">Simulate prefers-reduced-motion</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="audit-h">
+    <h2 id="audit-h">Audit meters — measured, not asserted</h2>
+    <div class="meters">
+      <div class="meter" id="m-flash">
+        <span class="meter__label">Discrete changes</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Visual state changes per second. A screen for the step rate, not a WCAG 2.3.1 verdict.</span>
+      </div>
+      <div class="meter" id="m-props">
+        <span class="meter__label">Animated properties</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Must be layout-neutral only: clip-path, transform, text-shadow.</span>
+      </div>
+      <div class="meter" id="m-shift">
+        <span class="meter__label">Layout shift</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Layout-relative box change across the pass. Must be zero.</span>
+      </div>
+      <div class="meter" id="m-restart">
+        <span class="meter__label">Restart</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Replay must swap the animation name — re-applying one is a silent no-op.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="code-h">
+    <h2 id="code-h">Copy-paste code</h2>
+    <div class="tabs" role="tablist" aria-label="Code target">
+      <button type="button" class="tab" role="tab" id="tab-html" aria-selected="true" data-target="html">HTML</button>
+      <button type="button" class="tab" role="tab" id="tab-css" aria-selected="false" data-target="css">CSS</button>
+      <button type="button" class="tab" role="tab" id="tab-react" aria-selected="false" data-target="react">React · TS</button>
+      <button type="button" class="tab" role="tab" id="tab-tw" aria-selected="false" data-target="tw">Tailwind</button>
+    </div>
+    <pre id="code" tabindex="0"></pre>
+  </section>
+
+  <section class="panel" aria-labelledby="notes-h">
+    <h2 id="notes-h">What this playground proves</h2>
+    <div class="notes">
+      <p class="note"><strong>Crank the step count.</strong> Set steps to 6 or 12 and watch the flash meter climb. This is the one glitch variant that can build a genuine seizure hazard, and the step rate is the lever that does it. For more drama, raise amplitude instead &mdash; distance is free, frequency is not.</p>
+      <p class="note"><strong>The meter is a screen, not a verdict.</strong> WCAG 2.3.1 is a <em>luminance and area</em> test over rendered pixels — it depends on the background behind the text and how much of the visual field the headline fills, so no DOM measurement can decide it. What this counts is discrete visual state changes, which is what the step control actually drives. At or below 3/s you are safe whatever the pixels do; above it, keep steps at 2 and get a real assessment if the headline is full-bleed.</p>
+      <p class="note"><strong>One copy of the text.</strong> There is no <code>aria-hidden</code> duplicate and no <code>content: attr(data-text)</code> pseudo-element — generated content is exposed to assistive tech on several engines, so the classic three-layer glitch gets announced twice.</p>
+      <p class="note"><strong>Nothing touches layout.</strong> The properties meter reads the running animation's keyframes directly. Only <code>clip-path</code>, <code>transform</code> and <code>text-shadow</code> appear, so the box never moves and CLS is zero.</p>
+      <p class="note"><strong>Replay actually restarts.</strong> The state swaps between two identically-defined keyframe names. Re-applying the same <code>animation-name</code> does nothing at all — the most common slice-tear bug.</p>
+      <p class="note"><strong>Zero JavaScript in production.</strong> The JS here drives the controls and the meters. In production this variant is a stylesheet plus <code>animation-timeline: view()</code> — no hook, no observer, no runtime.</p>
+      <p class="note"><strong>Reduced motion declares nothing.</strong> Tick the switch: no animation is assigned at all, and the scanline leaves the DOM.</p>
+    </div>
+  </section>
+
+  <footer>
+    Reference doc: <code>content/docs/glitch-slice-tear.mdx</code> ·
+    Component: <code>components/glitch-text/</code> ·
+    Family overview: <code>content/docs/glitch-text-reveal.mdx</code> ·
+    Built to Component Asset Template v2.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Shared chrome: skin, size, text, tabs, copy, reduced-motion simulation ----
+  const SIZE_FONT = { inline: 16, sm: 24, md: 40, lg: 58, xl: 76 };
+  const SIZE_DURATION = { inline: 420, sm: 600, md: 800, lg: 900, xl: 1100 };
+
+  const stage = document.getElementById("stage");
+  const host = document.getElementById("headline");
+  const statusEl = document.getElementById("status");
+  const codeEl = document.getElementById("code");
+  let activeTab = "html";
+
+  const osReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const el = (id) => document.getElementById(id);
+  const isReduced = () => el("reduced").checked || osReduced();
+
+  function wireChrome(onChange) {
+    el("skin").addEventListener("change", () => { stage.dataset.style = el("skin").value; onChange(); });
+    el("size").addEventListener("change", () => {
+      host.style.fontSize = SIZE_FONT[el("size").value] + "px";
+      host.dataset.glitchSize = el("size").value;
+      if (el("duration")) el("duration").value = String(SIZE_DURATION[el("size").value]);
+      onChange();
+    });
+    el("copytext").addEventListener("input", onChange);
+    el("reduced").addEventListener("change", () => {
+      document.documentElement.dataset.forceReduced = String(el("reduced").checked);
+      onChange();
+    });
+    el("copy").addEventListener("click", () => {
+      navigator.clipboard.writeText(codeEl.textContent).then(() => {
+        el("copy").textContent = "Copied";
+        setTimeout(() => { el("copy").textContent = "Copy current code"; }, 1600);
+      });
+    });
+    document.querySelectorAll('[role="tab"]').forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll('[role="tab"]').forEach((t) =>
+          t.setAttribute("aria-selected", String(t === tab)));
+        activeTab = tab.dataset.target;
+        onChange();
+      });
+    });
+  }
+
+  function setMeter(id, value, verdict, note) {
+    const node = el(id);
+    if (!node) return;
+    node.querySelector(".meter__value").textContent = value;
+    if (verdict) node.dataset.verdict = verdict;
+    if (note !== undefined) node.querySelector(".meter__note").innerHTML = note;
+  }
+
+
+  // ---- Slice engine: state swap, no per-frame work ----
+  const truth = host.querySelector(".glitch__truth");
+  const scan = host.querySelector(".glitch__scan");
+  let settle = null, flip = false, sampler = null;
+
+  const state = () => ({
+    text: el("copytext").value || "Built like you.",
+    amplitude: Number(el("amplitude").value),
+    steps: Number(el("steps").value),
+    orientation: el("orientation").value,
+    duration: Number(el("duration").value),
+  });
+
+  function land() {
+    if (settle) clearTimeout(settle);
+    settle = null;
+    host.dataset.glitchState = "idle";
+    el("replay").disabled = false;
+    statusEl.textContent = "state: settled";
+  }
+
+  function run() {
+    const s = state();
+    if (isReduced()) {
+      land();
+      statusEl.textContent = "state: reduced-motion \u00b7 no animation declared";
+      setMeter("m-flash", "0/s", "pass", "Nothing animates, so nothing can flash.");
+      return;
+    }
+    if (settle) clearTimeout(settle);
+
+    // Swapping the state swaps the animation NAME. That is what restarts a CSS animation.
+    flip = !flip;
+    host.dataset.glitchState = flip ? "glitching" : "glitching-alt";
+    el("replay").disabled = true;
+    statusEl.textContent = "state: tearing \u00b7 " + s.orientation + " \u00b7 " + s.duration + "ms";
+
+    settle = setTimeout(land, s.duration + 120);
+    measureFlash(s);
+    measureProps();
+    measureShift(s);
+    setMeter("m-restart", flip ? "name A" : "name B", "pass",
+      "Alternating keyframe names, so every replay re-runs.");
+  }
+
+  // ---- Discrete change rate ----
+  // An honest screening meter, and worth being precise about what it is NOT. WCAG 2.3.1
+  // asks whether RELATIVE LUMINANCE changes by >=10% of maximum, in opposing pairs, more
+  // than 3x/second, over >=25% of a 10-degree area of the visual field. That depends on
+  // rendered pixels, the background behind them, and how much of the viewport the headline
+  // fills — none of which the DOM can tell you. So this counts discrete visual state
+  // changes (clip band, position, chroma), which IS measurable and which the step control
+  // drives directly. At or below 3/s you are safe by construction; above it you are making
+  // a judgement, and the note says so.
+  function measureFlash(s) {
+    if (sampler) clearInterval(sampler);
+    const seen = [];
+    const windowMs = Math.min(s.duration, 1000);
+    const began = performance.now();
+    sampler = setInterval(() => {
+      const cs = getComputedStyle(truth);
+      seen.push(cs.clipPath + "|" + cs.transform + "|" + cs.textShadow);
+      if (performance.now() - began >= windowMs) {
+        clearInterval(sampler);
+        sampler = null;
+        let transitions = 0;
+        for (let i = 1; i < seen.length; i++) if (seen[i] !== seen[i - 1]) transitions++;
+        const perSecond = transitions / (windowMs / 1000);
+        const safeByConstruction = perSecond <= 3;
+        const overCeiling = perSecond > 22;
+        setMeter("m-flash", perSecond.toFixed(0) + "/s",
+          safeByConstruction ? "pass" : (overCeiling ? "fail" : null),
+          safeByConstruction
+            ? "At or below 3/s — under the WCAG 2.3.1 flash limit however the pixels land."
+            : overCeiling
+              ? "<strong>Above the authored ceiling.</strong> The step count was raised past 2. " +
+                "Bring it back, or get a real photosensitivity assessment on a screen recording."
+              : "The authored ceiling (steps 2, nine stops). Most of these move glyph <em>position</em>, " +
+                "not area luminance — but a DOM meter cannot decide 2.3.1. Keep steps at 2.");
+      }
+    }, 16);
+  }
+
+  // ---- Animated properties: read the running animation's own keyframes ----
+  function measureProps() {
+    requestAnimationFrame(() => {
+      const allowed = ["clipPath", "transform", "textShadow"];
+      const found = new Set();
+      for (const animation of truth.getAnimations()) {
+        const effect = animation.effect;
+        if (!effect || !effect.getKeyframes) continue;
+        for (const frame of effect.getKeyframes()) {
+          for (const key of Object.keys(frame)) {
+            if (!["offset", "computedOffset", "easing", "composite"].includes(key)) found.add(key);
+          }
+        }
+      }
+      const list = [...found];
+      const clean = list.length > 0 && list.every((p) => allowed.includes(p));
+      setMeter("m-props", list.length ? list.join(", ") : "none",
+        clean ? "pass" : (list.length ? "fail" : null),
+        clean
+          ? "All layout-neutral. The box cannot move."
+          : "Something here participates in layout — that is a CLS source.");
+    });
+  }
+
+  // ---- Layout shift across the pass ----
+  // Measured with offsetWidth/offsetTop, which are layout-relative. Viewport coordinates
+  // (getBoundingClientRect) move whenever ANY ancestor reflows — a late webfont, a lazy
+  // image — so they report shift this component never caused. Measured 20.77px of
+  // phantom drift that way before this was corrected.
+  function measureShift(s) {
+    const snapshot = () => ({
+      w: truth.offsetWidth, h: truth.offsetHeight,
+      x: truth.offsetLeft, y: truth.offsetTop,
+    });
+    // Sampled THROUGHOUT the pass, not before-and-after. A single "before" taken during
+    // the first layout can predate the webfont, so the box legitimately changes size
+    // afterwards and the meter blames the animation for it — 20px of phantom drift,
+    // measured, before this was corrected.
+    const samples = [];
+    const poll = setInterval(() => samples.push(snapshot()), 50);
+    setTimeout(() => {
+      clearInterval(poll);
+      if (samples.length < 2) { setMeter("m-shift", "n/a", null, "Not enough samples."); return; }
+      const spread = (key) => Math.max(...samples.map((v) => v[key])) - Math.min(...samples.map((v) => v[key]));
+      const drift = Math.max(spread("w"), spread("h"), spread("x"), spread("y"));
+      setMeter("m-shift", drift.toFixed(2) + "px", drift < 1 ? "pass" : "fail",
+        drift < 1 ? "Zero shift — clip-path and transform do not participate in layout."
+                  : "The box moved during the pass. Check for an animated geometry property.");
+    }, s.duration + 200);
+  }
+
+  // ---- Code generation ----
+  function htmlFor(s) {
+    return [
+      '<link rel="stylesheet" href="components/glitch-text/glitch-text.css">',
+      "",
+      "<!-- One node. Nothing to hide from assistive tech, nothing to duplicate. -->",
+      '<h1 class="glitch" data-glitch="slice" data-glitch-size="' + el("size").value + '"',
+      '    data-glitch-orientation="' + s.orientation + '" data-glitch-trigger="scroll"',
+      '    style="--glitch-duration:' + s.duration + "ms; --glitch-amplitude:" + s.amplitude + "px; --glitch-steps:steps(" + s.steps + ', end)">',
+      '  <span class="glitch__truth">' + s.text + "</span>",
+      el("scanline").checked ? '  <span class="glitch__scan" aria-hidden="true"></span>' : null,
+      "</h1>",
+    ].filter(Boolean).join("\n");
+  }
+
+  function cssFor(s) {
+    return [
+      "/* Pure CSS. No JavaScript anywhere in production. */",
+      '.glitch[data-glitch="slice"] {',
+      "  --glitch-duration: " + s.duration + "ms;",
+      "  --glitch-amplitude: " + s.amplitude + "px;",
+      "  --glitch-steps: steps(" + s.steps + ", end);   /* keep at 2 — flash-safety limit */",
+      "  display: inline-block;                 /* an inline box clips per fragment */",
+      "}",
+      "",
+      "/* Zero-JS trigger: scrubbed by viewport entry, reversible, nothing on the main thread. */",
+      "@supports (animation-timeline: view()) {",
+      '  .glitch[data-glitch-trigger="scroll"] .glitch__truth {',
+      "    animation: glitch-slice linear both;",
+      "    animation-timeline: view();",
+      "    animation-range: entry 10% entry 60%;",
+      "  }",
+      "}",
+      "",
+      "@media (prefers-reduced-motion: reduce) {",
+      "  .glitch .glitch__truth { animation: none !important; }",
+      "}",
+      "",
+      "/* Full keyframes: components/glitch-text/glitch-text.css */",
+    ].join("\n");
+  }
+
+  function reactFor(s) {
+    return [
+      "// No \"use client\" needed on the modern path: the tear is CSS and the trigger is",
+      "// animation-timeline, so this can be a Server Component with zero hydration.",
+      'import "@/components/glitch-text/glitch-text.css";',
+      "",
+      "export function Hero({ headline }: { headline: string }) {",
+      "  return (",
+      '    <h1 className="glitch" data-glitch="slice" data-glitch-size="' + el("size").value + '"',
+      '        data-glitch-trigger="scroll"',
+      "        style={{",
+      '          ["--glitch-duration" as string]: "' + s.duration + 'ms",',
+      '          ["--glitch-amplitude" as string]: "' + s.amplitude + 'px",',
+      "        }}>",
+      '      <span className="glitch__truth">{headline}</span>',
+      "    </h1>",
+      "  );",
+      "}",
+    ].join("\n");
+  }
+
+  function twFor(s) {
+    return [
+      "<!-- motion-reduce:animate-none is the whole compliance story for this variant. -->",
+      '<h1 class="font-display text-[' + (el("size").value === "xl" ? "4.75rem" : "3.625rem") + '] leading-[1.05] text-platinum">',
+      '  <span class="inline-block animate-glitch-slice motion-reduce:animate-none">',
+      "    " + s.text,
+      "  </span>",
+      "</h1>",
+      "",
+      "<!-- Scroll-scrubbed, zero JavaScript. -->",
+      '<span class="inline-block [animation:glitch-slice_linear_both]',
+      '             [animation-timeline:view()] [animation-range:entry_10%_entry_60%]',
+      '             motion-reduce:animate-none">' + s.text + "</span>",
+    ].join("\n");
+  }
+
+  function renderCode() {
+    const s = state();
+    const map = { html: htmlFor, css: cssFor, react: reactFor, tw: twFor };
+    codeEl.textContent = map[activeTab](s);
+  }
+
+  function sync() {
+    const s = state();
+    truth.textContent = s.text;
+    host.dataset.glitchOrientation = s.orientation;
+    host.style.setProperty("--glitch-amplitude", s.amplitude + "px");
+    host.style.setProperty("--glitch-duration", s.duration + "ms");
+    host.style.setProperty("--glitch-steps", "steps(" + s.steps + ", end)");
+    scan.style.display = el("scanline").checked && !isReduced() ? "" : "none";
+    el("amplitude-out").textContent = s.amplitude + "px";
+    el("duration-out").textContent = s.duration + "ms";
+    renderCode();
+  }
+
+  wireChrome(() => { sync(); run(); });
+  ["amplitude", "steps", "orientation", "duration"].forEach((id) => {
+    el(id).addEventListener("input", () => { sync(); run(); });
+    el(id).addEventListener("change", () => { sync(); run(); });
+  });
+  el("scanline").addEventListener("change", sync);
+  el("replay").addEventListener("click", run);
+
+  sync();
+  if (!isReduced()) run();
+
+})();
+</script>
+</body>
+</html>

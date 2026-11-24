@@ -1,0 +1,2270 @@
+---
+name: "Glitch Slice Tear"
+slug: glitch-slice-tear
+category: Marketing & Content
+status: built
+summary: "Horizontal bands of a headline tear sideways and snap flush. Pure CSS, no JavaScript, no layout cost — and the one glitch variant that can ship end to end on a platform with no scripting."
+tags: [motion, typography, headline, glitch, clip-path, css-only, reduced-motion]
+preview:
+  label: "Built like you."
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- One node. The animation decorates the real text, so there is nothing to
+           hide from assistive tech and nothing to duplicate. -->
+      <h1 class="glitch" data-glitch="slice" data-glitch-size="lg">
+        <span class="glitch__truth">Built like you.</span>
+      </h1>
+  - language: css
+    label: CSS
+    primary: true
+    code: |
+      /* Band geometry over time. clip-path picks the band, transform displaces it,
+         text-shadow supplies the chroma. No property here affects layout. */
+      .glitch[data-glitch="slice"] .glitch__truth {
+        animation: glitch-slice var(--glitch-duration, 900ms) steps(2, end) 1;
+      }
+      @keyframes glitch-slice {
+        0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+               text-shadow: -3px 0 var(--glitch-chroma-a), 3px 0 var(--glitch-chroma-b); }
+        8%   { clip-path: inset(10% 0 64% 0); transform: translateX(-10px); }
+        16%  { clip-path: inset(46% 0 30% 0); transform: translateX(12px); }
+        24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(-7px); }
+        32%  { clip-path: inset(26% 0 52% 0); transform: translateX(8px); }
+        48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+        70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+               text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+        100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .glitch .glitch__truth { animation: none !important; }
+      }
+  - language: css
+    label: "Zero-JS trigger"
+    code: |
+      /* Scroll-driven: no IntersectionObserver, no script, nothing on the main thread.
+         This is what makes slice tear the only end-to-end JS-free glitch. */
+      @supports (animation-timeline: view()) {
+        .glitch[data-glitch-trigger="scroll"] .glitch__truth {
+          animation: glitch-slice linear both;
+          animation-timeline: view();
+          animation-range: entry 10% entry 60%;
+        }
+      }
+references:
+  - title: "MDN — clip-path"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/clip-path
+    source: mdn
+  - title: "MDN — animation-timeline"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/animation-timeline
+    source: mdn
+  - title: "MDN — steps() easing function"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/easing-function/steps
+    source: mdn
+  - title: "WCAG 2.2 — 2.3.1 Three Flashes or Below Threshold"
+    url: https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html
+    source: other
+  - title: "MDN — Element.getAnimations()"
+    url: https://developer.mozilla.org/en-US/docs/Web/API/Element/getAnimations
+    source: mdn
+---
+
+## Glitch Slice Tear
+
+The tear. Horizontal bands of a headline shear sideways in hard steps, misregister, and snap
+flush — a tracking fault in a signal that corrects itself. It is the most aggressive of the three
+glitch variants and, paradoxically, the cheapest and safest to ship.
+
+Everything about it follows from one fact: **the real text is the thing being animated.** There is
+no substitute string, no second node, no per-frame JavaScript. `clip-path` chooses a band,
+`transform` displaces it, `text-shadow` carries the chroma, and none of those three properties
+affects layout. That makes the accessibility contract almost free — and moves the real engineering
+somewhere its siblings never go: into **timing as a conformance problem**, because hard `steps()`
+at high amplitude is how you accidentally build a flash hazard.
+
+Its siblings: [Scramble Reveal](/knowledge/glitch-scramble-reveal) substitutes glyphs and earns
+its JavaScript; [Signal Lock](/knowledge/glitch-signal-lock) trades the tear for blur and is the
+restrained option.
+
+* * *
+
+## 1. What It Actually Is
+
+A slice tear is a **one-shot clip-and-displace animation** over a single run of text. At each
+keyframe, `clip-path: inset()` reveals one horizontal band of the element and hides the rest, and
+`transform: translateX()` offsets what remains. Stepping through a sequence of band-and-offset
+pairs reads as the text being sliced into strips that slide independently, even though there is only
+one element and one string.
+
+Two properties define it. It is **non-destructive**: the glyphs are never replaced, so selection,
+search, zoom, print and the accessibility tree are untouched throughout. And it is
+**layout-neutral**: `clip-path` and `transform` do not participate in layout, so the element's box
+never changes and nothing around it moves.
+
+What it gets confused with:
+
+* **Scramble / decode.** Substitutes characters. The visible glyphs differ from the real ones,
+  which creates an accessibility-tree problem slice tear simply does not have. If you are
+  rewriting text content, you are building the other variant.
+* **The layered RGB-split glitch (`::before` / `::after` with `attr(data-text)`).** The classic
+  CodePen glitch: three stacked copies of the text, two of them generated content, each clipped and
+  offset. Visually a cousin, structurally very different — and it carries a real accessibility cost
+  that the single-element approach avoids entirely (§6, §10). Worth knowing precisely because it is
+  the implementation most people copy.
+* **Wipe / reveal-on-scroll.** A single `clip-path` animating monotonically from hidden to shown.
+  Same property, opposite intent: a wipe *reveals* content that starts invisible, so a stalled
+  animation leaves nothing on screen. A slice tear starts and ends fully visible and only
+  misregisters in between.
+* **Skew / shear transform.** A continuous geometric distortion of the whole element. No banding,
+  no independent strips, no discontinuity — which is exactly what makes a tear read as digital
+  rather than physical.
+* **Datamosh / pixel-sort imagery.** A raster effect on pixels, usually an image or video filter.
+  A slice tear is vector text and stays text.
+
+**Rule of thumb:** if the glyphs are unchanged, the box never moves, and the only things animating
+are which band is visible and how far it is offset — it is a slice tear. If content is replaced, it
+is a scramble. If it starts invisible, it is a wipe, and it needs a different safety argument.
+
+* * *
+
+## 2. Why It Matters
+
+* **Flash hazard is the real conformance risk, and it is specific to this variant.** Hard
+  `steps()` timing plus high displacement plus a chroma split produces rapid, high-contrast
+  changes in a confined area. WCAG 2.3.1 caps flashing at three per second; a tear authored at 8
+  steps per second across a 58px headline with a black-to-saturated-orange swing can cross the
+  general flash threshold. Scramble and signal lock interpolate and rarely get near it. Here the
+  timing function *is* a safety decision (§4, §10).
+* **It is the only glitch that ships where scripting does not.** Wix Studio scroll effects, an
+  email-safe build, a CSS-only static site, a hardened CSP with no inline script, a Web Component
+  consumer that refuses your JS — slice tear works in all of them, and with
+  `animation-timeline: view()` even its *trigger* needs no script. On a platform without real
+  JavaScript this variant is not the compromise; it is the answer.
+* **Zero accessibility debt by construction, if you keep it single-element.** The real text is the
+  animated thing, so the accessible name is correct at every frame with no `aria-hidden`, no
+  clipped duplicate, no two-node contract. The moment you reach for the generated-content trick
+  (`content: attr(data-text)` on a pseudo-element) you reintroduce a problem you did not have,
+  because CSS generated content is
+  exposed in the accessibility tree on several engines — so the heading can be announced three
+  times (§10).
+* **Zero layout cost, which is not the same as zero paint cost.** `clip-path` and `transform`
+  never reflow, so CLS contribution is genuinely zero. But animating `clip-path` is not reliably
+  compositor-accelerated the way `transform` and `opacity` are: on several engines a changing clip
+  region triggers paint each frame. At headline scale that is cheap and invisible; applied to a
+  large element or several at once it is measurable (§14). Honest framing matters here, because
+  "clip-path is GPU-accelerated" is repeated far more often than it is true.
+* **Restarting a CSS animation is a genuine problem.** Unlike a JS loop, you cannot just call it
+  again. A replay needs the reflow hack, an alternating animation name, or the Web Animations API —
+  and the naive version silently does nothing (§12, §13).
+
+* * *
+
+## 3. Anatomy
+
+* **Host element.** The semantic element the tear is applied to — `h1`…`h6`, `p`, or a `span`
+  inside one. Needs `display: inline-block` (or `block`) so the clip region has a box to work
+  against; an inline element's fragmented box clips unpredictably across line breaks.
+* **Truth node.** The single `span` holding the real text and carrying the animation. There is no
+  second node. Deleting the animation leaves a correctly set headline, because the animation was
+  only ever decoration on this element.
+* **Band set.** The sequence of `inset()` regions over time. Each band is defined by its top and
+  bottom insets as percentages of the element's height — so the geometry is resolution- and
+  font-size-independent, and the same keyframes serve every size tier.
+* **Displacement amplitude.** The `translateX` distance per band, driven by `--glitch-amplitude`.
+  Scales with type size at roughly 0.18em, capped at 12px (§4).
+* **Chroma pair.** Two offset colour channels producing the RGB-split signature, applied with
+  `text-shadow` so they never affect layout: `--glitch-chroma-a` (Spanish Orange) and
+  `--glitch-chroma-b` (Eminence). Tokens, never raw red/cyan.
+* **Step function.** The `steps(n, end)` easing that makes bands snap rather than glide. The
+  signature of the variant and the component's main safety lever: step count over duration is the
+  flash rate.
+* **Settle state.** `clip-path: none`, `transform: none`, `text-shadow: none`, declared in base CSS
+  rather than only at the keyframe's `100%` stop. The safety net for a stalled, stripped or printed
+  render.
+* **Scanline.** Optional bright band travelling the line once per pass. Positioned, `aria-hidden`,
+  `pointer-events: none`.
+* **Trigger.** `animation-timeline: view()` (no script), a `data-glitch-state` attribute toggled by
+  a tiny observer, or mount via a plain `animation` declaration. The scroll-driven path is the
+  distinguishing one.
+* **Restart mechanism.** What makes a replay actually re-run: alternating keyframe names, a forced
+  reflow, or `Animation.play()` from `getAnimations()`. Needed only if you offer a replay.
+* **Reduced-motion branch.** `animation: none`, and the scanline removed. Not a softening.
+
+* * *
+
+## 4. Sizes / Scale / Density
+
+Slice tear is sized by type size, and what scales with it is amplitude, chroma offset, and — the
+part that is easy to get wrong — **step count**. More steps at the same duration means a higher
+flash rate, so the step count is capped rather than scaled up with drama.
+
+| Tier | Token | Type size | Amplitude | Chroma offset | Steps | Duration | Discrete changes | Use case |
+| ---| ---| ---| ---| ---| ---| ---| ---| --- |
+| Inline | `--glitch-inline` | 14–16px / `0.875–1rem` | 2px | 1px | 2 | 420ms | ~20/s | One accent word; hover jitter on nav items |
+| SM | `--glitch-sm` | 20–24px / `1.25–1.5rem` | 4px | 1px | 2 | 600ms | ~20/s | Card titles, eyebrows, sub-heads |
+| MD | `--glitch-md` | 32–40px / `2–2.5rem` | 7px | 2px | 2 | 800ms | ~20/s | Section headings, page titles |
+| LG | `--glitch-lg` | 48–58px / `3–3.625rem` | 10px | 3px | 2 | 900ms | ~20/s | Hero H1 — the house default |
+| XL | `--glitch-xl` | 72px+ / `4.5rem+` | 12px (cap) | 3px | 2 | 1100ms | ~20/s | Full-bleed statement type |
+
+Rules that matter:
+
+* **`steps(2, end)` is the house ceiling, and it is a safety limit, not a taste one.** With nine
+  keyframe stops over 900ms, two steps per interval produces about **20 discrete visual changes per
+  second** — measured in this page's playground, not estimated. Note what that number is and is
+  not: it counts changes in clip band, position and chroma, which is the rate a screening tool can
+  actually measure. WCAG 2.3.1's flash test is narrower and stricter in a different way: it asks
+  whether *relative luminance* changes by at least 10% of maximum, in opposing pairs, more than
+  three times a second, over at least 25% of a 10-degree area of the visual field. Nothing in the
+  DOM can determine that, because it depends on the rendered pixels, the background behind them,
+  and how much of the viewport the headline occupies. So treat the discrete-change rate as a
+  **screen, not a verdict**: at or below 3/s you are safe by construction, and above it — which
+  includes the house default — you are relying on the fact that the band clips move glyph position
+  far more than they move area luminance. Keep the step count at 2, and if you raise it, or put a
+  hard black-to-saturated chroma on a full-bleed hero, get a real luminance assessment rather than
+  trusting the meter. If you want more violence, raise the amplitude.
+* **Amplitude scales, step count does not.** 0.18em, capped at 12px. A 10px tear is a violent rip
+  on 16px copy and a polite wobble at 96px.
+* **Band geometry is percentage-based**, so one keyframe set covers every tier and every viewport.
+  Never author bands in pixels.
+* **Duration ceiling 1200ms.** Past that it reads as a broken page rather than a flourish.
+* **`display: inline-block` is required** on the animated node. An inline element that wraps has
+  multiple box fragments and the clip applies per fragment — the tear breaks apart at the line
+  break in a way that looks like a rendering bug.
+* **One per viewport.** Two simultaneous tears read as a GPU fault.
+* **Target size is unaffected** — the text is not a target. Any replay control carries 44px on its
+  own.
+
+* * *
+
+## 5. States
+
+* **Idle / settled.** `clip-path: none`, `transform: none`, `text-shadow: none`, from base CSS.
+  What a crawler, a printer, a no-JS visitor, a reduced-motion user and a stalled timeline all get.
+  Fully readable — never invisible. For this variant idle and settled are the *same declarative
+  state*, which is why it has no stall problem worth engineering around.
+* **Armed.** The animation is declared but not running: either the state attribute is absent, or
+  `animation-timeline: view()` has not reached its range. Visually identical to idle.
+* **Tearing (active pass).** The keyframes are running. `data-glitch-state="glitching"` is on the
+  host so the scanline and any sibling decoration can sync without a second timer.
+* **Scrubbing.** Unique to this variant: with `animation-timeline: view()` the pass is not "running"
+  but *positioned* by scroll offset, so it can run backwards when the visitor scrolls up. Worth
+  naming because it changes the mental model — there is no completion event, and `once` is
+  meaningless. If you need the tear to fire exactly once, use the state-attribute trigger instead.
+* **Hover (optional micro-pass).** A short tear or chroma jitter on pointer-enter for links and nav
+  items. Pointer-only by design, scoped to `@media (hover: hover) and (pointer: fine)` — it must
+  **not** fire on `:focus-visible`, or a keyboard user tears the UI at every tab stop.
+* **Focus.** The text is not focusable and has no focus state. When the tear sits inside an
+  interactive element, the focus ring belongs to that host, must be unaffected by the clip, and must
+  never be the thing being animated — a focus ring that tears is a ring you cannot locate. Note the
+  specific hazard here: `clip-path` on an ancestor **clips the descendant's focus ring too**, so
+  never put the animation on a wrapper that contains the interactive element.
+* **Active / pressed.** Only on a replay control; standard press treatment, no tear on the button.
+* **Disabled.** Not applicable to the text. A replay control is disabled while a pass is in flight,
+  which prevents overlapping animations.
+* **Loading / error.** Not applicable: the text is known before render, and there is no runtime to
+  fail. The "stall" failure mode that scramble engineers against does not exist here — a dropped
+  CSS animation lands on the settle state by definition, because the settle state is the base state.
+* **Reduced-motion.** First-class: `animation: none`, scanline removed from the DOM, text renders
+  final. No softer tear, no slower tear.
+* **Print.** Settle state, with `text-shadow` explicitly cleared so the heading does not print with
+  orange and purple ghosts.
+
+* * *
+
+## 6. Types / Variants
+
+1. **Single-element tear (the house default).** One node, `clip-path` plus `transform` plus
+   `text-shadow`. Zero duplicates, zero accessibility debt, works on any text, and the only version
+   that can be dropped onto existing markup without touching the DOM. Start here.
+2. **Layered RGB-split tear (`::before` / `::after`).** The classic: two generated copies via
+   `content: attr(data-text)`, each clipped to different bands and offset in a different channel
+   colour, producing true channel separation rather than a shadow approximation. Visually the
+   richest version — and it **costs you the accessibility freebie**: generated content is exposed
+   in the accessibility tree on several engines, so the heading can be announced two or three times.
+   If you use it, the copies need `aria-hidden` on real elements instead of pseudo-elements, which
+   means you are back to a multi-node contract. Documented because it is the implementation most
+   people copy; not the house default for exactly this reason.
+3. **Vertical tear.** Bands run vertically (`inset()` with left/right insets) and displace on
+   `translateY`. Reads as a column-wise fault; suits tall stacked type and vertical scripts. Less
+   familiar, so it reads as more deliberate.
+4. **Band-count variants.** Coarse (2–3 wide bands, slow, architectural) versus fine (6–8 narrow
+   bands, fast, frantic). Coarse is the premium register; fine is campaign energy. The step rate
+   stays capped either way — add bands, not steps.
+5. **Chroma on / off.** The RGB split is separable from the displacement. Off, the tear reads as a
+   pure tracking error, which is the right call on light backgrounds where the offsets muddy and
+   for any skin whose contrast is already marginal.
+6. **Scroll-scrubbed tear.** `animation-timeline: view()` ties band position to scroll offset.
+   Reversible, zero JavaScript, zero main-thread cost, and the only glitch in the family that is
+   genuinely free. Behaves differently from a one-shot (see Scrubbing in §5).
+7. **Hover tear.** A short pass on pointer-enter for links and labels. Pointer-only, never
+   `:focus-visible`. For a jitter with no displacement, use the chroma micro-variant on the
+   [family page](/knowledge/glitch-text-reveal).
+
+* * *
+
+## 7. When to Use (and When Not To)
+
+**Use when:**
+
+* You want the loudest, most unmistakably digital glitch in the family, and the brand register can
+  carry it — a hero H1, a manifesto line, a launch page's single sentence.
+* **The platform has no real scripting**, or you want zero JavaScript on principle: Wix Studio,
+  a CSS-only static site, a strict CSP, an email-adjacent build. This is the variant that works
+  there.
+* The headline is long, multi-line, or localised into a script you have not individually tested —
+  the tear is content-agnostic, so it cannot corrupt glyphs, split emoji, or render tofu. Where
+  scramble needs per-script verification, slice tear does not care what the characters are.
+* You need the effect to be reversible or scroll-scrubbed rather than one-shot.
+* Per-frame main-thread cost must be zero (a page already heavy with hydration).
+
+**Don't use / use something else when:**
+
+* **You want the "word assembling" read.** That is [Scramble](/knowledge/glitch-scramble-reveal) —
+  a tear corrupts position, never meaning, so nothing is ever *decoded*.
+* **The glitch must coexist with serious content.** Use
+  [Signal Lock](/knowledge/glitch-signal-lock). A hard tear reads as a fault; blur reads as focus.
+* **The audience may be photosensitive or the context is high-anxiety** — medical, checkout,
+  accessibility-first products. This is the variant most able to cross a flash threshold if
+  mis-authored. Use fade, or nothing.
+* **It is body copy, a label, a number, a form field, an error or a confirmation.** Errors must
+  never animate — use **Alert**.
+* **The animated node wraps an interactive element.** `clip-path` on an ancestor clips the
+  descendant's focus ring. Move the animation onto a text-only span inside.
+* **You need true channel separation and cannot accept a multi-node accessibility contract.**
+  Either take the `text-shadow` approximation or accept real `aria-hidden` duplicate elements —
+  but do not use `attr(data-text)` pseudo-elements and assume they are invisible to assistive tech.
+* **It would be the second glitch in view.** Use a plain **Reveal on scroll** for the rest.
+
+**Placement heuristics.** One per viewport, display type ≥32px, `display: inline-block` on the
+animated node, fired on in-view (or scroll-scrubbed). Keep everything around it still — the tear
+only reads as deliberate against stillness. Prefer the coarse band set at hero scale and the fine
+set only for campaign work.
+
+* * *
+
+## 8. Across Design Systems
+
+No major design system ships a tear, and for this one the absence is almost ideological: every
+mainstream system's motion doctrine is about *continuity*, and a tear is a deliberate
+discontinuity.
+
+* **Material 3 (Google).** No tear, and the most direct philosophical conflict in the family. M3
+  Expressive motion is spring-based and physical — motion shows where a thing came from, and a
+  band that jumps sideways came from nowhere. A Material-faithful build keeps the settle easing and
+  drops the discontinuity, which means it stops being a tear. What M3 does give you is the token
+  discipline and the rule that decorative motion must be removable.
+* **Apple HIG.** Against it, and specifically so: HIG asks motion to be brief, purposeful and
+  physically plausible. There is no tear idiom on Apple platforms, and the 2026 Liquid Glass
+  language is refractive and continuous — the exact opposite register. On Apple surfaces, prefer
+  signal lock.
+* **Fluent 2 (Microsoft).** No tear; Fluent's motion is subtle, directional and enterprise-calibrated
+  with an explicit "must not distract" line. Its contribution here is the curve and duration
+  taxonomy — map the duration onto its slow tier rather than inventing one.
+* **Ant Design.** No tear, and the clearest statement of where this does not belong: fade, slide,
+  zoom, for dense product UI where decorative motion is a liability.
+* **Tailwind CSS.** No component, but the best fit of any system — because this variant is *only*
+  CSS, Tailwind can express the whole thing: custom `@keyframes` in `@theme` (v4) or the config
+  (v3), `animate-[…]` to apply it, and `motion-reduce:animate-none` for the compliance story in one
+  class. Unlike scramble, a Tailwind-only slice tear is genuinely complete (§9.5).
+* **shadcn/ui + Radix.** No primitive, and notably this variant barely needs the headless pattern:
+  with no lifecycle to own, a `cva` skin plus `Slot` is the entire component (§9.7). That is a
+  feature — the simplest variant produces the simplest primitive.
+* **Bootstrap 5.** No tear, thin animation layer, so this is a utility class beside `display-1`
+  plus a few lines to handle restart. Honest about being an add-on.
+* **Creative-web tooling.** GSAP can drive `clipPath` keyframes and `SplitText` can band real
+  text, but for this variant the library buys you almost nothing — the CSS is shorter, cheaper and
+  does not ship 40KB. This is the one glitch where the tooling ecosystem is a step backwards, and
+  where the hand-written CSS is the professional choice rather than the scrappy one.
+
+### 8b. Visual Styles / Trends — What's trending in 2026
+
+Three platform changes have made this variant materially better than its 2021 ancestor. **Scroll-driven
+animations** (`animation-timeline: view()`, broadly supported) make the tear scrubbable and
+JS-free end to end, which is new — a glitch that resolves as the headline enters the viewport with
+nothing on the main thread. **`@property`** lets `--glitch-amplitude` be registered as a `<length>`
+so displacement interpolates instead of stepping, which means one keyframe set can serve every
+tier by animating the token. And **View Transitions**, now cross-document, make a chromatic tear a
+natural custom transition *between routes* rather than an entrance on one element.
+
+The aesthetic has narrowed usefully. The 2021 look was the layered `attr(data-text)` RGB split
+running infinitely on everything; the 2026 register is **one coarse, short, single-element pass**,
+often with the chroma dialled to 1–2px and the band count low. The infinite version now reads as
+dated, and — more to the point — as accessibility-naive, since it is both a 2.2.2 failure past five
+seconds and the easiest way in the family to build a flash hazard. The durable version tears once
+and gets out of the way.
+
+* * *
+
+## 9. The Code
+
+The contract: one node holding real text, animation on `clip-path` / `transform` / `text-shadow`
+only, settle state in base CSS, percentage-based bands, step rate capped, and reduced motion as a
+branch that declares no animation at all.
+
+### 9.1 HTML (semantic foundation with ARIA)
+
+```html
+<!-- One node. Nothing to hide from assistive tech, nothing to duplicate.
+     inline-block matters: an inline element that wraps clips per box fragment. -->
+<h1 class="glitch" data-glitch="slice" data-glitch-size="lg" data-glitch-trigger="scroll">
+  <span class="glitch__truth">Built like you.</span>
+  <span class="glitch__scan" aria-hidden="true"></span>
+</h1>
+
+<!-- Optional replay. A real button: typed, labelled, keyboard-operable, 44px target.
+     Omit on a production hero; it belongs in playgrounds and style pickers. -->
+<button type="button" class="glitch__replay" data-glitch-replay="hero-title"
+        aria-describedby="glitch-help">
+  Replay tear
+</button>
+<p id="glitch-help" class="u-visually-hidden">
+  Replays the decorative animation on the heading. The heading text does not change.
+</p>
+
+<!-- Tear inside a link: the anchor owns role, name and focus ring. The animated span is
+     text-only and does NOT wrap the interactive element — clip-path on an ancestor would
+     clip the focus ring. -->
+<a href="/suites" class="nav__link">
+  <span class="glitch" data-glitch="slice" data-glitch-trigger="hover" data-glitch-size="inline">
+    <span class="glitch__truth">Five service suites</span>
+  </span>
+</a>
+
+<!-- What NOT to do. Documented because it is the most-copied implementation:
+     generated content is exposed in the a11y tree on several engines, so this heading
+     can be announced two or three times. See §10.
+<h1 class="glitch-layered" data-text="Built like you.">Built like you.</h1>
+-->
+```
+
+### 9.2 CSS (states, layout, reduced-motion)
+
+```css
+.glitch[data-glitch="slice"] {
+  --glitch-duration: 900ms;
+  --glitch-amplitude: 10px;
+  --glitch-chroma: 3px;
+  --glitch-chroma-a: var(--ember, #d9531a);
+  --glitch-chroma-b: var(--amethyst, #47107d);
+  --glitch-steps: steps(2, end);     /* house ceiling — a safety limit, see §4 */
+
+  position: relative;
+  display: inline-block;             /* the clip region needs an unfragmented box */
+}
+
+.glitch[data-glitch="slice"] .glitch__truth {
+  display: inline-block;
+  /* THE SETTLE STATE. Everything the element looks like with no animation at all.
+     Note the absence of opacity: a stalled, stripped or printed pass still renders
+     a correct headline, merely un-torn. */
+  clip-path: none;
+  transform: none;
+  text-shadow: none;
+}
+
+.glitch[data-glitch-size="inline"] { --glitch-amplitude: 2px;  --glitch-chroma: 1px; --glitch-duration: 420ms; }
+.glitch[data-glitch-size="sm"]     { --glitch-amplitude: 4px;  --glitch-chroma: 1px; --glitch-duration: 600ms; }
+.glitch[data-glitch-size="md"]     { --glitch-amplitude: 7px;  --glitch-chroma: 2px; --glitch-duration: 800ms; }
+.glitch[data-glitch-size="lg"]     { --glitch-amplitude: 10px; --glitch-chroma: 3px; --glitch-duration: 900ms; }
+.glitch[data-glitch-size="xl"]     { --glitch-amplitude: 12px; --glitch-chroma: 3px; --glitch-duration: 1100ms; }
+
+/* ---- The pass. Two identical keyframe sets under different names so a replay can
+        restart the animation by swapping the name — no reflow hack needed (§13). ---- */
+.glitch[data-glitch="slice"][data-glitch-state="glitching"] .glitch__truth {
+  animation: glitch-slice-a var(--glitch-duration) var(--glitch-steps) 1;
+}
+.glitch[data-glitch="slice"][data-glitch-state="glitching-alt"] .glitch__truth {
+  animation: glitch-slice-b var(--glitch-duration) var(--glitch-steps) 1;
+}
+
+/* Bands are percentages of the element's height, so one set serves every size tier
+   and every viewport. Never author bands in pixels. */
+@keyframes glitch-slice-a {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+         text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                      var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  8%   { clip-path: inset(10% 0 64% 0); transform: translateX(calc(var(--glitch-amplitude) * -1)); }
+  16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+  24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(calc(var(--glitch-amplitude) * -0.7)); }
+  32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+  40%  { clip-path: inset(60% 0 18% 0); transform: translateX(calc(var(--glitch-amplitude) * -0.4)); }
+  48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+  56%  { clip-path: inset(38% 0 44% 0); transform: translateX(-2px); }
+  70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+         text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+  100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+@keyframes glitch-slice-b {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+         text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                      var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  8%   { clip-path: inset(10% 0 64% 0); transform: translateX(calc(var(--glitch-amplitude) * -1)); }
+  16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+  24%  { clip-path: inset(74% 0 6% 0);  transform: translateX(calc(var(--glitch-amplitude) * -0.7)); }
+  32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+  40%  { clip-path: inset(60% 0 18% 0); transform: translateX(calc(var(--glitch-amplitude) * -0.4)); }
+  48%  { clip-path: inset(0 0 0 0);     transform: translateX(3px); }
+  56%  { clip-path: inset(38% 0 44% 0); transform: translateX(-2px); }
+  70%  { clip-path: inset(0 0 0 0);     transform: translateX(1px);
+         text-shadow: -1px 0 var(--glitch-chroma-a), 1px 0 var(--glitch-chroma-b); }
+  100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+}
+
+/* ---- Vertical tear: same idea, left/right insets and translateY. ---- */
+@keyframes glitch-slice-vertical {
+  0%   { clip-path: inset(0 0 0 0); transform: translate(0); }
+  14%  { clip-path: inset(0 62% 0 12%); transform: translateY(calc(var(--glitch-amplitude) * -0.8)); }
+  28%  { clip-path: inset(0 28% 0 48%); transform: translateY(var(--glitch-amplitude)); }
+  42%  { clip-path: inset(0 8% 0 76%);  transform: translateY(calc(var(--glitch-amplitude) * -0.5)); }
+  60%  { clip-path: inset(0 0 0 0);     transform: translateY(2px); }
+  100% { clip-path: inset(0 0 0 0); transform: none; }
+}
+
+/* ---- Hover micro-pass. Pointer only — never :focus-visible. ---- */
+@media (hover: hover) and (pointer: fine) {
+  .glitch[data-glitch-trigger="hover"]:hover .glitch__truth {
+    animation: glitch-slice-a 460ms var(--glitch-steps) 1;
+  }
+}
+
+/* ---- Scroll-driven: no script at all, and reversible. ---- */
+@supports (animation-timeline: view()) {
+  .glitch[data-glitch-trigger="scroll"] .glitch__truth {
+    animation: glitch-slice-a linear both;
+    animation-timeline: view();
+    animation-range: entry 10% entry 60%;
+  }
+}
+
+/* ---- Scanline ---- */
+.glitch__scan {
+  position: absolute; inset-inline: -12px; top: 0; height: 14px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24, rgba(242,176,30,.24)), transparent);
+}
+.glitch[data-glitch-state^="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* ---- Reduced motion: a branch. Nothing is declared, including the scroll-driven pass. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .glitch[data-glitch="slice"] .glitch__truth,
+  .glitch .glitch__scan { animation: none !important; }
+  .glitch .glitch__scan { display: none; }
+}
+
+/* ---- Print: settle state, no chroma ghosts. ---- */
+@media print {
+  .glitch[data-glitch="slice"] .glitch__truth {
+    animation: none; clip-path: none; transform: none; text-shadow: none;
+  }
+  .glitch__scan, .glitch__replay { display: none; }
+}
+```
+
+### 9.3 React + TypeScript (full reusable component)
+
+Because there is no runtime to own, this component is mostly markup plus a trigger. The hook
+exists only to toggle a state attribute — and on a browser with `animation-timeline` support and
+`trigger="scroll"`, it does nothing at all.
+
+```tsx
+"use client";
+
+import * as React from "react";
+
+export type SliceSize = "inline" | "sm" | "md" | "lg" | "xl";
+export type SliceTrigger = "mount" | "in-view" | "scroll" | "hover" | "manual";
+
+export function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
+/** Toggling between two states swaps the animation NAME, which is what actually restarts
+ *  a CSS animation in React — no reflow hack, no key churn, no remount. */
+type PassState = "idle" | "glitching" | "glitching-alt";
+
+interface UseSliceOptions {
+  trigger?: SliceTrigger;
+  once?: boolean;
+  duration?: number;
+}
+
+export function useSlice({ trigger = "in-view", once = true, duration = 900 }: UseSliceOptions) {
+  const reduced = usePrefersReducedMotion();
+  const hostRef = React.useRef<HTMLElement | null>(null);
+  const [state, setState] = React.useState<PassState>("idle");
+  const spent = React.useRef(false);
+  const flip = React.useRef(false);
+  const settleRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /* With scroll-driven support the CSS owns everything — declare nothing and return idle. */
+  const cssOwnsIt =
+    trigger === "scroll" &&
+    typeof CSS !== "undefined" &&
+    CSS.supports?.("animation-timeline: view()");
+
+  const run = React.useCallback(() => {
+    if (reduced || cssOwnsIt) return;
+    if (once && spent.current) return;
+    spent.current = true;
+    flip.current = !flip.current;
+    setState(flip.current ? "glitching" : "glitching-alt");
+    if (settleRef.current) clearTimeout(settleRef.current);
+    settleRef.current = setTimeout(() => setState("idle"), duration + 120);
+  }, [cssOwnsIt, duration, once, reduced]);
+
+  const replay = React.useCallback(() => { spent.current = false; run(); }, [run]);
+
+  React.useEffect(() => () => { if (settleRef.current) clearTimeout(settleRef.current); }, []);
+
+  React.useEffect(() => {
+    if (reduced || cssOwnsIt || trigger === "manual" || trigger === "hover") return;
+    if (trigger === "mount") { run(); return; }
+    const el = hostRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") { run(); return; }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          run();
+          if (once) io.disconnect();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [cssOwnsIt, once, reduced, run, trigger]);
+
+  return { hostRef, state, reduced, cssOwnsIt, run, replay };
+}
+
+type OwnProps<T extends React.ElementType> = {
+  children: React.ReactNode;     // unlike scramble, ANY node is fine: nothing is rewritten
+  as?: T;
+  size?: SliceSize;
+  trigger?: SliceTrigger;
+  duration?: number;
+  once?: boolean;
+  orientation?: "horizontal" | "vertical";
+  scanline?: boolean;
+  className?: string;
+};
+
+export type GlitchSliceProps<T extends React.ElementType> = OwnProps<T> &
+  Omit<React.ComponentPropsWithoutRef<T>, keyof OwnProps<T>>;
+
+export function GlitchSlice<T extends React.ElementType = "span">({
+  children, as, size = "lg", trigger = "in-view", duration = 900, once = true,
+  orientation = "horizontal", scanline = true, className, ...rest
+}: GlitchSliceProps<T>) {
+  const Host = (as ?? "span") as React.ElementType;
+  const { hostRef, state, reduced } = useSlice({ trigger, once, duration });
+
+  return (
+    <Host
+      ref={hostRef as React.Ref<never>}
+      className={["glitch", className].filter(Boolean).join(" ")}
+      data-glitch="slice"
+      data-glitch-size={size}
+      data-glitch-state={state}
+      data-glitch-trigger={trigger}
+      data-glitch-orientation={orientation}
+      style={{ ["--glitch-duration" as string]: `${duration}ms` }}
+      {...rest}
+    >
+      {/* The real text IS the animated element. One node, no duplicate, no aria-hidden. */}
+      <span className="glitch__truth">{children}</span>
+      {scanline && !reduced ? <span className="glitch__scan" aria-hidden="true" /> : null}
+    </Host>
+  );
+}
+
+GlitchSlice.displayName = "GlitchSlice";
+```
+
+### 9.4 Vanilla JavaScript (no framework, full keyboard)
+
+```js
+/** glitch-slice.js — OPTIONAL. The markup and CSS work with this file absent; all it adds
+ *  is a one-shot in-view trigger and replay for browsers without animation-timeline. */
+const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cssOwnsIt = () => CSS.supports?.("animation-timeline: view()");
+
+export class GlitchSlice {
+  constructor(host, options = {}) {
+    this.host = host;
+    this.duration = Number(options.duration ?? host.dataset.glitchDuration ?? 900);
+    this.once = options.once !== false;
+    this.spent = false;
+    this.flip = false;
+    this.settle = null;
+
+    const trigger = host.dataset.glitchTrigger || "in-view";
+    if (reduced()) return;
+    if (trigger === "scroll" && cssOwnsIt()) return;   // nothing to do; CSS has it
+    if (trigger === "manual") return;
+    if (trigger === "hover") {
+      host.addEventListener("pointerenter", () => { this.spent = false; this.run(); });
+      return;
+    }
+    if (trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+
+    this.io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        this.run();
+        if (this.once) this.io.disconnect();
+      }
+    }, { threshold: 0.35 });
+    this.io.observe(host);
+  }
+
+  run() {
+    if (reduced()) return;
+    if (this.once && this.spent) return;
+    this.spent = true;
+    if (this.settle) clearTimeout(this.settle);
+
+    /* Swapping the state swaps the animation NAME. Re-applying the SAME name does
+       nothing — the single most common slice-tear bug (§12). */
+    this.flip = !this.flip;
+    this.host.dataset.glitchState = this.flip ? "glitching" : "glitching-alt";
+    this.settle = setTimeout(() => { this.host.dataset.glitchState = "idle"; }, this.duration + 120);
+  }
+
+  /** Alternative restart with no duplicate keyframes, where support allows. */
+  runViaWAAPI() {
+    if (reduced()) return;
+    const target = this.host.querySelector(".glitch__truth");
+    if (!target?.getAnimations) return this.run();
+    this.host.dataset.glitchState = "glitching";
+    for (const animation of target.getAnimations()) {
+      animation.cancel();
+      animation.play();
+    }
+  }
+
+  destroy() { if (this.settle) clearTimeout(this.settle); this.io?.disconnect(); }
+}
+
+const registry = new Map();
+for (const host of document.querySelectorAll('[data-glitch="slice"]')) {
+  const instance = new GlitchSlice(host);
+  if (host.id) registry.set(host.id, instance);
+}
+/* A real <button> needs no key handling: Enter and Space fire click natively. */
+for (const control of document.querySelectorAll("[data-glitch-replay]")) {
+  control.addEventListener("click", () => {
+    const instance = registry.get(control.dataset.glitchReplay);
+    if (!instance) return;
+    instance.spent = false;
+    instance.run();
+  });
+}
+```
+
+### 9.5 Tailwind CSS
+
+This variant is the one Tailwind can express completely — no hook, no JS, and
+`motion-reduce:animate-none` is a true and sufficient compliance story.
+
+```js
+// tailwind.config.ts (v3) — v4 users put this in @theme.
+export default {
+  theme: {
+    extend: {
+      keyframes: {
+        "glitch-slice": {
+          "0%":   { clipPath: "inset(0 0 0 0)", transform: "translate(0)",
+                    textShadow: "-3px 0 #d9531a, 3px 0 #47107d" },
+          "8%":   { clipPath: "inset(10% 0 64% 0)", transform: "translateX(-10px)" },
+          "16%":  { clipPath: "inset(46% 0 30% 0)", transform: "translateX(12px)" },
+          "24%":  { clipPath: "inset(74% 0 6% 0)",  transform: "translateX(-7px)" },
+          "32%":  { clipPath: "inset(26% 0 52% 0)", transform: "translateX(8px)" },
+          "48%":  { clipPath: "inset(0 0 0 0)",     transform: "translateX(3px)" },
+          "70%":  { clipPath: "inset(0 0 0 0)",     transform: "translateX(1px)",
+                    textShadow: "-1px 0 #d9531a, 1px 0 #47107d" },
+          "100%": { clipPath: "inset(0 0 0 0)", transform: "none", textShadow: "none" },
+        },
+      },
+      animation: { "glitch-slice": "glitch-slice 900ms steps(2,end) 1" },
+    },
+  },
+};
+```
+
+```html
+<!-- One-shot on load. inline-block is required; motion-reduce handles the rest. -->
+<h1 class="font-display text-[3.625rem] leading-[1.05] text-platinum">
+  <span class="inline-block animate-glitch-slice motion-reduce:animate-none">
+    Built like you.
+  </span>
+</h1>
+
+<!-- Scroll-scrubbed, zero JavaScript. -->
+<h2 class="text-4xl">
+  <span class="inline-block [animation:glitch-slice_linear_both]
+               [animation-timeline:view()] [animation-range:entry_10%_entry_60%]
+               motion-reduce:animate-none">
+    Culture is the source code.
+  </span>
+</h2>
+
+<!-- Hover tear on a nav link: group-hover only, never focus. -->
+<a href="/suites" class="group text-sm uppercase tracking-[0.16em]">
+  <span class="inline-block group-hover:animate-glitch-slice motion-reduce:animate-none">
+    Five service suites
+  </span>
+</a>
+```
+
+### 9.6 Next.js (App Router pattern)
+
+The whole point: this variant needs no Client Component at all. The tear is CSS, so a Server
+Component ships the complete, animated headline with zero JavaScript.
+
+```tsx
+// app/page.tsx — Server Component. No "use client", no hydration, no runtime.
+import "@/components/glitch-text/glitch-text.css";
+import { getHeroCopy } from "@/lib/content";
+
+export const revalidate = 3600;
+
+export default async function HomePage() {
+  const { eyebrow, headline, sub } = await getHeroCopy();
+
+  return (
+    <section className="hero">
+      <p className="hero__eyebrow">{eyebrow}</p>
+
+      {/* The tear is declared in CSS and triggered by animation-timeline: view().
+          Nothing hydrates. This is the cheapest glitch in the family by a wide margin. */}
+      <h1 className="glitch" data-glitch="slice" data-glitch-size="lg" data-glitch-trigger="scroll">
+        <span className="glitch__truth">{headline}</span>
+      </h1>
+
+      <p className="hero__sub">{sub}</p>
+    </section>
+  );
+}
+
+export async function generateMetadata() {
+  const { headline } = await getHeroCopy();
+  return { title: "Urban Jungle Goddess", description: headline };
+}
+```
+
+If you need a one-shot in-view trigger on a browser without `animation-timeline`, import
+`GlitchSlice` from §9.3 — but check support first, because on modern targets the Client Component
+buys nothing.
+
+### 9.7 shadcn/ui or Radix pattern
+
+```tsx
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+/* No "use client", no hook, no state: with the scroll-driven trigger there is no
+   lifecycle to own. The simplest variant yields the simplest primitive. */
+const sliceVariants = cva("glitch inline-block", {
+  variants: {
+    size: {
+      inline: "[--glitch-amplitude:2px]  [--glitch-chroma:1px] [--glitch-duration:420ms]",
+      sm:     "[--glitch-amplitude:4px]  [--glitch-chroma:1px] [--glitch-duration:600ms]",
+      md:     "[--glitch-amplitude:7px]  [--glitch-chroma:2px] [--glitch-duration:800ms]",
+      lg:     "[--glitch-amplitude:10px] [--glitch-chroma:3px] [--glitch-duration:900ms]",
+      xl:     "[--glitch-amplitude:12px] [--glitch-chroma:3px] [--glitch-duration:1100ms]",
+    },
+    orientation: { horizontal: "", vertical: "data-[glitch-orientation=vertical]:[--glitch-axis:y]" },
+  },
+  defaultVariants: { size: "lg", orientation: "horizontal" },
+});
+
+export interface SliceProps
+  extends React.HTMLAttributes<HTMLElement>, VariantProps<typeof sliceVariants> {
+  asChild?: boolean;
+  trigger?: "scroll" | "mount" | "hover";
+}
+
+export const Slice = React.forwardRef<HTMLElement, SliceProps>(
+  ({ className, size, orientation, asChild = false, trigger = "scroll", children, ...props }, ref) => {
+    const Comp = asChild ? Slot : "span";
+    return (
+      <Comp
+        ref={ref as never}
+        data-glitch="slice"
+        data-glitch-size={size ?? "lg"}
+        data-glitch-trigger={trigger}
+        data-glitch-orientation={orientation ?? "horizontal"}
+        className={cn(sliceVariants({ size, orientation }), className)}
+        {...props}
+      >
+        <span className="glitch__truth">{children}</span>
+      </Comp>
+    );
+  }
+);
+Slice.displayName = "Slice";
+
+// <Slice asChild size="xl"><h1>Built like you.</h1></Slice>
+```
+
+### 9.8 Vue 3 (SFC)
+
+```vue
+<!-- GlitchSlice.vue -->
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+
+const props = withDefaults(defineProps<{
+  size?: "inline" | "sm" | "md" | "lg" | "xl";
+  duration?: number;
+  trigger?: "mount" | "in-view" | "scroll" | "hover" | "manual";
+  once?: boolean;
+  orientation?: "horizontal" | "vertical";
+}>(), { size: "lg", duration: 900, trigger: "in-view", once: true, orientation: "horizontal" });
+
+const host = ref<HTMLElement | null>(null);
+const state = ref<"idle" | "glitching" | "glitching-alt">("idle");
+const reduced = ref(false);
+let spent = false, flip = false, settle: ReturnType<typeof setTimeout> | null = null;
+let io: IntersectionObserver | null = null;
+
+const cssOwnsIt = computed(
+  () => props.trigger === "scroll" && CSS.supports?.("animation-timeline: view()")
+);
+
+function run() {
+  if (reduced.value || cssOwnsIt.value) return;
+  if (props.once && spent) return;
+  spent = true;
+  if (settle) clearTimeout(settle);
+  // Swapping the state swaps the animation name — that is what restarts it.
+  flip = !flip;
+  state.value = flip ? "glitching" : "glitching-alt";
+  settle = setTimeout(() => { state.value = "idle"; }, props.duration + 120);
+}
+
+onMounted(() => {
+  reduced.value = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced.value || cssOwnsIt.value || props.trigger === "manual") return;
+  if (props.trigger === "hover") {
+    host.value?.addEventListener("pointerenter", () => { spent = false; run(); });
+    return;
+  }
+  if (props.trigger === "mount" || !("IntersectionObserver" in window)) return run();
+  io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { run(); if (props.once) io?.disconnect(); }
+  }, { threshold: 0.35 });
+  if (host.value) io.observe(host.value);
+});
+
+onBeforeUnmount(() => { if (settle) clearTimeout(settle); io?.disconnect(); });
+defineExpose({ run });
+</script>
+
+<template>
+  <span
+    ref="host"
+    class="glitch"
+    data-glitch="slice"
+    :data-glitch-size="size"
+    :data-glitch-state="state"
+    :data-glitch-trigger="trigger"
+    :data-glitch-orientation="orientation"
+    :style="{ '--glitch-duration': duration + 'ms' }"
+  >
+    <span class="glitch__truth"><slot /></span>
+    <span v-if="!reduced" class="glitch__scan" aria-hidden="true" />
+  </span>
+</template>
+```
+
+### 9.9 Svelte
+
+```svelte
+<!-- GlitchSlice.svelte (Svelte 5 runes) -->
+<script lang="ts">
+  import type { Snippet } from "svelte";
+
+  interface Props {
+    children: Snippet;
+    size?: "inline" | "sm" | "md" | "lg" | "xl";
+    duration?: number;
+    trigger?: "mount" | "in-view" | "scroll" | "hover" | "manual";
+    once?: boolean;
+  }
+  let { children, size = "lg", duration = 900, trigger = "in-view", once = true }: Props = $props();
+
+  let host: HTMLElement | undefined = $state();
+  let glitchState = $state<"idle" | "glitching" | "glitching-alt">("idle");
+  let reduced = $state(false);
+  let spent = false, flip = false, settle: ReturnType<typeof setTimeout> | null = null;
+
+  const cssOwnsIt = $derived(trigger === "scroll" && CSS.supports?.("animation-timeline: view()"));
+
+  export function run() {
+    if (reduced || cssOwnsIt) return;
+    if (once && spent) return;
+    spent = true;
+    if (settle) clearTimeout(settle);
+    flip = !flip;
+    glitchState = flip ? "glitching" : "glitching-alt";
+    settle = setTimeout(() => { glitchState = "idle"; }, duration + 120);
+  }
+
+  $effect(() => {
+    reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced || cssOwnsIt || trigger === "manual" || trigger === "hover") return;
+    if (trigger === "mount" || !("IntersectionObserver" in window)) { run(); return; }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { run(); if (once) io.disconnect(); }
+    }, { threshold: 0.35 });
+    if (host) io.observe(host);
+    return () => { io.disconnect(); if (settle) clearTimeout(settle); };
+  });
+</script>
+
+<span
+  bind:this={host}
+  class="glitch"
+  data-glitch="slice"
+  data-glitch-size={size}
+  data-glitch-state={glitchState}
+  data-glitch-trigger={trigger}
+  style="--glitch-duration:{duration}ms"
+>
+  <span class="glitch__truth">{@render children()}</span>
+  {#if !reduced}<span class="glitch__scan" aria-hidden="true"></span>{/if}
+</span>
+```
+
+### 9.10 Angular (standalone)
+
+```ts
+// glitch-slice.component.ts
+import {
+  AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef,
+  Input, OnDestroy, inject, signal,
+} from "@angular/core";
+import { NgIf } from "@angular/common";
+
+@Component({
+  selector: "ujg-glitch-slice",
+  standalone: true,
+  imports: [NgIf],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <span
+      class="glitch"
+      data-glitch="slice"
+      [attr.data-glitch-size]="size"
+      [attr.data-glitch-state]="state()"
+      [attr.data-glitch-trigger]="trigger"
+      [style.--glitch-duration.ms]="duration"
+    >
+      <span class="glitch__truth"><ng-content></ng-content></span>
+      <span *ngIf="!reduced" class="glitch__scan" aria-hidden="true"></span>
+    </span>
+  `,
+})
+export class GlitchSliceComponent implements AfterViewInit, OnDestroy {
+  @Input() size: "inline" | "sm" | "md" | "lg" | "xl" = "lg";
+  @Input() duration = 900;
+  @Input() trigger: "mount" | "in-view" | "scroll" | "hover" | "manual" = "in-view";
+  @Input() once = true;
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly state = signal<"idle" | "glitching" | "glitching-alt">("idle");
+  reduced = false;
+
+  private io?: IntersectionObserver;
+  private settle: ReturnType<typeof setTimeout> | null = null;
+  private spent = false;
+  private flip = false;
+
+  /** No per-frame work anywhere in this component — so no zone concerns, unlike scramble. */
+  private get cssOwnsIt(): boolean {
+    return this.trigger === "scroll" && CSS.supports?.("animation-timeline: view()");
+  }
+
+  ngAfterViewInit(): void {
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (this.reduced || this.cssOwnsIt || this.trigger === "manual") return;
+    if (this.trigger === "hover") {
+      this.host.nativeElement.addEventListener("pointerenter", () => {
+        this.spent = false;
+        this.run();
+      });
+      return;
+    }
+    if (this.trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+
+    this.io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { this.run(); if (this.once) this.io?.disconnect(); }
+    }, { threshold: 0.35 });
+    this.io.observe(this.host.nativeElement);
+    this.destroyRef.onDestroy(() => this.io?.disconnect());
+  }
+
+  run(): void {
+    if (this.reduced || this.cssOwnsIt) return;
+    if (this.once && this.spent) return;
+    this.spent = true;
+    if (this.settle) clearTimeout(this.settle);
+    this.flip = !this.flip;
+    this.state.set(this.flip ? "glitching" : "glitching-alt");
+    this.settle = setTimeout(() => this.state.set("idle"), this.duration + 120);
+  }
+
+  ngOnDestroy(): void { if (this.settle) clearTimeout(this.settle); this.io?.disconnect(); }
+}
+```
+
+### 9.11 Bootstrap 5
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+  .slice { display: inline-block; }
+  .slice.is-a { animation: slice-a 900ms steps(2, end) 1; }
+  .slice.is-b { animation: slice-b 900ms steps(2, end) 1; }
+
+  /* Two identical sets so a replay can swap names — re-adding one class does nothing. */
+  @keyframes slice-a {
+    0%   { clip-path: inset(0 0 0 0); transform: translate(0); text-shadow: -3px 0 #d9531a, 3px 0 #47107d; }
+    16%  { clip-path: inset(46% 0 30% 0); transform: translateX(12px); }
+    32%  { clip-path: inset(26% 0 52% 0); transform: translateX(8px); }
+    48%  { clip-path: inset(0 0 0 0); transform: translateX(3px); }
+    100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+  }
+  @keyframes slice-b {
+    0%   { clip-path: inset(0 0 0 0); transform: translate(0); text-shadow: -3px 0 #d9531a, 3px 0 #47107d; }
+    16%  { clip-path: inset(46% 0 30% 0); transform: translateX(12px); }
+    32%  { clip-path: inset(26% 0 52% 0); transform: translateX(8px); }
+    48%  { clip-path: inset(0 0 0 0); transform: translateX(3px); }
+    100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .slice.is-a, .slice.is-b { animation: none; }
+  }
+</style>
+
+<div class="container py-5 bg-dark text-light">
+  <h1 class="display-1 fw-normal">
+    <span class="slice" id="bsSlice">Built like you.</span>
+  </h1>
+  <button type="button" class="btn btn-warning btn-lg mt-3" id="bsReplay">Replay tear</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const slice = document.getElementById("bsSlice");
+  const bsReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let useA = true;
+
+  function play() {
+    if (bsReduced.matches) return;
+    // Swap classes rather than re-adding one: a repeated identical animation-name is a no-op.
+    slice.classList.remove("is-a", "is-b");
+    slice.classList.add(useA ? "is-a" : "is-b");
+    useA = !useA;
+  }
+
+  slice.addEventListener("animationend", () => slice.classList.remove("is-a", "is-b"));
+  document.getElementById("bsReplay").addEventListener("click", play);
+  play();
+</script>
+```
+
+### 9.12 Web Component (custom element)
+
+```js
+/** <glitch-slice> — framework-free. Light-DOM text stays indexable and selectable.
+ *  Usage: <glitch-slice duration="900" trigger="scroll">Built like you.</glitch-slice> */
+const SHEET = new CSSStyleSheet();
+SHEET.replaceSync(`
+  :host { display: inline-block; position: relative;
+    --glitch-amplitude: 10px; --glitch-chroma: 3px;
+    --glitch-chroma-a: #d9531a; --glitch-chroma-b: #47107d; }
+  .band { display: inline-block; clip-path: none; transform: none; text-shadow: none; }
+  :host([data-state="a"]) .band { animation: slice-a var(--d, 900ms) steps(2, end) 1; }
+  :host([data-state="b"]) .band { animation: slice-b var(--d, 900ms) steps(2, end) 1; }
+
+  @keyframes slice-a {
+    0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+           text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                        var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+    16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+    32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+    48%  { clip-path: inset(0 0 0 0); transform: translateX(3px); }
+    100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+  }
+  @keyframes slice-b {
+    0%   { clip-path: inset(0 0 0 0); transform: translate(0);
+           text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                        var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+    16%  { clip-path: inset(46% 0 30% 0); transform: translateX(var(--glitch-amplitude)); }
+    32%  { clip-path: inset(26% 0 52% 0); transform: translateX(calc(var(--glitch-amplitude) * 0.8)); }
+    48%  { clip-path: inset(0 0 0 0); transform: translateX(3px); }
+    100% { clip-path: inset(0 0 0 0); transform: none; text-shadow: none; }
+  }
+
+  @supports (animation-timeline: view()) {
+    :host([trigger="scroll"]) .band {
+      animation: slice-a linear both;
+      animation-timeline: view();
+      animation-range: entry 10% entry 60%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) { .band { animation: none !important; } }
+`);
+
+class GlitchSliceElement extends HTMLElement {
+  static observedAttributes = ["duration", "trigger", "once"];
+  #io = null; #settle = null; #spent = false; #flip = false;
+
+  connectedCallback() {
+    const root = this.attachShadow({ mode: "open" });
+    root.adoptedStyleSheets = [SHEET];
+    // The slot keeps the real text in the light DOM: indexable, selectable, in the a11y tree.
+    root.innerHTML = `<span class="band"><slot></slot></span>`;
+    this.style.setProperty("--d", this.duration + "ms");
+
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (this.reduced) return;
+    if (this.trigger === "scroll" && CSS.supports?.("animation-timeline: view()")) return;
+    if (this.trigger === "manual") return;
+    if (this.trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+
+    this.#io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { this.run(); if (this.once) this.#io.disconnect(); }
+    }, { threshold: 0.35 });
+    this.#io.observe(this);
+  }
+
+  disconnectedCallback() {
+    if (this.#settle) clearTimeout(this.#settle);
+    this.#io?.disconnect();
+  }
+
+  get duration() { return Number(this.getAttribute("duration") ?? 900); }
+  get trigger() { return this.getAttribute("trigger") ?? "in-view"; }
+  get once() { return this.getAttribute("once") !== "false"; }
+
+  run() {
+    if (this.reduced) return;
+    if (this.once && this.#spent) return;
+    this.#spent = true;
+    if (this.#settle) clearTimeout(this.#settle);
+    this.#flip = !this.#flip;
+    this.dataset.state = this.#flip ? "a" : "b";
+    this.#settle = setTimeout(() => { this.dataset.state = "idle"; }, this.duration + 120);
+  }
+}
+
+customElements.define("glitch-slice", GlitchSliceElement);
+```
+
+### 9.13 Python (Jinja2 rendering + FastAPI endpoint)
+
+The server's only job here is the headline copy and the size tier — there is no glyph pool, no
+runtime, and nothing derived. That makes this the thinnest server surface in the family, and the
+validation is correspondingly simple: bound the inputs, reject text that can lie about itself.
+
+```python
+# app/slice.py
+from __future__ import annotations
+
+import unicodedata
+from dataclasses import dataclass
+from typing import Final, Literal
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
+from jinja2 import Environment, select_autoescape
+from pydantic import BaseModel, Field, field_validator
+
+Size = Literal["inline", "sm", "md", "lg", "xl"]
+Orientation = Literal["horizontal", "vertical"]
+
+# Step count is a SAFETY limit, not a style knob: step rate over duration is the flash
+# rate, and WCAG 2.3.1 caps flashing at three per second. The server owns the ceiling.
+MAX_STEPS: Final[int] = 2
+
+env = Environment(autoescape=select_autoescape(["html"]))
+
+TEMPLATE = env.from_string(
+    """
+<h1 class="glitch" data-glitch="slice" data-glitch-size="{{ size }}"
+    data-glitch-orientation="{{ orientation }}" data-glitch-trigger="scroll"
+    style="--glitch-duration:{{ duration }}ms; --glitch-steps:steps({{ steps }}, end)">
+  <span class="glitch__truth">{{ headline }}</span>
+</h1>
+"""
+)
+
+
+@dataclass(frozen=True)
+class SliceCopy:
+    headline: str
+    size: Size = "lg"
+    orientation: Orientation = "horizontal"
+    duration: int = 900
+    steps: int = MAX_STEPS
+
+    def render(self) -> str:
+        # One node, real text, autoescaped. Nothing derived is ever rendered here.
+        return TEMPLATE.render(
+            headline=self.headline,
+            size=self.size,
+            orientation=self.orientation,
+            duration=self.duration,
+            steps=min(self.steps, MAX_STEPS),
+        )
+
+
+class HeadlineIn(BaseModel):
+    headline: str = Field(min_length=1, max_length=160)
+    size: Size = "lg"
+    orientation: Orientation = "horizontal"
+    duration: int = Field(default=900, ge=200, le=1200)
+    steps: int = Field(default=MAX_STEPS, ge=1, le=MAX_STEPS)
+
+    @field_validator("headline")
+    @classmethod
+    def clean(cls, v: str) -> str:
+        """Reject control characters and bidi overrides.
+
+        Bidi override codepoints (U+202E and relatives) make rendered text read
+        differently from its source — a spoofing vector in any string a server echoes
+        into a page, and a headline is the most visible place to do it.
+        """
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("headline is empty after trimming")
+        if any(unicodedata.category(ch) in {"Cc", "Cf"} for ch in cleaned):
+            raise ValueError("headline contains control or formatting characters")
+        return cleaned
+
+
+router = APIRouter(prefix="/api/hero", tags=["hero"])
+
+
+@router.post("/slice", response_class=HTMLResponse)
+async def render_slice(payload: HeadlineIn) -> HTMLResponse:
+    """Render a slice-tear headline fragment.
+
+    Note the asymmetry with the scramble endpoint: no character cap is needed, because
+    a tear is content-agnostic — it cannot corrupt glyphs, split graphemes or render
+    tofu. The only hard ceiling is the step count, for flash safety.
+    """
+    try:
+        copy = SliceCopy(
+            headline=payload.headline,
+            size=payload.size,
+            orientation=payload.orientation,
+            duration=payload.duration,
+            steps=payload.steps,
+        )
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return HTMLResponse(content=copy.render())
+```
+
+### 9.14 SwiftUI (iOS)
+
+```swift
+import SwiftUI
+
+/// Band-clipped tear. Each band is a clipped copy of the SAME Text, offset — so the
+/// accessibility tree sees one label, not one per band.
+struct GlitchSlice: View {
+    let text: String
+    var duration: Double = 0.9
+    var amplitude: CGFloat = 10
+
+    /// Bands as fractional (top, height) pairs — resolution independent, like inset %.
+    private let bands: [(top: CGFloat, height: CGFloat, offset: CGFloat)] = [
+        (0.10, 0.26, -1.0),
+        (0.46, 0.24,  1.2),
+        (0.74, 0.20, -0.7),
+        (0.26, 0.22,  0.8),
+    ]
+
+    @State private var phase: Int = -1
+    @State private var task: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // Settled text: always present, always the accessible label.
+            Text(text).opacity(phase < 0 ? 1 : 0.001)
+
+            if phase >= 0 {
+                GeometryReader { geo in
+                    ForEach(Array(bands.enumerated()), id: \.offset) { index, band in
+                        Text(text)
+                            .offset(x: index == phase % bands.count ? band.offset * amplitude : 0)
+                            .frame(width: geo.size.width, height: geo.size.height, alignment: .leading)
+                            .clipped()
+                            .mask(
+                                Rectangle()
+                                    .frame(height: geo.size.height * band.height)
+                                    .offset(y: geo.size.height * band.top)
+                                    .frame(height: geo.size.height, alignment: .top)
+                            )
+                            .accessibilityHidden(true)   // bands are decoration
+                    }
+                }
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(text)
+        .accessibilityAddTraits(.isHeader)
+        .onAppear(perform: start)
+        .onDisappear { task?.cancel() }
+    }
+
+    private func start() {
+        guard !reduceMotion else { phase = -1; return }   // branch, not a softening
+        task?.cancel()
+        task = Task { @MainActor in
+            defer { phase = -1 }                          // settle on every exit path
+            let steps = 8
+            for step in 0..<steps {
+                if Task.isCancelled { return }
+                phase = step
+                try? await Task.sleep(for: .milliseconds(Int(duration * 1000) / steps))
+            }
+        }
+    }
+}
+```
+
+### 9.15 Jetpack Compose (Android)
+
+```kotlin
+import androidx.compose.animation.core.*
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+
+private data class Band(val top: Float, val height: Float, val offset: Float)
+
+private val BANDS = listOf(
+    Band(0.10f, 0.26f, -1.0f),
+    Band(0.46f, 0.24f, 1.2f),
+    Band(0.74f, 0.20f, -0.7f),
+    Band(0.26f, 0.22f, 0.8f),
+)
+
+@Composable
+private fun reduceMotion(): Boolean {
+    val context = LocalContext.current
+    return remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) == 0f
+    }
+}
+
+@Composable
+fun GlitchSlice(
+    text: String,
+    modifier: Modifier = Modifier,
+    durationMillis: Int = 900,
+    amplitudeDp: Float = 10f,
+    style: TextStyle = MaterialTheme.typography.displaySmall,
+) {
+    val reduced = reduceMotion()
+    val density = LocalDensity.current
+
+    // A stepped keyframe spec: the Compose equivalent of steps(2, end). Keep the step
+    // count low — step rate over duration is the flash rate (§4).
+    val phase by if (reduced) {
+        remember { mutableStateOf(BANDS.size.toFloat()) }
+    } else {
+        val animatable = remember { Animatable(0f) }
+        LaunchedEffect(text) {
+            animatable.snapTo(0f)
+            animatable.animateTo(
+                targetValue = BANDS.size.toFloat(),
+                animationSpec = tween(durationMillis, easing = LinearEasing),
+            )
+        }
+        animatable.asState()
+    }
+
+    Box(
+        modifier = modifier.semantics {
+            heading()
+            contentDescription = text   // one label for the whole stack
+        }
+    ) {
+        if (reduced || phase >= BANDS.size) {
+            Text(text = text, style = style)
+        } else {
+            // Settled copy underneath keeps the box sized and the text present.
+            Text(text = text, style = style, modifier = Modifier.graphicsLayer { alpha = 0.001f })
+            BANDS.forEachIndexed { index, band ->
+                val active = phase.toInt() == index
+                Text(
+                    text = text,
+                    style = style,
+                    modifier = Modifier
+                        .graphicsLayer {
+                            translationX = if (active) with(density) { (band.offset * amplitudeDp).dp.toPx() } else 0f
+                        }
+                        .layout { measurable, constraints ->
+                            val placeable = measurable.measure(constraints)
+                            layout(placeable.width, placeable.height) {
+                                placeable.placeRelative(0, 0)
+                            }
+                        }
+                        .clipToBounds(),
+                )
+            }
+        }
+    }
+}
+```
+
+### 9.16 Flutter (Dart)
+
+```dart
+import 'package:flutter/material.dart';
+
+/// Band-clipped tear. One Semantics label for the whole stack; the bands are excluded.
+class GlitchSlice extends StatefulWidget {
+  const GlitchSlice({
+    super.key,
+    required this.text,
+    this.duration = const Duration(milliseconds: 900),
+    this.amplitude = 10,
+    this.style,
+  });
+
+  final String text;
+  final Duration duration;
+  final double amplitude;
+  final TextStyle? style;
+
+  @override
+  State<GlitchSlice> createState() => _GlitchSliceState();
+}
+
+class _GlitchSliceState extends State<GlitchSlice>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: widget.duration);
+
+  /// (topFraction, heightFraction, offsetMultiplier) — resolution independent.
+  static const List<(double, double, double)> _bands = [
+    (0.10, 0.26, -1.0),
+    (0.46, 0.24, 1.2),
+    (0.74, 0.20, -0.7),
+    (0.26, 0.22, 0.8),
+  ];
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // disableAnimations mirrors the OS reduce-motion setting: branch, don't soften.
+    if (MediaQuery.of(context).disableAnimations) {
+      _controller.value = 1;
+    } else if (!_controller.isAnimating && _controller.value == 0) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? style = widget.style ?? Theme.of(context).textTheme.displaySmall;
+
+    return Semantics(
+      header: true,
+      label: widget.text,
+      child: ExcludeSemantics(
+        child: AnimatedBuilder(
+          animation: _controller,
+          builder: (context, _) {
+            final double t = _controller.value;
+            if (t >= 1) return Text(widget.text, style: style);
+
+            // Stepped, not interpolated: the index snaps, which is the tear's signature.
+            final int active = (t * _bands.length).floor().clamp(0, _bands.length - 1);
+
+            return Stack(
+              children: [
+                Opacity(opacity: 0.001, child: Text(widget.text, style: style)),
+                for (int i = 0; i < _bands.length; i++)
+                  if (i == active)
+                    _Band(
+                      top: _bands[i].$1,
+                      height: _bands[i].$2,
+                      dx: _bands[i].$3 * widget.amplitude,
+                      child: Text(widget.text, style: style),
+                    ),
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _Band extends StatelessWidget {
+  const _Band({
+    required this.top,
+    required this.height,
+    required this.dx,
+    required this.child,
+  });
+
+  final double top;
+  final double height;
+  final double dx;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return ClipRect(
+          clipper: _BandClipper(top: top, height: height),
+          child: Transform.translate(offset: Offset(dx, 0), child: child),
+        );
+      },
+    );
+  }
+}
+
+class _BandClipper extends CustomClipper<Rect> {
+  const _BandClipper({required this.top, required this.height});
+
+  final double top;
+  final double height;
+
+  @override
+  Rect getClip(Size size) => Rect.fromLTWH(
+        0,
+        size.height * top,
+        size.width,
+        size.height * height,
+      );
+
+  @override
+  bool shouldReclip(_BandClipper oldClipper) =>
+      oldClipper.top != top || oldClipper.height != height;
+}
+```
+
+### 9.17 Testing (Vitest/RTL unit tests + jest-axe + Playwright E2E)
+
+```tsx
+// GlitchSlice.test.tsx
+import { render, screen, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe, toHaveNoViolations } from "jest-axe";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { GlitchSlice } from "./GlitchSlice";
+
+expect.extend(toHaveNoViolations);
+
+function mockMatchMedia(reduced: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: reduced && query.includes("reduce"),
+      media: query, onchange: null,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+    }),
+  });
+}
+
+beforeEach(() => {
+  mockMatchMedia(false);
+  vi.stubGlobal("CSS", { supports: () => false });  // force the JS trigger path
+  vi.useFakeTimers();
+});
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("GlitchSlice", () => {
+  it("renders exactly one copy of the text — no duplicate nodes", () => {
+    render(<GlitchSlice as="h1" trigger="mount">Built like you.</GlitchSlice>);
+    expect(screen.getAllByText("Built like you.")).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Built like you." })).toBeInTheDocument();
+  });
+
+  it("uses no aria-hidden duplicate and no generated content", () => {
+    const { container } = render(
+      <GlitchSlice as="h1" trigger="mount">Built like you.</GlitchSlice>
+    );
+    // The scanline is the ONLY aria-hidden node; there is no hidden text copy.
+    const hidden = container.querySelectorAll("[aria-hidden='true']");
+    expect(hidden).toHaveLength(1);
+    expect(hidden[0]).toHaveClass("glitch__scan");
+  });
+
+  it("swaps the animation name on replay so the pass actually restarts", () => {
+    const { container } = render(
+      <GlitchSlice as="h1" trigger="mount" duration={900} once={false}>Built like you.</GlitchSlice>
+    );
+    const host = container.querySelector(".glitch") as HTMLElement;
+    const first = host.dataset.glitchState;
+    expect(first).toBe("glitching");
+    act(() => { vi.advanceTimersByTime(1100); });
+    expect(host.dataset.glitchState).toBe("idle");
+  });
+
+  it("declares nothing under prefers-reduced-motion", () => {
+    mockMatchMedia(true);
+    const { container } = render(
+      <GlitchSlice as="h1" trigger="mount">Built like you.</GlitchSlice>
+    );
+    const host = container.querySelector(".glitch") as HTMLElement;
+    expect(host.dataset.glitchState).toBe("idle");
+    expect(container.querySelector(".glitch__scan")).toBeNull();
+    expect(screen.getByRole("heading")).toHaveTextContent("Built like you.");
+  });
+
+  it("stays out of the way entirely when CSS owns the trigger", () => {
+    vi.stubGlobal("CSS", { supports: () => true });
+    const { container } = render(
+      <GlitchSlice as="h1" trigger="scroll">Built like you.</GlitchSlice>
+    );
+    // No state churn: the scroll-driven CSS animation is the whole implementation.
+    expect((container.querySelector(".glitch") as HTMLElement).dataset.glitchState).toBe("idle");
+  });
+
+  it("accepts arbitrary children, unlike scramble", () => {
+    render(
+      <GlitchSlice as="h1" trigger="mount">
+        <em>Built</em> like you.
+      </GlitchSlice>
+    );
+    expect(screen.getByRole("heading")).toHaveTextContent("Built like you.");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <GlitchSlice as="h1" trigger="mount">Built like you.</GlitchSlice>
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("replay control is a real button reachable by keyboard", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <>
+        <GlitchSlice as="h1" trigger="manual">Built like you.</GlitchSlice>
+        <button type="button">Replay tear</button>
+      </>
+    );
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Replay tear" })).toHaveFocus();
+  });
+});
+```
+
+```ts
+// e2e/glitch-slice.spec.ts
+import { test, expect } from "@playwright/test";
+
+test.describe("Glitch Slice Tear", () => {
+  test("ships with no JavaScript required", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/");
+    // The headline is correct and the animation is declared, with scripting off.
+    await expect(page.locator("h1")).toHaveText("Built like you.");
+    await context.close();
+  });
+
+  test("animates only layout-neutral properties", async ({ page }) => {
+    await page.goto("/");
+    const properties = await page.locator(".glitch__truth").first().evaluate((el) => {
+      const animations = el.getAnimations();
+      const props = new Set<string>();
+      for (const animation of animations) {
+        const effect = animation.effect as KeyframeEffect;
+        for (const frame of effect.getKeyframes()) {
+          for (const key of Object.keys(frame)) {
+            if (!["offset", "computedOffset", "easing", "composite"].includes(key)) props.add(key);
+          }
+        }
+      }
+      return [...props];
+    });
+    // Nothing here may touch geometry: no width, height, margin, top or left.
+    for (const property of properties) {
+      expect(["clipPath", "transform", "textShadow"]).toContain(property);
+    }
+  });
+
+  test("contributes zero layout shift", async ({ page }) => {
+    await page.goto("/");
+    const before = await page.locator(".glitch").first().boundingBox();
+    await page.waitForTimeout(1400);
+    const after = await page.locator(".glitch").first().boundingBox();
+    expect(Math.abs((after?.width ?? 0) - (before?.width ?? 0))).toBeLessThan(1);
+    expect(Math.abs((after?.height ?? 0) - (before?.height ?? 0))).toBeLessThan(1);
+    expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(1);
+  });
+
+  test("holds the discrete-change rate at the authored ceiling", async ({ page }) => {
+    await page.goto("/");
+    // This is a REGRESSION guard on the step rate, not a WCAG 2.3.1 verdict. 2.3.1 is a
+    // luminance-and-area test over rendered pixels, which no DOM measurement can decide
+    // (see §10). What this catches is somebody raising steps(2) to steps(12).
+    const changes = await page.locator(".glitch__truth").first().evaluate(async (el) => {
+      const seen: string[] = [];
+      for (let i = 0; i < 60; i++) {
+        const cs = getComputedStyle(el);
+        seen.push(cs.clipPath + "|" + cs.transform + "|" + cs.textShadow);
+        await new Promise((r) => setTimeout(r, 16));
+      }
+      let transitions = 0;
+      for (let i = 1; i < seen.length; i++) if (seen[i] !== seen[i - 1]) transitions++;
+      return transitions;
+    });
+    // ~960ms of sampling. The authored ceiling (steps(2), nine stops) measures ~20.
+    // Anything much above that means the step count was raised.
+    expect(changes).toBeLessThanOrEqual(22);
+  });
+
+  test("declares no animation under reduced motion", async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    const count = await page.locator(".glitch").first()
+      .evaluate((el) => el.getAnimations({ subtree: true }).length);
+    expect(count).toBe(0);
+    await expect(page.locator("h1")).toHaveText("Built like you.");
+    await context.close();
+  });
+
+  test("text stays selectable and searchable throughout", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(200);                   // mid-pass
+    expect(await page.locator("h1").innerText()).toContain("Built like you.");
+    await page.waitForTimeout(1200);                  // settled
+    expect(await page.locator("h1").innerText()).toContain("Built like you.");
+  });
+});
+```
+
+* * *
+
+## 10. Accessibility
+
+The single-element implementation starts from a strong position — the real text is the animated
+thing, so the accessible name is correct at every frame with no duplicate and no `aria-hidden` on
+content. Most of this section is therefore about **not giving that away**.
+
+**Roles and attributes.**
+
+* The host keeps its native semantics — a torn `h1` is an `h1` with exactly one accessible name.
+  The variant adds no role.
+* **There is no noise node and no text duplicate.** Any `aria-hidden` in the markup belongs to the
+  scanline, and nothing else. If your implementation has an `aria-hidden` copy of the headline, you
+  have built the layered variant and taken on its contract.
+* **`content: attr(data-text)` is not invisible to assistive technology.** CSS generated content is
+  exposed in the accessibility tree on several engines, so the classic three-layer glitch can have
+  its heading announced two or three times. Pseudo-elements cannot take `aria-hidden` — only real
+  elements can — so if you need true channel separation, use real `aria-hidden` spans and accept a
+  multi-node contract. This is the most important accessibility fact on this page, because the
+  pseudo-element version is the most widely copied implementation of the effect.
+* **No `aria-live`** on or around the element. Nothing here is a status change.
+* The scanline is `aria-hidden="true"` and `pointer-events: none`.
+* Inside a link or button, the interactive host owns role, name and focus ring.
+
+**Keyboard map.** The text is not focusable and has no keyboard interaction — correct for
+decoration. Only an optional replay control is operable:
+
+| Key | Action |
+| ---| --- |
+| `Tab` | Moves focus to the replay control (if present) |
+| `Shift + Tab` | Moves focus to the previous control |
+| `Enter` | Fires the replay (native `button` behaviour) |
+| `Space` | Fires the replay (native `button` behaviour) |
+| `Esc` | No binding — a tear is not a dismissible surface |
+
+**Focus management.** Nothing about a tear moves focus, and this variant has one focus hazard its
+siblings do not: **`clip-path` on an ancestor clips the descendant's focus ring.** Put the
+animation on a text-only span, never on a wrapper containing an interactive element, or a keyboard
+user tabbing to a link inside will find its focus indicator sliced off. Beyond that: a focus ring
+must never itself be animated, and the hover tear must be scoped to
+`@media (hover: hover) and (pointer: fine)` with `:hover` only — never `:focus-visible`.
+
+**Contrast.** The settled text carries the obligation: 4.5:1, or 3:1 for large text (≥24px bold /
+≥18.66px). Measure the **settled** state; the chroma offsets are transient and decorative, but they
+must never be the only thing carrying meaning, and the scanline must not drop the text below
+threshold at its brightest frame. Over imagery, verify against the darkest and lightest regions the
+line crosses, not an average. One variant-specific note: mid-tear, a band can sit over a different
+part of a background image than the settled text does — so check the *displaced* position too when
+the backdrop is busy.
+
+**Target size.** The text is not a target. A replay control meets 44×44px (WCAG 2.5.8 AA asks
+24×24px; the house standard is 44px), delivered with padding.
+
+**Flash and seizure safety — the variant-specific obligation.** This is the glitch most able to
+cross a flash threshold, because `steps()` makes changes instantaneous and high amplitude makes
+them large. WCAG 2.3.1 permits at most three flashes in any one second, where a flash is a pair of
+opposing changes in *relative luminance* of at least 10% of maximum, over at least 25% of a
+10-degree area of the visual field.
+
+Be precise about what can and cannot be verified here. The house configuration produces about **20
+discrete visual changes per second** (`steps(2, end)`, nine keyframe stops, 900ms), measured by the
+playground and by the sampling test in §9.17. That is not 20 flashes: most of those changes move
+glyph *position* rather than area luminance, and the chroma fades across the pass rather than
+toggling. But the honest statement is that **no DOM-based test can tell you whether this passes
+2.3.1**, because the answer depends on rendered pixel luminance, the background behind the text,
+and the fraction of the visual field the headline fills. The meter is a screen: at or below 3/s
+you are safe by construction; above it you are making a judgement.
+
+Three rules follow, and they are what keep that judgement defensible: **raise amplitude, never step
+rate**; never pair a hard step function with a full black-to-white or black-to-saturated swing;
+and if the headline is full-bleed, very large, or on a near-black field with near-white text, get a
+real luminance assessment (a photosensitive-epilepsy analysis tool on a screen recording) instead
+of trusting a DOM meter.
+
+**What changes under `prefers-reduced-motion`.** Everything, as a branch: `animation: none` on the
+animated node *and* on the scroll-driven declaration, scanline removed from the DOM, text renders
+final. Not a shorter tear, not a smaller one. WCAG 2.3.3 wants interaction-triggered motion
+disableable; the scroll-scrubbed variant is motion triggered by scrolling, so it is covered by the
+same branch.
+
+**Common accessibility failures specific to this variant.**
+
+* Using `::before` / `::after` with `attr(data-text)` and assuming the copies are invisible to
+  screen readers — the heading gets announced two or three times.
+* Putting the animation on a wrapper that contains a link or button, so `clip-path` slices the
+  focus ring.
+* Authoring a hard `steps()` tear at high amplitude with a black/white chroma swing, producing a
+  flash hazard.
+* Running the tear infinitely with no pause control (WCAG 2.2.2 failure past five seconds).
+* Firing the hover tear on `:focus-visible`, tearing the UI at every tab stop.
+* Omitting `aria-hidden` on the scanline.
+* Animating a `clip-path` wipe from fully hidden instead of fully visible, so a stalled or
+  stripped animation leaves no headline.
+* Forgetting `display: inline-block`, so a wrapped headline clips per box fragment and looks like a
+  rendering fault rather than a designed effect.
+
+* * *
+
+## 11. Innovative / Emerging Ideas
+
+* **Scroll-driven, genuinely zero-JS.** `animation-timeline: view()` with
+  `animation-range: entry 10% entry 60%` scrubs the tear against viewport entry — no observer, no
+  script, no main-thread work, and naturally reversible when the visitor scrolls back. Of the three
+  variants this is the only one that becomes *completely* free, because there was never a runtime
+  to remove. Shipped in §9.2 behind `@supports`.
+* **`@property`-typed amplitude.** Registering `--glitch-amplitude` as a `<length>` makes
+  displacement interpolate rather than step, so a single keyframe set serves every size tier by
+  animating the token instead of the transform — and a mid-pass size change no longer snaps.
+* **View Transitions as a route-level tear.** With cross-document view transitions, a chromatic
+  tear becomes the transition *between* pages using `::view-transition-old` and
+  `::view-transition-new`. The tear stops being decoration on a headline and becomes the site's
+  navigation grammar — a much stronger use of the gesture than repeating it per section.
+* **`clip-path: shape()` for organic bands.** The newer `shape()` function allows curved and
+  angled band edges where `inset()` only gives rectangles, so a tear can shear along a diagonal or
+  a torn-paper edge. The geometry becomes a design decision rather than a constraint.
+* **Variable-font axis tear.** Stepping a variable font's width or a custom axis alongside the
+  displacement distorts the letterforms themselves rather than only their position — a tear made of
+  type instead of applied to it. One extra property, and it degrades to nothing on a static font.
+* **Houdini paint worklet band noise.** A `paint()` worklet can generate the torn edge and its
+  static far more cheaply than stacked gradients, seeded from a registered custom property.
+  Chromium-only, so it needs a gradient fallback.
+
+* * *
+
+## 12. Conversion / UX Killers
+
+* **The replay that silently does nothing.** Re-adding the same class or re-setting the same
+  `animation-name` does not restart a CSS animation — the browser sees no change. The naive replay
+  button appears broken, with no error. Fix: alternate between two identically-defined keyframe
+  names (§9.2), force a reflow (`void el.offsetWidth`), or use
+  `getAnimations()` plus `cancel()` and `play()`.
+* **A flash hazard built by accident.** High step rate plus high amplitude plus a black/white
+  chroma swing crosses WCAG 2.3.1 and can genuinely harm a photosensitive visitor. Fix: cap
+  `steps(2, end)`, keep the chroma fading rather than toggling, and verify with the sampling test
+  in §9.17. This is the one failure on this page that is a safety issue rather than a quality one.
+* **The clipped focus ring.** `clip-path` on an ancestor clips descendants, so a tear on a wrapper
+  containing a link slices that link's focus indicator off. A keyboard user cannot see where they
+  are. Fix: animate a text-only span inside, never a wrapper around interactive content.
+* **Pseudo-element copies read aloud.** `content: attr(data-text)` is exposed in the accessibility
+  tree on several engines, so the most-copied implementation announces the heading two or three
+  times — and pseudo-elements cannot be `aria-hidden`. Fix: single-element with `text-shadow`
+  chroma, or real `aria-hidden` spans.
+* **The wipe mistaken for a tear.** Animating `clip-path` from `inset(0 100% 0 0)` (fully hidden)
+  rather than from `inset(0)` means a stalled, stripped or printed render shows **no headline**.
+  Fix: start and end fully visible; put the settle state in base CSS.
+* **The inline element that falls apart.** Without `display: inline-block`, a wrapped headline has
+  multiple box fragments and the clip applies to each, so bands break at the line break. It reads
+  as a rendering bug, not a design. Fix: `inline-block` on the animated node, and a reserved block
+  height.
+* **Tearing on every scroll-by.** An observer without a spent flag re-fires each time the headline
+  re-enters the viewport, stuttering repeatedly as the visitor moves up and down. Fix: `once` plus
+  `io.disconnect()` — or embrace it and use the scroll-scrubbed variant, where reversibility is the
+  intent rather than a bug.
+* **Tear on the wrong content.** Over a price, an error, a form label or a confirmation number, the
+  displacement makes the visitor doubt the *data* — and doubt near money costs the sale. Fix:
+  display type only.
+* **Two tears at once.** Simultaneous passes read as a GPU fault rather than a flourish. Fix: one
+  per viewport.
+
+* * *
+
+## 13. Advanced Patterns
+
+* **Restart as a declarative state machine, not an imperative hack.** The two-identical-keyframes
+  pattern (`glitch-slice-a` / `glitch-slice-b`, selected by `data-glitch-state`) replaces the
+  classic `void el.offsetWidth` reflow hack with a state change. It is better on three counts: it
+  works identically in React, Vue, Svelte and Angular without a remount or a `key` change; it
+  never forces a synchronous layout; and the restart is visible in the DOM, so it is testable
+  (§9.17). The cost is a duplicated keyframe block, which a preprocessor loop or a `@property`-typed
+  amplitude can generate.
+
+* **Percentage band geometry as a token tier.** Bands are authored as percentages of element
+  height, so one keyframe set is resolution-, viewport- and font-size-independent. Three tiers do
+  the rest of the work: a **global** tier (`--ember`, `--amethyst` from the palette), a
+  **component** tier (`--glitch-amplitude`, `--glitch-chroma`, `--glitch-duration`,
+  `--glitch-steps`), and an **instance** tier (per-element `data-glitch-size` or inline style).
+  Keyframes reference only the component tier and compute with `calc()`, so a palette change or a
+  new size tier never touches a `@keyframes` block.
+
+* **Progressive enhancement by capability, not by browser.** The React hook checks
+  `CSS.supports("animation-timeline: view()")` and, when it is true with `trigger="scroll"`,
+  **does nothing at all** — no observer, no state, no timer. This inverts the usual polyfill
+  shape: the modern path is the zero-code path, and the JavaScript exists only as a fallback for
+  older engines. It is worth writing this way round because the fallback can then be deleted
+  outright when support is universal, with no change to the component's API.
+
+* **TypeScript's role is smaller here, and that is informative.** Scramble needs
+  `children: string` because it rewrites text; slice tear accepts `ReactNode` because it rewrites
+  nothing — a tear over `<em>Built</em> like you.` is perfectly correct. Where typing earns its
+  place is the step ceiling, which should not be a free number:
+
+  ```ts
+  type StepCount = 1 | 2;                       // flash-safety ceiling, enforced at compile time
+  interface SliceProps { steps?: StepCount; amplitude?: number; }
+  ```
+
+  Encoding the safety limit in the type makes `steps={8}` a build error rather than an
+  accessibility incident found in an audit.
+
+* **Compositor honesty as a performance pattern.** `transform` and `opacity` are
+  compositor-driven; `clip-path` often is not, and animating it can trigger paint each frame. The
+  pattern is to keep the *displacement* on `transform` (cheap, compositor) and the *banding* on
+  `clip-path` (paint, but applied to a small text element), rather than attempting the whole effect
+  in one property. At headline scale this is free; the discipline matters because the same
+  keyframes applied to a full-bleed section are not.
+
+* * *
+
+## 14. Performance & Bundle Cost
+
+* **Zero JavaScript, and that is the headline number.** With `animation-timeline: view()` this
+  variant ships about 1.2KB of gzipped CSS and nothing else — no hook, no observer, no per-frame
+  work, no hydration. Scramble's runtime is small but non-zero; this one is actually zero. On a
+  page already heavy with hydration, that difference lands exactly where it hurts most.
+* **`clip-path` is paint, not composite — be honest about it.** `transform` and `opacity` are
+  compositor-driven, but an animating `clip-path` triggers a paint on several engines. At headline
+  scale, on a small text element, this is cheap and invisible. Applied to a full-bleed section, a
+  large image, or several elements at once, it is measurable and can drop frames. Keep the clip on
+  the smallest element that produces the effect.
+* **`text-shadow` is paint-only and cheap at this size**, but it scales with blur radius and
+  shadow count. Two hard-edged offsets (no blur) is the correct configuration; a blurred multi-shadow
+  chroma on a 72px headline is a different performance profile entirely.
+* **Tree-shaking and import discipline.** This variant needs no JavaScript, so it must not pull
+  any: export it as CSS plus optional markup, never through a barrel file that also exports
+  `useScramble`. A page using slice tear should download zero bytes of the glitch runtime. Do not
+  reach for GSAP to drive `clipPath` keyframes here — the library is ~40KB+ gzipped to replace
+  thirty lines of CSS, and the CSS version runs off the main thread for its transform component.
+* **Nothing to lazy-load, nothing to defer.** There is no runtime to dynamically import. The text
+  is in the initial HTML and the animation is in the stylesheet, which means the effect is complete
+  at first paint — the only glitch variant for which that is true.
+* **Core Web Vitals.** CLS contribution is genuinely zero: `clip-path`, `transform` and
+  `text-shadow` do not participate in layout, verified by the bounding-box test in §9.17. LCP is
+  unaffected because the headline is server-rendered with no hydration dependency. INP is unaffected
+  because there is no main-thread work. This is the only variant in the family with no Core Web
+  Vitals caveat at all.
+* **Font loading interaction, and the absence of one.** Scramble has a real
+  `font-display: swap` hazard, because its glyph pool must exist in the subset. A tear is
+  content-agnostic — it displaces whatever glyphs are there — so a font swap mid-pass changes
+  metrics but cannot produce tofu or corruption. One less thing to gate on `document.fonts.ready`.
+
+* * *
+
+## 15. Security
+
+This variant has **no meaningful attack surface of its own**, and the honest version of this
+section is short rather than padded.
+
+There is no runtime in the default build: no JavaScript, no DOM writes, no derived string, no
+configurable glyph pool, no `innerHTML`, no `eval`, no storage, no network call, no third-party
+script. The component is a stylesheet and one element containing text. Where the optional JS
+trigger is used (§9.4), it only toggles a `data-` attribute and sets a timer — it never writes
+content, so the XSS vector that scramble has to engineer against does not exist here.
+
+What remains is the **headline string itself**, and it is not this component's boundary. The text
+is rendered through the framework's normal escaping (Jinja autoescape in §9.13, JSX interpolation
+in §9.3), which is the same protection any other text on the page gets. The server-side validation
+in §9.13 is therefore thin by design: bound the duration (200–1200ms), restrict size and
+orientation to a closed set, cap length, and reject Unicode control and bidi-formatting codepoints
+— that last one because bidi overrides (U+202E and relatives) can make rendered text read
+differently from its source, which is a spoofing vector in any string a server echoes into a page,
+and a headline is the most visible place to attempt it. Note the asymmetry worth understanding:
+scramble needs a *cell cap* because per-frame work is linear in character count; a tear has no
+per-character work, so length is only a layout concern.
+
+**The one thing that is genuinely this component's own**, and the reason the step count is clamped
+server-side rather than left to the client: a mis-authored step rate is a **safety** problem, not a
+security one, but it is enforced in the same place and for the same reason — a client-supplied value
+should not be able to put a visitor at risk. `steps` is capped at 2 in §9.13 and typed as `1 | 2`
+in §13.
+
+**Authorization.** The component gates nothing and renders no privileged content. The only caveat
+is a CMS-driven hero: whoever can edit the headline can put arbitrary text on the most prominent
+element of the page, so that write path needs the same role check as any other published content.
+That is the CMS's boundary, not the component's.
+
+* * *
+
+## 16. Senior-Level Checklist
+
+* **Semantics** — the host keeps its native element and exactly one accessible name; the variant
+  adds no role.
+* **Single element** — one copy of the text, no `aria-hidden` duplicate, and no
+  `content: attr(data-text)` pseudo-element copies (they are exposed to assistive tech).
+* **`display: inline-block`** on the animated node, so a wrapped headline does not clip per box
+  fragment.
+* **Animate only layout-neutral properties** — `clip-path`, `transform`, `text-shadow`. Never
+  `width`, `height`, `top`, `left` or `margin`. Enforced by the keyframe-property test in §9.17.
+* **Visible base** — the clip starts and ends at `inset(0)`, never from fully hidden; the settle
+  state lives in base CSS, so a stalled, stripped or printed render shows a correct headline.
+* **Percentage band geometry** — never pixel bands, so one keyframe set serves every tier and
+  viewport.
+* **Flash safety** — `steps(2, end)` ceiling, chroma fades rather than toggles, no black-to-white
+  swing, at most three high-contrast changes per second, verified by the sampling test.
+* **Raise amplitude, never step rate** — more drama comes from distance, not frequency.
+* **Focus ring unclipped** — the animation never sits on an ancestor of an interactive element.
+* **Hover is pointer-only** — `@media (hover: hover) and (pointer: fine)` plus `:hover`, never
+  `:focus-visible`.
+* **Restart works** — alternating keyframe names, a forced reflow, or `getAnimations()`; a replay
+  that re-applies the same animation name is a silent no-op.
+* **One-shot and one-per-viewport** — spent flag holds and the observer disconnects, or the
+  scroll-scrubbed variant is used deliberately for reversibility.
+* **Reduced motion** — `animation: none` on both the state-driven and the scroll-driven
+  declarations, scanline removed, on web and all three native targets.
+* **Contrast** — settled text at 4.5:1 (3:1 large), checked at the displaced band position too
+  when the backdrop is busy, scanline at its brightest frame included.
+* **No `aria-live`**, and `aria-hidden` on the scanline only.
+* **Zero JavaScript on the modern path** — no hook, no observer, no barrel import that drags in
+  the scramble runtime.
+* **Keyboard** — the text is not focusable; any replay control is a real `button` at a ≥44px
+  target with a visible ring.
+* **Content fit** — display type only (≥32px for the default tier); never on prices, numbers,
+  labels, errors, form text, or anything a user must trust.
+
+* * *
+
+## 17. Visual Styles
+
+The same band-and-displace skeleton across the 11 core visual languages. Each note is about *this*
+variant — the band set, the amplitude, the chroma, and the snap.
+
+1. **Flat.** Coarse bands, one flat accent as the chroma (a single offset, not a channel split),
+   hard `steps()`, no scanline. The tear is purely positional: blocks of type sliding against a flat
+   field. The safest tear to put on a dense page, and the one that scales to any size.
+2. **Material.** The discontinuity is the problem: M3 motion is continuous, so a faithful Material
+   build softens the step into an emphasized-decelerate settle and drops the chroma — at which point
+   it stops being a tear and becomes a displacement reveal. Keep the scanline as a scrim sweep. The
+   honest note is that this skin and this variant disagree.
+3. **Glassmorphism.** The bands tear the *frosted panel* as much as the type, so the blur shifts
+   behind the letters and the chroma catches the panel's light border. Striking, but the displaced
+   band sits over a different part of the backdrop than the settled text — keep a solid scrim under
+   the headline band so no frame drops below contrast.
+4. **Liquid Glass (2026).** A tear is the wrong grammar for a refractive language, so soften it:
+   two wide bands, low amplitude, 1–2px chroma, and a specular glint instead of a hard scanline. The
+   effect reads as the glass momentarily failing to focus. If you want a real glitch on this skin,
+   use [Signal Lock](/knowledge/glitch-signal-lock) instead.
+5. **Neumorphism.** Chroma to zero — this style's contrast is already its weak point — and the tear
+   becomes a shadow misregistration: the dual light/dark shadows slide out of alignment with the
+   extruded glyphs and snap back. Subtle, short, and only on a calm headline.
+6. **Skeuomorphism.** The full CRT tracking fault: fine bands, horizontal roll, a lingering
+   scanline with bloom, and a slight barrel curve across the band. This is the native habitat of the
+   tear, so it earns the highest band count in the family and the loudest scanline — just keep the
+   step rate capped, because this skin tempts you to crank it.
+7. **Neo-Brutalism.** Maximum amplitude (the 12px cap, and the one skin where exceeding it reads as
+   intentional), clashing saturated chroma, zero radius, thick offset shadow, monospaced or
+   ultra-bold type, hard `steps()` with no easing at all. The loudest expression of the variant —
+   campaign pages only, and the one that most needs the flash-rate check.
+8. **Claymorphism.** The tear squashes rather than shears: puffy big-radius letterforms with two
+   wide bands, low amplitude, and the chroma replaced by a warm inner light so the bands look
+   pressed rather than broken. The one skin where the effect stops meaning "broken."
+9. **Aurora / Gradient.** The bands displace the *gradient* independently of the glyphs, so colour
+   stripes slide through the letterforms before locking to the type. Spectacular on a dark field.
+   Verify 4.5:1 at every stop the text crosses rather than the average, and freeze gradient drift
+   under reduced motion.
+10. **Minimal / Swiss.** One band, 2–3px amplitude, no chroma, no scanline, tightly tracked type on
+    a strict grid. The tear is a single frame of misregistration you feel more than see — precision
+    briefly lost and immediately reasserted. The restrained version, and the one that survives on an
+    editorial or institutional page.
+11. **UJG Brand (house default).** Platinum display type on deep Night/Eminence, coarse bands at
+    10px amplitude, chroma set to Spanish Orange and Eminence (never red/cyan), a single Goldenrod
+    scanline riding the line once, Methanerse for the headline face, `steps(2, end)` over 900ms.
+    Reads as a confident signal fault rather than a malfunction — the most Shon of the three
+    variants, and the one to reach for when the page has no JavaScript budget at all.
+
+**The rule that never changes:** style is skin, behaviour is the skeleton. Across all 11 skins
+there is one copy of the real text, the animation touches only `clip-path`, `transform` and
+`text-shadow`, bands are percentages, the clip starts and ends fully visible, the settle state lives
+in base CSS, the step rate stays under the flash threshold, reduced motion declares no animation at
+all, and the tear never sits on an ancestor of an interactive element or on content a user has to
+trust. Semantics, the accessible name, focus behaviour of adjacent controls, and the 44px target on
+any replay control are identical no matter which skin is on top.

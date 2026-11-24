@@ -13,7 +13,17 @@ export type GlitchTrigger = "mount" | "in-view" | "hover" | "manual";
  * characters look better but render as tofu boxes whenever the display face is subset,
  * which reads to a visitor as a broken font — because it is one.
  */
-export const DEFAULT_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+export const DEFAULT_CHARSET = "abcdefghijklmnopqrstuvwxyz0123456789/\\|<>#*+=-";
+
+/** Uppercase reads better as noise but measures far wider than lowercase copy — 484px of
+ *  pool against 362px of real text at 58px. The box is pinned either way (see the width
+ *  pin below), so this only governs how much the noise overflows its reserved box. Pass
+ *  it explicitly when the headline is itself uppercase. */
+export const UPPERCASE_CHARSET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+
+/** useLayoutEffect on the client, useEffect on the server, so SSR stays warning-free. */
+const useIsomorphicLayoutEffect =
+  typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
 
 export function usePrefersReducedMotion(): boolean {
   const [reduced, setReduced] = React.useState(false);
@@ -206,6 +216,26 @@ export function GlitchText<T extends React.ElementType = "span">({
     charset,
   });
 
+  /* The width pin. The scramble pool is proportional — an uppercase pool measures ~45%
+     wider than lowercase copy at hero size — so without a reserved width the line's
+     measured box changes every frame and everything below it hops. Measure the truth node
+     while it is still in normal flow (before enhancement), then pin the noise node to that
+     px value. `ch` is too coarse for a display face, which is why this is measured px. */
+  const truthRef = React.useRef<HTMLSpanElement | null>(null);
+  const [pinnedWidth, setPinnedWidth] = React.useState<number | null>(null);
+
+  useIsomorphicLayoutEffect(() => {
+    if (variant !== "scramble" || enhanced) return;
+    const node = truthRef.current;
+    if (!node) return;
+    const measured = node.getBoundingClientRect().width;
+    if (measured > 0) setPinnedWidth(measured);
+    /* Measured on the live node rather than a probe: getComputedStyle(el).font serializes
+       to an empty or partial shorthand whenever the font-family list is non-trivial, and a
+       probe seeded from it silently falls back to 16px — which reports 100px for text that
+       actually renders at 362px, and makes the pin wrong rather than absent. */
+  }, [variant, enhanced, children]);
+
   return (
     <Host
       ref={hostRef as React.Ref<never>}
@@ -214,7 +244,12 @@ export function GlitchText<T extends React.ElementType = "span">({
       data-glitch-size={size}
       data-glitch-state={state}
       data-glitch-trigger={trigger}
-      style={{ ["--glitch-duration" as string]: `${duration}ms` }}
+      style={{
+        ["--glitch-duration" as string]: `${duration}ms`,
+        ...(pinnedWidth !== null
+          ? { ["--glitch-width" as string]: `${pinnedWidth}px` }
+          : null),
+      }}
       {...rest}
     >
       {/* Noise: decorative, always hidden from assistive tech. */}
@@ -225,7 +260,9 @@ export function GlitchText<T extends React.ElementType = "span">({
       ) : null}
 
       {/* Truth: always rendered, always in the accessibility tree. */}
-      <span className="glitch__truth">{children}</span>
+      <span ref={truthRef} className="glitch__truth">
+        {children}
+      </span>
 
       {scanline && !reduced ? <span className="glitch__scan" aria-hidden="true" /> : null}
     </Host>

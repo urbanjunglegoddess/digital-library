@@ -1,0 +1,2385 @@
+---
+name: "Glitch Scramble Reveal"
+slug: glitch-scramble-reveal
+category: Marketing & Content
+status: built
+summary: "A headline that resolves out of substituted glyphs, left to right, under a chromatic split. The only glitch variant where the visible characters are not the real ones — which is the whole engineering problem."
+tags: [motion, typography, headline, glitch, scramble, decode, reduced-motion]
+preview:
+  label: "Built like you."
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- Two nodes, because the visible characters are NOT the real characters.
+           JS adds .is-enhanced once it has taken over, so no-JS shows the truth node. -->
+      <h1 class="glitch" data-glitch="scramble" data-glitch-size="lg">
+        <span class="glitch__out" aria-hidden="true"></span>
+        <span class="glitch__truth">Built like you.</span>
+      </h1>
+  - language: tsx
+    framework: react
+    label: "React · TS"
+    primary: true
+    code: |
+      import { GlitchText } from "@/components/glitch-text/GlitchText";
+
+      export function Hero() {
+        return (
+          <GlitchText as="h1" variant="scramble" size="lg" trigger="in-view" duration={1100}>
+            Built like you.
+          </GlitchText>
+        );
+      }
+  - language: js
+    label: "Grapheme-safe tick"
+    code: |
+      // text[i] splits emoji and combining marks. Segment once, then index segments.
+      const segmenter = new Intl.Segmenter("en", { granularity: "grapheme" });
+      const cells = Array.from(segmenter.segment(text), (s) => s.segment);
+
+      function frame(progress) {
+        const upTo = Math.floor(progress * cells.length);
+        return cells
+          .map((cell, i) =>
+            i < upTo || cell === " " ? cell : pool[(Math.random() * pool.length) | 0]
+          )
+          .join("");
+      }
+references:
+  - title: "MDN — Intl.Segmenter"
+    url: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/Segmenter
+    source: mdn
+  - title: "MDN — prefers-reduced-motion"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/@media/prefers-reduced-motion
+    source: mdn
+  - title: "MDN — font-variant-numeric"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/font-variant-numeric
+    source: mdn
+  - title: "MDN — Node.textContent"
+    url: https://developer.mozilla.org/en-US/docs/Web/API/Node/textContent
+    source: mdn
+  - title: "WCAG 2.2 — 2.3.3 Animation from Interactions"
+    url: https://www.w3.org/WAI/WCAG22/Understanding/animation-from-interactions.html
+    source: other
+---
+
+## Glitch Scramble Reveal
+
+The decode. A headline arrives as a field of substituted glyphs and resolves into the real
+sentence, character by character, under a chromatic split. It reads as a system coming online.
+
+It is also the only variant in the glitch family where **the characters on screen are not the
+characters in the document**, and that single fact generates every hard problem on this page: a
+screen reader that reads nonsense, a crawler that indexes block characters, a line that jitters
+and shoves the page, a font subset that renders empty boxes, and an emoji that shatters into
+two broken halves. Its siblings — [Slice Tear](/knowledge/glitch-slice-tear) and
+[Signal Lock](/knowledge/glitch-signal-lock) — decorate real text with CSS and have none of
+this. Scramble earns its JavaScript, and has to earn it carefully.
+
+* * *
+
+## 1. What It Actually Is
+
+A scramble reveal is a **one-shot substitution animation**: the component holds the real string,
+renders a derived string in which not-yet-resolved positions are replaced by glyphs drawn from a
+pool, and advances a resolve index until the derived string equals the real one. The real text is
+present in the DOM the entire time, in a separate node, exposed to assistive technology. What
+animates is a *decorative mirror* of it.
+
+The load-bearing distinction: the string length never changes. A scramble is a **substitution**,
+not an insertion. That is what separates it from a typewriter and what makes a stable layout
+possible at all.
+
+What it gets confused with:
+
+* **Typewriter / typing effect.** Characters are *inserted* one at a time from an empty string.
+  The text genuinely is not there yet, so the element's width grows every frame and its accessible
+  name changes as it goes. A scramble starts at full length and swaps glyphs in place. If you find
+  yourself animating `width` or appending to a string, you have built a typewriter.
+* **Odometer / slot-machine counter.** Digits roll through intermediate values to land on a
+  number. Mechanically similar, semantically opposite: the intermediate values of an odometer are
+  *meaningful* (they are numbers on the way to a number), whereas scramble's intermediates are
+  noise. Use a counter component for figures, and never scramble a price (§7).
+* **Decode-as-loading ticker.** Glyphs cycling while real data is in flight. The content behind
+  it is genuinely unknown, which makes it a loading state — use a skeleton or a live region. A
+  scramble reveal knows its answer before the first frame.
+* **Matrix rain / ambient character field.** A background texture of falling glyphs. No target
+  string, no resolve, no end. That is decoration behind content, not a reveal of content.
+* **Hash / redaction reveal.** Text masked as `••••••` that resolves on an action. The masking
+  is *security theatre or privacy UI*, so its hidden state is the point and must not be in the
+  accessibility tree at all — the opposite of this component's contract.
+
+**Rule of thumb:** if the string length is constant, the final frame is the real sentence, and
+the intermediate glyphs mean nothing — it is a scramble reveal. If the length grows, it is a
+typewriter. If the intermediates mean something, it is a counter.
+
+* * *
+
+## 2. Why It Matters
+
+* **The accessibility tree is the whole component.** Writing the derived string onto the heading
+  itself mutates the element's accessible name roughly 30 times a second. A screen reader cursor
+  landing mid-pass reads `K7#2Q/ L|<3 X0U.` where the page's single most important sentence should
+  be. Every scramble tutorial in circulation does exactly this. The two-node split — noise node
+  `aria-hidden`, truth node clipped but exposed — is not a refinement; it is the difference
+  between a flourish and an H1 that assistive tech cannot read.
+* **SEO and link previews.** The derived string must never exist on the server. If the component
+  computes the headline client-side, the server HTML ships `K7#2Q/` as your `h1`, your
+  `og:description`, your search snippet and your Slack unfurl. This is the most expensive failure
+  available here because it costs you the visit, not just the experience.
+* **Layout stability is not free, unlike its siblings.** Slice tear and signal lock animate
+  `transform` and `filter`, which never reflow. A scramble *replaces glyphs*, and proportional
+  glyphs have different advance widths — so the measured width of the line changes every frame,
+  the headline wobbles, everything below it hops, and the shift is real and counted by Core Web
+  Vitals. Stable metrics have to be engineered in (§9.2, §12).
+* **Correctness across real text.** `text[i]` iterates UTF-16 code units. An emoji is a surrogate
+  pair and an accented character may be a base plus a combining mark, so naive indexing splits
+  them into halves that render as replacement characters — and the "settled" string can come out
+  corrupted. Any headline with an emoji, an accent, or a non-Latin script is broken by the
+  obvious implementation (§13).
+* **Font subsetting.** The pool glyphs have to exist in the shipped font. Block-drawing
+  characters look best and are the first thing dropped by a subset, so the pass renders rows of
+  empty rectangles — indistinguishable from a broken font, because it is one (§12).
+
+* * *
+
+## 3. Anatomy
+
+* **Truth node.** The element holding the real string. Always in the DOM, always in the
+  accessibility tree, never written to after render. Visually hidden during the pass with
+  `clip-path: inset(50%)` — not `display: none`, not `visibility: hidden`, not `aria-hidden`.
+* **Noise node.** The leaf element the derived string is written into, every frame, with
+  `textContent`. Always `aria-hidden="true"`. Deleting it must leave a correct, styled headline.
+* **Cell array.** The real string segmented into **grapheme clusters**, not code units — the unit
+  the resolve index counts. Computed once per string, not per frame.
+* **Glyph pool (charset).** The substitution alphabet. Load-bearing for both rendering (must be
+  in the font subset) and layout (should be roughly monospaced).
+* **Resolve index.** How many leading cells are settled. Driven by elapsed time over duration,
+  which is what makes the pass frame-rate independent — a dropped frame skips ahead rather than
+  extending the animation.
+* **Resolve order.** The function mapping progress to which cells are settled: left-to-right by
+  default, or random-index, or centre-out (§6).
+* **Tick loop.** The `requestAnimationFrame` callback computing one derived string per frame.
+  The only per-frame JavaScript in the glitch family.
+* **Chroma pair.** The two offset colour channels producing the RGB-split signature, applied with
+  `text-shadow` so they never affect layout. Tokens, not raw red/cyan: `--glitch-chroma-a`
+  (Spanish Orange) and `--glitch-chroma-b` (Eminence).
+* **Scanline.** Optional bright band travelling the line once per pass. Positioned,
+  `aria-hidden`, `pointer-events: none`.
+* **Settle state.** The final declarative state, defined in base CSS rather than only at the end
+  of the pass. The safety net for a stalled, stripped or printed render.
+* **Settle timer.** A `setTimeout` at `duration + 120ms` that force-lands the final state when
+  `requestAnimationFrame` is throttled or paused. Not optional — see §13.
+* **Enhancement flag.** The `is-enhanced` class JS adds once it has confirmed it is running and
+  motion is allowed. Until then the truth node renders plainly, which is also the no-JS, crawler
+  and reduced-motion path.
+* **Reveal trigger.** Mount, in-view, or explicit replay, carrying a spent flag so the headline
+  resolves once.
+
+* * *
+
+## 4. Sizes / Scale / Density
+
+Scramble is bounded by **character count** as much as type size: per-frame work is linear in cell
+count, and a long line reads as a wall of noise rather than a word assembling. The house ceiling
+is roughly 48 characters; past that, split the headline and scramble only the line that matters.
+
+| Tier | Token | Type size | Max cells | Tick budget | Duration | Use case |
+| ---| ---| ---| ---| ---| ---| --- |
+| Inline | `--glitch-inline` | 14–16px / `0.875–1rem` | 12 | ~26 frames | 420ms | One accent word inside a sentence |
+| SM | `--glitch-sm` | 20–24px / `1.25–1.5rem` | 24 | ~36 frames | 600ms | Card titles, eyebrows, sub-heads |
+| MD | `--glitch-md` | 32–40px / `2–2.5rem` | 36 | ~48 frames | 800ms | Section headings, page titles |
+| LG | `--glitch-lg` | 48–58px / `3–3.625rem` | 44 | ~54 frames | 900ms | Hero H1 — the house default |
+| XL | `--glitch-xl` | 72px+ / `4.5rem+` | 48 | ~66 frames | 1100ms | Full-bleed statement type |
+
+Rules that matter:
+
+* **Duration ceiling 1200ms.** Scramble justifies the top of the glitch family's range because it
+  has per-cell work to do, but past 1200ms a visitor stops reading a flourish and starts reading a
+  fault.
+* **Resolve rate, not frame rate.** Drive the index from `elapsed / duration`, never from a frame
+  counter. On a 120Hz display a frame-counted pass finishes in half the time; on a throttled tab
+  it never finishes at all.
+* **Reserve the block.** The host needs a settled height before the pass starts. Scramble cannot
+  establish its own line count safely, because its glyph widths differ from the real text's.
+* **Stable metrics are mandatory, and `tabular-nums` alone will not do it.** That property
+  governs *digits* only; a letters pool stays proportional, and an uppercase pool measures about
+  **a third wider** than lowercase copy at hero size — 484px of noise against 362px of real text,
+  measured at 58px. The load-bearing fix is a **width pin**: measure the settled text in px before
+  enhancing and set it as a fixed `inline-size` on the noise node. Three details decide whether it
+  works: the node must be `inline-block` (an inline box ignores inline sizing), it must be
+  `inline-size` rather than `min-inline-size` (a minimum is only a floor, so wider glyphs still grow
+  the box), and it needs `white-space: pre`, or the overflow wraps and moves the box vertically
+  instead of horizontally.
+* **One per viewport**, and never on body copy, labels, numbers or form text.
+* **Target size is unaffected** — the text is not a target. A replay control carries 44px on its
+  own.
+
+* * *
+
+## 5. States
+
+* **Idle / pre-reveal.** The settle state from base CSS: real text, no chroma, no noise node
+  rendered. What a crawler, a printer, a no-JS visitor and a reduced-motion user all get. Fully
+  readable — never invisible.
+* **Enhanced.** JS has confirmed it is running and motion is allowed, so `is-enhanced` is on: the
+  noise node is displayed and the truth node is clipped. Visually identical to idle until a pass
+  starts. This state exists so that the un-enhanced path is the default rather than the fallback.
+* **Armed.** Enhanced and waiting for the in-view trigger. A hero below the fold must not spend
+  its reveal before anyone sees it.
+* **Resolving (active pass).** The tick loop is running; `data-glitch-state="glitching"` drives
+  the chroma animation and the scanline. Partially-resolved is the characteristic frame: a settled
+  prefix and a noisy suffix.
+* **Settled.** The derived string equals the real string, the loop is cancelled, the spent flag is
+  set. Mechanically identical to enhanced-idle, semantically final.
+* **Stalled → force-settled.** Distinct and worth naming because it is the common real-world
+  path: the tab was backgrounded mid-pass, `requestAnimationFrame` stopped, and the settle timer
+  landed the final state without the loop finishing. The visitor returns to a correct headline
+  rather than a frozen field of noise.
+* **Replay-requested.** A user-initiated re-run; it clears the spent flag, because an explicit
+  request outranks the once-guarantee. The control is disabled while the pass is in flight, which
+  also prevents two loops writing to one node.
+* **Reduced-motion.** A first-class state, not a degradation: `is-enhanced` is never added, no
+  loop is scheduled, the scanline is not rendered, and the truth node stays in normal flow.
+* **Print.** Settle state. Chroma `text-shadow` explicitly cleared so the heading does not print
+  with orange and purple ghosts.
+
+There is no hover, focus, active, disabled, loading or error state on the text itself: it is
+decoration on a non-interactive element. A replay control, where one exists, carries the ordinary
+control states. The one failure mode that matters is the stall, and it is handled structurally by
+the settle timer rather than surfaced as an error.
+
+* * *
+
+## 6. Types / Variants
+
+1. **Left-to-right resolve (default).** The index advances from the start of the line, so the
+   sentence assembles the way it is read. The most legible, and the only order that lets a visitor
+   begin reading before the pass finishes.
+2. **Random-index resolve.** Cells settle in a shuffled order, so the line fills in like static
+   clearing. More chaotic, better for a single short word, worse for a sentence — a reader cannot
+   start parsing until nearly the end.
+3. **Centre-out resolve.** The index expands from the middle in both directions. Reads
+   ceremonially, suits a short centred statement, and is the right choice when the headline is
+   also the visual centre of a composition.
+4. **Per-cell hold.** Each cell cycles through a few random glyphs before locking rather than
+   flipping once. Richer and noticeably more expensive; keep the hold to 2–3 glyphs and cap the
+   cell count at the SM tier.
+5. **Charset family.** The pool itself is a design choice: **ASCII-safe** (the house default:
+   A–Z, 0–9, and a handful of symbols — always in the subset), **digits-only** (reads technical
+   and keeps perfect tabular width), or **block/box glyphs** (the best-looking and the one that
+   produces tofu unless you have verified the subset).
+6. **Chroma on / off.** The RGB split is separable from the substitution. Off, the scramble reads
+   as a terminal decode; on, as a corrupted signal. Off is the restrained option and the one to
+   use on light backgrounds where the offsets muddy.
+7. **Decode-on-hover.** The pass re-fired on pointer-enter over a link. Pointer-only, never
+   `:focus-visible`, and only on short labels — a keyboard user must not trigger a decode at every
+   tab stop. For a plain chromatic jitter with no substitution, use the chroma micro-variant on
+   the [family page](/knowledge/glitch-text-reveal) instead.
+
+* * *
+
+## 7. When to Use (and When Not To)
+
+**Use when:**
+
+* The headline is a thesis or identity statement and watching it *assemble* is part of the
+  message — a hero H1, a manifesto line, a persona reveal.
+* The register is technical, cyber-adjacent or deliberately disruptive, and the audience reads a
+  decode as confidence rather than malfunction.
+* The text is short (≤48 characters), known at render time, and present in the server HTML.
+* You can accept the one real cost its siblings do not have: JavaScript, a per-frame tick, and
+  the two-node accessibility contract.
+* There is exactly one in view, early in the page.
+
+**Don't use / use something else when:**
+
+* **You need a glitch with no JavaScript**, or you are on a platform without real scripting.
+  Use [Slice Tear](/knowledge/glitch-slice-tear) — CSS-only by construction, and the only variant
+  Wix can do natively.
+* **The glitch must coexist with serious content** and distortion would read as a fault. Use
+  [Signal Lock](/knowledge/glitch-signal-lock) — glitch texture without the violence.
+* **The text is still loading.** Use a **Skeleton Loader** or a live region. Scramble on unknown
+  content is a lie about state.
+* **It is a number, a price, a countdown or a quantity.** Use **Countdown Timer** or a counter.
+  Substituted glyphs over a figure makes the visitor doubt the *data*, and doubt near money costs
+  the sale.
+* **It is body copy, a label, a form field, an error or a confirmation.** Use plain type, or a
+  low-amplitude **Reveal on scroll**. Errors must never animate — use **Alert**.
+* **The headline is long, multi-line, or localised into a script you have not tested.** Long lines
+  read as a noise wall; untested scripts risk both tofu and grapheme corruption. Scramble the one
+  line that matters, or pick a CSS-only sibling.
+* **The audience is in a high-anxiety context** — checkout, medical, legal, financial
+  confirmation. Use **Fade**, or nothing.
+* **You cannot guarantee the pool is in the font subset.** Switch the charset family to
+  ASCII-safe, or use a sibling.
+
+**Placement heuristics.** One per viewport, on display type ≥32px, fired on in-view rather than
+mount. Give it a settled block; pair it with a static eyebrow and a static sub-line, because the
+decode only reads as deliberate when everything around it holds still.
+
+* * *
+
+## 8. Across Design Systems
+
+No major design system ships a scramble primitive. That is not an oversight: substitution
+animation is a brand gesture with an accessibility contract most systems decline to take a
+position on, so they ship the motion machinery and leave this to you.
+
+* **Material 3 (Google).** No scramble. M3 Expressive motion is spring-based and
+  continuity-focused — motion exists to show where a thing came from, and substituted glyphs show
+  nothing. A Material-faithful build keeps the scanline and the settle easing and drops the
+  substitution. What M3 does contribute is the token discipline: duration and easing sets, and the
+  rule that decorative motion must be removable.
+* **Apple HIG.** Actively against it. HIG wants motion brief and purposeful, and Apple's
+  reduced-motion stance is the strictest in the industry — on iOS, `accessibilityReduceMotion` is
+  a hard branch, not a hint (§9.14). There is no decode idiom on Apple platforms; the 2026 Liquid
+  Glass language is refractive and fluid, the opposite register.
+* **Fluent 2 (Microsoft).** No scramble, and an explicit "motion must not distract" line aimed at
+  dense enterprise surfaces. Fluent's useful contribution is its curve and duration taxonomy —
+  map the pass onto its slow tier rather than inventing a timing.
+* **Ant Design.** No scramble, and the clearest statement of where this component does not
+  belong: Ant's animation set is fade, slide and zoom, for data-dense product UI where decorative
+  motion is a liability.
+* **Tailwind CSS.** No component, and notably it cannot express this one — Tailwind styles the
+  chroma and the layout, but substitution needs JS, so a Tailwind build is utilities plus the hook
+  (§9.5). `motion-reduce:animate-none` covers the chroma; the loop still needs its own guard,
+  which is the trap: a Tailwind-only "reduced motion handled" claim is false for this variant.
+* **shadcn/ui + Radix.** No primitive, and the right mental model: behaviour headless, skin
+  yours. The idiomatic build is `useGlitch` owning the lifecycle plus a `cva` skin composed with
+  `Slot`, so the component never decides whether it is a heading or a link (§9.7).
+* **Bootstrap 5.** No scramble and a deliberately thin animation layer. A Bootstrap build is a
+  utility class plus a script beside `display-1` — honest about being an add-on.
+* **Creative-web tooling (where it actually lives).** GSAP's `ScrambleTextPlugin` with
+  `SplitText` is the commercial standard and the closest thing to a reference implementation;
+  Motion covers it with `animate` over a character array; `motion-one` and the raw Web Animations
+  API handle the chroma. All of them leave the accessibility tree entirely to the caller, which is
+  the single biggest reason scramble ships broken in the wild.
+
+### 8b. Visual Styles / Trends — What's trending in 2026
+
+The decode is having a second life, and the platform is the reason. `@property`-registered custom
+properties let the chroma offsets be typed and interpolated rather than stepped. Scroll-driven
+animations (`animation-timeline: view()`) handle the chroma and the scanline with no observer —
+though not the substitution, which still needs the tick. And **CSS `random()`**, specified and
+beginning to land, is the first credible path to a scramble with no JavaScript at all: per-cell
+glyph selection from CSS, with the cells as spans. The accessibility contract does not change —
+the truth node still has to exist — but the runtime cost drops to zero.
+
+The aesthetic has also matured in a useful direction. The 2021 look was a long, chaotic,
+random-order decode over everything; the 2026 register is **one short left-to-right pass on one
+element**, usually ASCII-safe, often with the chroma dialled down and a single gold scanline. The
+infinite matrix field now reads as dated and accessibility-naive. The durable version resolves and
+gets out of the way.
+
+* * *
+
+## 9. The Code
+
+One contract throughout: the real string is in the DOM and in the accessibility tree from the
+first frame, the derived string is written to an `aria-hidden` leaf with `textContent`, the index
+is driven by elapsed time over grapheme cells, and reduced motion is a branch that schedules
+nothing.
+
+### 9.1 HTML (semantic foundation with ARIA)
+
+```html
+<!-- Two nodes. The noise node starts EMPTY and hidden by CSS: with JS off, failed, or
+     blocked, the truth node is what renders, unstyled by any enhancement class. -->
+<h1 class="glitch" data-glitch="scramble" data-glitch-size="lg" data-glitch-trigger="in-view">
+  <span class="glitch__out" aria-hidden="true"></span>
+  <span class="glitch__truth">Built like you.</span>
+  <span class="glitch__scan" aria-hidden="true"></span>
+</h1>
+
+<!-- Optional replay. A real button: typed, labelled, keyboard-operable, 44px target.
+     Omit it on a production hero; it belongs in playgrounds and style pickers. -->
+<button type="button" class="glitch__replay" data-glitch-replay="hero-title"
+        aria-describedby="glitch-help">
+  Replay decode
+</button>
+<p id="glitch-help" class="u-visually-hidden">
+  Replays the decorative decode animation on the heading. The heading text does not change.
+</p>
+
+<!-- Scramble on a link: the anchor owns role, name and focus ring; the span decodes. -->
+<a href="/suites" class="nav__link">
+  <span class="glitch" data-glitch="scramble" data-glitch-trigger="hover" data-glitch-size="inline">
+    <span class="glitch__out" aria-hidden="true"></span>
+    <span class="glitch__truth">Five service suites</span>
+  </span>
+</a>
+```
+
+The noise node being empty in the source is deliberate: the server never emits a derived string,
+so the HTML a crawler or a preview card sees is always the real sentence (§2).
+
+### 9.2 CSS (states, layout, reduced-motion)
+
+```css
+.glitch[data-glitch="scramble"] {
+  --glitch-duration: 900ms;
+  --glitch-chroma: 3px;
+  --glitch-chroma-a: var(--ember, #d9531a);
+  --glitch-chroma-b: var(--amethyst, #47107d);
+
+  position: relative;
+  display: inline-block;
+  /* THE SETTLE STATE. Note the absence of opacity: the text is never hidden, so a
+     stalled, stripped, throttled or printed pass still renders a correct headline. */
+  text-shadow: none;
+}
+
+.glitch[data-glitch-size="inline"] { --glitch-chroma: 1px; --glitch-duration: 420ms; }
+.glitch[data-glitch-size="sm"]     { --glitch-chroma: 1px; --glitch-duration: 600ms; }
+.glitch[data-glitch-size="md"]     { --glitch-chroma: 2px; --glitch-duration: 800ms; }
+.glitch[data-glitch-size="lg"]     { --glitch-chroma: 3px; --glitch-duration: 900ms; }
+.glitch[data-glitch-size="xl"]     { --glitch-chroma: 3px; --glitch-duration: 1100ms; }
+
+/* Un-enhanced is the DEFAULT: no noise node, truth node in normal flow. */
+.glitch[data-glitch="scramble"] .glitch__out { display: none; }
+
+/* Enhanced: JS is running and motion is allowed. */
+.glitch[data-glitch="scramble"].is-enhanced .glitch__out {
+  /* inline-block, NOT inline. An inline box ignores min-inline-size, which silently
+     disables the pin below — the effect looks fine and the line jitters anyway. */
+  display: inline-block;
+  /* Stable advance widths while cells resolve. Without this the line's measured width
+     changes every frame and everything below it hops — a real, measured layout shift. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  /* The width pin. inline-size, NOT min-inline-size: a minimum is only a floor, so wider
+     pool glyphs still grow the box (362px of real text against 484px of uppercase noise,
+     measured at 58px). A fixed inline size caps it too, and white-space: pre stops the
+     overflow wrapping to a second line, which would move the box vertically instead. */
+  inline-size: var(--glitch-width, var(--glitch-cells, auto));
+  white-space: pre;
+}
+
+/* Visually hidden, still in the accessibility tree.
+   NOT display:none, NOT visibility:hidden, NOT aria-hidden. */
+.glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.glitch[data-glitch="scramble"][data-glitch-state="glitching"] .glitch__out {
+  animation: glitch-chroma var(--glitch-duration) steps(2, end) 1;
+}
+
+@keyframes glitch-chroma {
+  0%   { text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+                      var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  18%  { text-shadow: var(--glitch-chroma) 0 var(--glitch-chroma-a),
+                      calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-b); }
+  36%  { text-shadow: -2px 1px var(--glitch-chroma-a), 2px -1px var(--glitch-chroma-b); }
+  60%  { text-shadow: 1px 0 var(--glitch-chroma-a), -1px 0 var(--glitch-chroma-b); }
+  100% { text-shadow: none; }
+}
+
+.glitch__scan {
+  position: absolute; inset-inline: -12px; top: 0; height: 14px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24, rgba(242,176,30,.24)), transparent);
+}
+.glitch[data-glitch-state="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* Reduced motion: a branch. The JS never enhances, so this is the safety net for a
+   setting changed mid-session. */
+@media (prefers-reduced-motion: reduce) {
+  .glitch .glitch__out,
+  .glitch .glitch__scan { animation: none !important; }
+  .glitch .glitch__scan { display: none; }
+  .glitch[data-glitch="scramble"].is-enhanced .glitch__out { display: none; }
+  .glitch[data-glitch="scramble"].is-enhanced .glitch__truth {
+    position: static; clip-path: none; overflow: visible; white-space: inherit;
+  }
+}
+
+@media print {
+  .glitch[data-glitch="scramble"] .glitch__out { display: none; }
+  .glitch[data-glitch="scramble"] .glitch__truth {
+    position: static; clip-path: none; overflow: visible; text-shadow: none;
+  }
+  .glitch__scan, .glitch__replay { display: none; }
+}
+```
+
+### 9.3 React + TypeScript (full reusable component)
+
+```tsx
+"use client";
+
+import * as React from "react";
+
+export type ResolveOrder = "ltr" | "random" | "center";
+
+/** ASCII-safe pool: every glyph is in the UJG display subset and roughly monospaced. */
+export const ASCII_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+export const DIGIT_POOL = "0123456789";
+
+/** Segment once per string, never per frame. text[i] splits emoji and combining marks. */
+function toCells(text: string): string[] {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    return Array.from(seg.segment(text), (s) => s.segment);
+  }
+  return Array.from(text); // code points — still better than text[i]
+}
+
+function settledMask(order: ResolveOrder, count: number, progress: number): boolean[] {
+  const upTo = Math.floor(progress * count);
+  const mask = new Array<boolean>(count).fill(false);
+  if (order === "ltr") {
+    for (let i = 0; i < upTo; i++) mask[i] = true;
+  } else if (order === "center") {
+    const mid = (count - 1) / 2;
+    for (let i = 0; i < count; i++) mask[i] = Math.abs(i - mid) * 2 < upTo;
+  } else {
+    // Deterministic shuffle so a replay resolves in the same order as its own first pass.
+    for (let i = 0; i < count; i++) mask[(i * 7919) % count] = i < upTo;
+  }
+  return mask;
+}
+
+export function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
+export interface UseScrambleOptions {
+  text: string;
+  duration?: number;
+  order?: ResolveOrder;
+  pool?: string;
+  trigger?: "mount" | "in-view" | "hover" | "manual";
+  once?: boolean;
+}
+
+export function useScramble({
+  text,
+  duration = 900,
+  order = "ltr",
+  pool = ASCII_POOL,
+  trigger = "in-view",
+  once = true,
+}: UseScrambleOptions) {
+  const reduced = usePrefersReducedMotion();
+  const hostRef = React.useRef<HTMLElement | null>(null);
+  const [state, setState] = React.useState<"idle" | "glitching">("idle");
+  const [noise, setNoise] = React.useState(text);
+  const [enhanced, setEnhanced] = React.useState(false);
+  const spent = React.useRef(false);
+  const rafRef = React.useRef<number | null>(null);
+  const settleRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cells = React.useMemo(() => toCells(text), [text]);
+
+  React.useEffect(() => setEnhanced(!reduced), [reduced]);
+
+  const stop = React.useCallback(() => {
+    if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
+    if (settleRef.current !== null) clearTimeout(settleRef.current);
+    rafRef.current = null;
+    settleRef.current = null;
+  }, []);
+
+  const land = React.useCallback(() => {
+    stop();
+    setNoise(text);
+    setState("idle");
+  }, [stop, text]);
+
+  const run = React.useCallback(() => {
+    if (reduced) { land(); return; }
+    if (once && spent.current) return;
+    spent.current = true;
+    stop();
+    setState("glitching");
+
+    /* The settle net. rAF is throttled or paused in a background tab, so this timer is
+       what guarantees the element reaches its final state. An invariant, not a fallback. */
+    settleRef.current = setTimeout(land, duration + 120);
+
+    const start = performance.now();
+    const tick = (now: number) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const mask = settledMask(order, cells.length, progress);
+      let next = "";
+      for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        next += mask[i] || cell === " " ? cell : pool[(Math.random() * pool.length) | 0];
+      }
+      setNoise(next);
+      if (progress < 1) rafRef.current = requestAnimationFrame(tick);
+      else land();
+    };
+    rafRef.current = requestAnimationFrame(tick);
+  }, [cells, duration, land, once, order, pool, reduced, stop]);
+
+  /** Explicit user request outranks the once-flag. */
+  const replay = React.useCallback(() => { spent.current = false; run(); }, [run]);
+
+  React.useEffect(() => () => stop(), [stop]);
+
+  React.useEffect(() => {
+    if (reduced || trigger === "manual" || trigger === "hover") return;
+    if (trigger === "mount") { run(); return; }
+    const el = hostRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") { run(); return; }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          run();
+          if (once) io.disconnect();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [once, reduced, run, trigger]);
+
+  return { hostRef, state, noise, enhanced, reduced, cellCount: cells.length, run, replay };
+}
+
+type OwnProps<T extends React.ElementType> = {
+  /** Typed string, not ReactNode: this component cannot scramble arbitrary nodes, and a
+   *  type error at the call site beats silently rendering "[object Object]". */
+  children: string;
+  as?: T;
+  size?: "inline" | "sm" | "md" | "lg" | "xl";
+  duration?: number;
+  order?: ResolveOrder;
+  pool?: string;
+  trigger?: "mount" | "in-view" | "hover" | "manual";
+  once?: boolean;
+  scanline?: boolean;
+  className?: string;
+};
+
+export type GlitchScrambleProps<T extends React.ElementType> = OwnProps<T> &
+  Omit<React.ComponentPropsWithoutRef<T>, keyof OwnProps<T>>;
+
+export function GlitchScramble<T extends React.ElementType = "span">({
+  children, as, size = "lg", duration = 900, order = "ltr", pool = ASCII_POOL,
+  trigger = "in-view", once = true, scanline = true, className, ...rest
+}: GlitchScrambleProps<T>) {
+  const Host = (as ?? "span") as React.ElementType;
+  const { hostRef, state, noise, enhanced, reduced, cellCount } = useScramble({
+    text: children, duration, order, pool, trigger, once,
+  });
+
+  /* The width pin. Measure the truth node while it is still in normal flow — before
+     enhancement clips it — then pin the noise node to that px width. `ch` is derived from
+     the "0" advance and is too coarse for a display face, so px is what actually holds. */
+  const truthRef = React.useRef<HTMLSpanElement | null>(null);
+  const [pinnedWidth, setPinnedWidth] = React.useState<number | null>(null);
+  const useIsoLayoutEffect = typeof window !== "undefined" ? React.useLayoutEffect : React.useEffect;
+
+  useIsoLayoutEffect(() => {
+    if (enhanced) return;
+    const node = truthRef.current;
+    if (!node) return;
+    const measured = node.getBoundingClientRect().width;
+    if (measured > 0) setPinnedWidth(measured);
+  }, [enhanced, children]);
+
+  return (
+    <Host
+      ref={hostRef as React.Ref<never>}
+      className={["glitch", enhanced ? "is-enhanced" : "", className].filter(Boolean).join(" ")}
+      data-glitch="scramble"
+      data-glitch-size={size}
+      data-glitch-state={state}
+      style={{
+        ["--glitch-duration" as string]: `${duration}ms`,
+        /* Measured px is the real pin; ch is the coarse fallback. See the layout effect. */
+        ...(pinnedWidth !== null ? { ["--glitch-width" as string]: `${pinnedWidth}px` } : null),
+        ["--glitch-cells" as string]: `${cellCount}ch`,
+      }}
+      {...rest}
+    >
+      {enhanced ? <span className="glitch__out" aria-hidden="true">{noise}</span> : null}
+      <span ref={truthRef} className="glitch__truth">{children}</span>
+      {scanline && !reduced ? <span className="glitch__scan" aria-hidden="true" /> : null}
+    </Host>
+  );
+}
+
+GlitchScramble.displayName = "GlitchScramble";
+```
+
+### 9.4 Vanilla JavaScript (no framework, full keyboard)
+
+```js
+/** glitch-scramble.js — progressive enhancement, no dependencies.
+ *  The markup without this file renders a correct, styled headline. */
+const ASCII_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function toCells(text) {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    return Array.from(seg.segment(text), (s) => s.segment);
+  }
+  return Array.from(text);
+}
+
+export class GlitchScramble {
+  constructor(host, options = {}) {
+    this.host = host;
+    this.truth = host.querySelector(".glitch__truth");
+    this.out = host.querySelector(".glitch__out");
+    this.text = this.truth ? this.truth.textContent : "";
+    this.cells = toCells(this.text);
+    this.pool = options.pool ?? ASCII_POOL;
+    this.duration = Number(options.duration ?? host.dataset.glitchDuration ?? 900);
+    this.once = options.once !== false;
+    this.spent = false;
+    this.raf = null;
+    this.settle = null;
+
+    if (this.out && !reduced()) {
+      host.classList.add("is-enhanced");
+      this.out.textContent = this.text;
+      host.style.setProperty("--glitch-cells", this.cells.length + "ch");
+    }
+    this.#bindTrigger();
+  }
+
+  #bindTrigger() {
+    const trigger = this.host.dataset.glitchTrigger || "in-view";
+    if (reduced() || trigger === "manual") return;
+    if (trigger === "hover") {
+      this.host.addEventListener("pointerenter", () => { this.spent = false; this.run(); });
+      return;
+    }
+    if (trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+    this.io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        this.run();
+        if (this.once) this.io.disconnect();
+      }
+    }, { threshold: 0.35 });
+    this.io.observe(this.host);
+  }
+
+  run() {
+    if (reduced()) { this.#land(); return; }
+    if (this.once && this.spent) return;
+    this.spent = true;
+    this.stop();
+    this.host.dataset.glitchState = "glitching";
+    this.settle = setTimeout(() => this.#land(), this.duration + 120);
+    if (!this.out) return;
+
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / this.duration);
+      const upTo = Math.floor(p * this.cells.length);
+      let s = "";
+      for (let i = 0; i < this.cells.length; i++) {
+        const cell = this.cells[i];
+        s += (i < upTo || cell === " ") ? cell : this.pool[(Math.random() * this.pool.length) | 0];
+      }
+      this.out.textContent = s;          // textContent, never innerHTML — see §15
+      if (p < 1) this.raf = requestAnimationFrame(tick);
+      else this.#land();
+    };
+    this.raf = requestAnimationFrame(tick);
+  }
+
+  #land() {
+    this.stop();
+    if (this.out) this.out.textContent = this.text;
+    this.host.dataset.glitchState = "idle";
+  }
+
+  stop() {
+    if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.settle) clearTimeout(this.settle);
+    this.raf = this.settle = null;
+  }
+
+  destroy() { this.stop(); this.io?.disconnect(); }
+}
+
+/* Wire up instances and replay controls. A real <button> needs no key handling:
+   Enter and Space fire click natively. That is the point of using one. */
+const registry = new Map();
+for (const host of document.querySelectorAll('[data-glitch="scramble"]')) {
+  const instance = new GlitchScramble(host);
+  if (host.id) registry.set(host.id, instance);
+}
+for (const control of document.querySelectorAll("[data-glitch-replay]")) {
+  control.addEventListener("click", () => {
+    const instance = registry.get(control.dataset.glitchReplay);
+    if (!instance) return;
+    instance.spent = false;
+    instance.run();
+  });
+}
+```
+
+### 9.5 Tailwind CSS
+
+Tailwind can express the chroma, the clip and the metrics — but not the substitution, which needs
+the hook. A "reduced motion handled" claim from `motion-reduce:` alone is false for this variant:
+the loop needs its own guard.
+
+```js
+// tailwind.config.ts (v3) — v4 users put this in @theme.
+export default {
+  theme: {
+    extend: {
+      keyframes: {
+        "glitch-chroma": {
+          "0%":   { textShadow: "-3px 0 #d9531a, 3px 0 #47107d" },
+          "18%":  { textShadow: "3px 0 #d9531a, -3px 0 #47107d" },
+          "36%":  { textShadow: "-2px 1px #d9531a, 2px -1px #47107d" },
+          "60%":  { textShadow: "1px 0 #d9531a, -1px 0 #47107d" },
+          "100%": { textShadow: "none" },
+        },
+      },
+      animation: { "glitch-chroma": "glitch-chroma 900ms steps(2,end) 1" },
+    },
+  },
+};
+```
+
+```tsx
+"use client";
+import { useScramble } from "@/components/glitch-text/useScramble";
+
+export function TailwindScramble({ children }: { children: string }) {
+  const { hostRef, state, noise, enhanced, cellCount } = useScramble({
+    text: children, duration: 900, trigger: "in-view",
+  });
+
+  return (
+    <h1
+      ref={hostRef as React.Ref<HTMLHeadingElement>}
+      className="relative inline-block font-display text-[3.625rem] leading-[1.05] text-platinum"
+      style={{ ["--glitch-cells" as string]: `${cellCount}ch` }}
+    >
+      {enhanced ? (
+        <span
+          aria-hidden="true"
+          data-state={state}
+          className="inline-block tabular-nums [min-inline-size:var(--glitch-cells)]
+                     data-[state=glitching]:animate-glitch-chroma motion-reduce:animate-none"
+        >
+          {noise}
+        </span>
+      ) : null}
+      {/* sr-only is the right utility here: hidden visually, still in the a11y tree. */}
+      <span className={enhanced ? "sr-only" : undefined}>{children}</span>
+    </h1>
+  );
+}
+```
+
+### 9.6 Next.js (App Router pattern)
+
+```tsx
+// app/page.tsx — Server Component. The real sentence ships in the HTML response, so a
+// crawler, a preview card and a reader-mode pass never see a derived string.
+import { GlitchScramble } from "@/components/glitch-text/GlitchScramble";
+import { getHeroCopy } from "@/lib/content";
+
+export const revalidate = 3600;
+
+export default async function HomePage() {
+  const { eyebrow, headline, sub } = await getHeroCopy();
+
+  return (
+    <section className="hero">
+      <p className="hero__eyebrow">{eyebrow}</p>
+      {/* Client Component: it hydrates and decorates text that is already rendered. */}
+      <GlitchScramble as="h1" size="lg" trigger="in-view" duration={1100}>
+        {headline}
+      </GlitchScramble>
+      <p className="hero__sub">{sub}</p>
+    </section>
+  );
+}
+
+export async function generateMetadata() {
+  const { headline } = await getHeroCopy();
+  // The real sentence, never the scrambled one. Nothing derived reaches metadata.
+  return { title: "Urban Jungle Goddess", description: headline };
+}
+```
+
+### 9.7 shadcn/ui or Radix pattern
+
+```tsx
+"use client";
+
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+import { useScramble, type ResolveOrder } from "./useScramble";
+
+const scrambleVariants = cva("glitch relative inline-block", {
+  variants: {
+    size: {
+      inline: "[--glitch-duration:420ms] [--glitch-chroma:1px]",
+      sm:     "[--glitch-duration:600ms] [--glitch-chroma:1px]",
+      md:     "[--glitch-duration:800ms] [--glitch-chroma:2px]",
+      lg:     "[--glitch-duration:900ms] [--glitch-chroma:3px]",
+      xl:     "[--glitch-duration:1100ms] [--glitch-chroma:3px]",
+    },
+  },
+  defaultVariants: { size: "lg" },
+});
+
+export interface ScrambleProps
+  extends Omit<React.HTMLAttributes<HTMLElement>, "children">,
+    VariantProps<typeof scrambleVariants> {
+  asChild?: boolean;
+  children: string;
+  order?: ResolveOrder;
+  duration?: number;
+}
+
+/* asChild keeps semantics at the call site, exactly like a Radix primitive. The headless
+   hook holds the lifecycle; this file is only a skin. */
+export const Scramble = React.forwardRef<HTMLElement, ScrambleProps>(
+  ({ className, size, asChild = false, children, order = "ltr", duration = 900, ...props }, ref) => {
+    const Comp = asChild ? Slot : "span";
+    const { state, noise, enhanced, cellCount } = useScramble({
+      text: children, order, duration, trigger: "in-view",
+    });
+
+    return (
+      <Comp
+        ref={ref as never}
+        data-glitch="scramble"
+        data-glitch-state={state}
+        className={cn(scrambleVariants({ size }), enhanced && "is-enhanced", className)}
+        style={{ ["--glitch-cells" as string]: `${cellCount}ch` }}
+        {...props}
+      >
+        <>
+          {enhanced ? <span className="glitch__out" aria-hidden="true">{noise}</span> : null}
+          <span className="glitch__truth">{children}</span>
+        </>
+      </Comp>
+    );
+  }
+);
+Scramble.displayName = "Scramble";
+
+// <Scramble asChild size="xl"><h1>Built like you.</h1></Scramble>
+```
+
+### 9.8 Vue 3 (SFC)
+
+```vue
+<!-- GlitchScramble.vue -->
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+
+const props = withDefaults(defineProps<{
+  text: string;
+  size?: "inline" | "sm" | "md" | "lg" | "xl";
+  duration?: number;
+  trigger?: "mount" | "in-view" | "manual";
+  once?: boolean;
+}>(), { size: "lg", duration: 900, trigger: "in-view", once: true });
+
+const POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+
+function toCells(text: string): string[] {
+  if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+    const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+    return Array.from(seg.segment(text), (s) => s.segment);
+  }
+  return Array.from(text);
+}
+
+const host = ref<HTMLElement | null>(null);
+const noise = ref(props.text);
+const state = ref<"idle" | "glitching">("idle");
+const enhanced = ref(false);
+const reduced = ref(false);
+const cells = computed(() => toCells(props.text));
+let raf: number | null = null;
+let settle: ReturnType<typeof setTimeout> | null = null;
+let spent = false;
+let io: IntersectionObserver | null = null;
+
+function land() {
+  if (raf) cancelAnimationFrame(raf);
+  if (settle) clearTimeout(settle);
+  raf = settle = null;
+  noise.value = props.text;
+  state.value = "idle";
+}
+
+function run() {
+  if (reduced.value) return land();
+  if (props.once && spent) return;
+  spent = true;
+  state.value = "glitching";
+  settle = setTimeout(land, props.duration + 120);
+
+  const start = performance.now();
+  const list = cells.value;
+  const tick = (now: number) => {
+    const p = Math.min(1, (now - start) / props.duration);
+    const upTo = Math.floor(p * list.length);
+    let s = "";
+    for (let i = 0; i < list.length; i++) {
+      const cell = list[i];
+      s += (i < upTo || cell === " ") ? cell : POOL[(Math.random() * POOL.length) | 0];
+    }
+    noise.value = s;
+    p < 1 ? (raf = requestAnimationFrame(tick)) : land();
+  };
+  raf = requestAnimationFrame(tick);
+}
+
+onMounted(() => {
+  reduced.value = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (!reduced.value) enhanced.value = true;
+  if (reduced.value || props.trigger === "manual") return;
+  if (props.trigger === "mount" || !("IntersectionObserver" in window)) return run();
+  io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { run(); if (props.once) io?.disconnect(); }
+  }, { threshold: 0.35 });
+  if (host.value) io.observe(host.value);
+});
+
+onBeforeUnmount(() => { land(); io?.disconnect(); });
+defineExpose({ run });
+</script>
+
+<template>
+  <span
+    ref="host"
+    class="glitch"
+    :class="{ 'is-enhanced': enhanced }"
+    data-glitch="scramble"
+    :data-glitch-size="size"
+    :data-glitch-state="state"
+    :style="{ '--glitch-duration': duration + 'ms', '--glitch-cells': cells.length + 'ch' }"
+  >
+    <span v-if="enhanced" class="glitch__out" aria-hidden="true">{{ noise }}</span>
+    <span class="glitch__truth">{{ text }}</span>
+    <span v-if="!reduced" class="glitch__scan" aria-hidden="true" />
+  </span>
+</template>
+```
+
+### 9.9 Svelte
+
+```svelte
+<!-- GlitchScramble.svelte (Svelte 5 runes) -->
+<script lang="ts">
+  interface Props {
+    text: string;
+    size?: "inline" | "sm" | "md" | "lg" | "xl";
+    duration?: number;
+    trigger?: "mount" | "in-view" | "manual";
+    once?: boolean;
+  }
+  let { text, size = "lg", duration = 900, trigger = "in-view", once = true }: Props = $props();
+
+  const POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+
+  function toCells(value: string): string[] {
+    if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+      const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(seg.segment(value), (s) => s.segment);
+    }
+    return Array.from(value);
+  }
+
+  let host: HTMLElement | undefined = $state();
+  let noise = $state(text);
+  let glitchState = $state<"idle" | "glitching">("idle");
+  let enhanced = $state(false);
+  let reduced = $state(false);
+  const cells = $derived(toCells(text));
+  let spent = false, raf: number | null = null, settle: ReturnType<typeof setTimeout> | null = null;
+
+  function land() {
+    if (raf) cancelAnimationFrame(raf);
+    if (settle) clearTimeout(settle);
+    raf = settle = null;
+    noise = text;
+    glitchState = "idle";
+  }
+
+  export function run() {
+    if (reduced) return land();
+    if (once && spent) return;
+    spent = true;
+    glitchState = "glitching";
+    settle = setTimeout(land, duration + 120);
+    const start = performance.now();
+    const list = cells;
+    const tick = (now: number) => {
+      const p = Math.min(1, (now - start) / duration);
+      const upTo = Math.floor(p * list.length);
+      let s = "";
+      for (let i = 0; i < list.length; i++) {
+        const cell = list[i];
+        s += (i < upTo || cell === " ") ? cell : POOL[(Math.random() * POOL.length) | 0];
+      }
+      noise = s;
+      p < 1 ? (raf = requestAnimationFrame(tick)) : land();
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  $effect(() => {
+    reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!reduced) enhanced = true;
+    if (reduced || trigger === "manual") return;
+    if (trigger === "mount" || !("IntersectionObserver" in window)) { run(); return; }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { run(); if (once) io.disconnect(); }
+    }, { threshold: 0.35 });
+    if (host) io.observe(host);
+    return () => { io.disconnect(); land(); };
+  });
+</script>
+
+<span
+  bind:this={host}
+  class="glitch"
+  class:is-enhanced={enhanced}
+  data-glitch="scramble"
+  data-glitch-size={size}
+  data-glitch-state={glitchState}
+  style="--glitch-duration:{duration}ms; --glitch-cells:{cells.length}ch"
+>
+  {#if enhanced}<span class="glitch__out" aria-hidden="true">{noise}</span>{/if}
+  <span class="glitch__truth">{text}</span>
+  {#if !reduced}<span class="glitch__scan" aria-hidden="true"></span>{/if}
+</span>
+```
+
+### 9.10 Angular (standalone)
+
+```ts
+// glitch-scramble.component.ts
+import {
+  AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef,
+  Input, NgZone, OnDestroy, inject, signal,
+} from "@angular/core";
+import { NgIf } from "@angular/common";
+
+@Component({
+  selector: "ujg-glitch-scramble",
+  standalone: true,
+  imports: [NgIf],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <span
+      class="glitch"
+      [class.is-enhanced]="enhanced()"
+      data-glitch="scramble"
+      [attr.data-glitch-size]="size"
+      [attr.data-glitch-state]="state()"
+      [style.--glitch-duration.ms]="duration"
+      [style.--glitch-cells]="cells.length + 'ch'"
+    >
+      <span *ngIf="enhanced()" class="glitch__out" aria-hidden="true">{{ noise() }}</span>
+      <span class="glitch__truth">{{ text }}</span>
+      <span *ngIf="!reduced" class="glitch__scan" aria-hidden="true"></span>
+    </span>
+  `,
+})
+export class GlitchScrambleComponent implements AfterViewInit, OnDestroy {
+  @Input({ required: true }) text!: string;
+  @Input() size: "inline" | "sm" | "md" | "lg" | "xl" = "lg";
+  @Input() duration = 900;
+  @Input() once = true;
+
+  private static readonly POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly zone = inject(NgZone);
+  private readonly destroyRef = inject(DestroyRef);
+
+  readonly state = signal<"idle" | "glitching">("idle");
+  readonly noise = signal("");
+  readonly enhanced = signal(false);
+  reduced = false;
+  cells: string[] = [];
+
+  private io?: IntersectionObserver;
+  private raf: number | null = null;
+  private settle: ReturnType<typeof setTimeout> | null = null;
+  private spent = false;
+
+  ngAfterViewInit(): void {
+    this.cells = this.toCells(this.text);
+    this.noise.set(this.text);
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!this.reduced) this.enhanced.set(true);
+    if (this.reduced) return;
+
+    this.io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { this.run(); if (this.once) this.io?.disconnect(); }
+    }, { threshold: 0.35 });
+    this.io.observe(this.host.nativeElement);
+    this.destroyRef.onDestroy(() => this.io?.disconnect());
+  }
+
+  private toCells(value: string): string[] {
+    if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+      const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(seg.segment(value), (s) => s.segment);
+    }
+    return Array.from(value);
+  }
+
+  run(): void {
+    if (this.reduced) return this.land();
+    if (this.once && this.spent) return;
+    this.spent = true;
+    this.state.set("glitching");
+    this.settle = setTimeout(() => this.land(), this.duration + 120);
+
+    // rAF outside the zone: 60 ticks/second must not mean 60 change-detection passes.
+    this.zone.runOutsideAngular(() => {
+      const start = performance.now();
+      const tick = (now: number) => {
+        const p = Math.min(1, (now - start) / this.duration);
+        const upTo = Math.floor(p * this.cells.length);
+        let s = "";
+        for (let i = 0; i < this.cells.length; i++) {
+          const cell = this.cells[i];
+          s += (i < upTo || cell === " ") ? cell
+            : GlitchScrambleComponent.POOL[(Math.random() * GlitchScrambleComponent.POOL.length) | 0];
+        }
+        this.noise.set(s);                 // signal write is zone-safe
+        if (p < 1) this.raf = requestAnimationFrame(tick);
+        else this.zone.run(() => this.land());
+      };
+      this.raf = requestAnimationFrame(tick);
+    });
+  }
+
+  private land(): void {
+    if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.settle) clearTimeout(this.settle);
+    this.raf = this.settle = null;
+    this.noise.set(this.text);
+    this.state.set("idle");
+  }
+
+  ngOnDestroy(): void { this.land(); this.io?.disconnect(); }
+}
+```
+
+### 9.11 Bootstrap 5
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+  .scramble { position: relative; display: inline-block; }
+  .scramble__out { font-variant-numeric: tabular-nums; }
+  .scramble.is-enhanced .scramble__truth {
+    position: absolute; inset: 0; clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+  }
+  .scramble:not(.is-enhanced) .scramble__out { display: none; }
+  .scramble[data-state="glitching"] .scramble__out {
+    animation: scramble-chroma 900ms steps(2, end) 1;
+  }
+  @keyframes scramble-chroma {
+    0%   { text-shadow: -3px 0 #d9531a, 3px 0 #47107d; }
+    36%  { text-shadow: -2px 1px #d9531a, 2px -1px #47107d; }
+    100% { text-shadow: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .scramble.is-enhanced .scramble__out { display: none; }
+    .scramble.is-enhanced .scramble__truth { position: static; clip-path: none; }
+  }
+</style>
+
+<div class="container py-5 bg-dark text-light">
+  <h1 class="display-1 fw-normal">
+    <span class="scramble" id="bsScramble">
+      <span class="scramble__out" aria-hidden="true"></span>
+      <span class="scramble__truth">Built like you.</span>
+    </span>
+  </h1>
+  <button type="button" class="btn btn-warning btn-lg mt-3" id="bsReplay">Replay decode</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+  const wrap = document.getElementById("bsScramble");
+  const out = wrap.querySelector(".scramble__out");
+  const truth = wrap.querySelector(".scramble__truth");
+  const text = truth.textContent;
+  const cells = Array.from(
+    "Segmenter" in Intl
+      ? Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text), s => s.segment)
+      : Array.from(text)
+  );
+  const bsReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let raf = null, settle = null;
+
+  if (!bsReduced.matches) { wrap.classList.add("is-enhanced"); out.textContent = text; }
+
+  function land() {
+    if (raf) cancelAnimationFrame(raf);
+    if (settle) clearTimeout(settle);
+    out.textContent = text;
+    wrap.dataset.state = "idle";
+  }
+
+  function play() {
+    if (bsReduced.matches) return land();
+    land();
+    wrap.dataset.state = "glitching";
+    settle = setTimeout(land, 1020);
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / 900);
+      const upTo = Math.floor(p * cells.length);
+      out.textContent = cells
+        .map((c, i) => (i < upTo || c === " ") ? c : POOL[(Math.random() * POOL.length) | 0])
+        .join("");
+      if (p < 1) raf = requestAnimationFrame(tick); else land();
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  document.getElementById("bsReplay").addEventListener("click", play);
+  play();
+</script>
+```
+
+### 9.12 Web Component (custom element)
+
+```js
+/** <glitch-scramble> — framework-free. The real text arrives as light-DOM children, so it
+ *  is in the HTML source, visible with JS off, and readable by crawlers and screen readers.
+ *  Usage: <glitch-scramble duration="900">Built like you.</glitch-scramble> */
+const SHEET = new CSSStyleSheet();
+SHEET.replaceSync(`
+  :host { display: inline-block; position: relative; }
+  .out { font-variant-numeric: tabular-nums; }
+  .out[hidden] { display: none; }
+  /* The slotted truth is clipped, never removed: it stays in the a11y tree. */
+  :host([data-enhanced]) slot { position: absolute; inset: 0; clip-path: inset(50%); overflow: hidden; }
+  @media (prefers-reduced-motion: reduce) {
+    .out { display: none; }
+    :host([data-enhanced]) slot { position: static; clip-path: none; }
+  }
+`);
+
+class GlitchScrambleElement extends HTMLElement {
+  static observedAttributes = ["duration", "once"];
+  #pool = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+  #cells = [];
+  #text = "";
+  #raf = null; #settle = null; #spent = false; #io = null;
+
+  connectedCallback() {
+    this.#text = this.textContent.trim();
+    this.#cells = "Segmenter" in Intl
+      ? Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(this.#text), s => s.segment)
+      : Array.from(this.#text);
+
+    const root = this.attachShadow({ mode: "open" });
+    root.adoptedStyleSheets = [SHEET];
+    root.innerHTML = `<span class="out" aria-hidden="true" hidden></span><slot></slot>`;
+    this.out = root.querySelector(".out");
+
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (!this.reduced) {
+      this.out.hidden = false;
+      this.out.textContent = this.#text;
+      this.dataset.enhanced = "";
+    } else {
+      return;
+    }
+
+    this.#io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { this.run(); if (this.once) this.#io.disconnect(); }
+    }, { threshold: 0.35 });
+    this.#io.observe(this);
+  }
+
+  disconnectedCallback() { this.#stop(); this.#io?.disconnect(); }
+
+  get duration() { return Number(this.getAttribute("duration") ?? 900); }
+  get once() { return this.getAttribute("once") !== "false"; }
+
+  run() {
+    if (this.reduced) return this.#land();
+    if (this.once && this.#spent) return;
+    this.#spent = true;
+    this.#stop();
+    this.dataset.glitchState = "glitching";
+    this.#settle = setTimeout(() => this.#land(), this.duration + 120);
+
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / this.duration);
+      const upTo = Math.floor(p * this.#cells.length);
+      let s = "";
+      for (let i = 0; i < this.#cells.length; i++) {
+        const cell = this.#cells[i];
+        s += (i < upTo || cell === " ") ? cell : this.#pool[(Math.random() * this.#pool.length) | 0];
+      }
+      this.out.textContent = s;
+      if (p < 1) this.#raf = requestAnimationFrame(tick);
+      else this.#land();
+    };
+    this.#raf = requestAnimationFrame(tick);
+  }
+
+  #land() {
+    this.#stop();
+    if (this.out) this.out.textContent = this.#text;
+    this.dataset.glitchState = "idle";
+  }
+
+  #stop() {
+    if (this.#raf) cancelAnimationFrame(this.#raf);
+    if (this.#settle) clearTimeout(this.#settle);
+    this.#raf = this.#settle = null;
+  }
+}
+
+customElements.define("glitch-scramble", GlitchScrambleElement);
+```
+
+### 9.13 Python (Jinja2 rendering + FastAPI endpoint)
+
+Scramble reaches a server in two ways: the headline copy comes from somewhere, and the **glyph
+pool has to be safe for the shipped font subset**. The second is the interesting one — the server
+is the right place to own the pool, because it knows which subset was built.
+
+```python
+# app/scramble.py
+from __future__ import annotations
+
+import unicodedata
+from dataclasses import dataclass
+from html import escape
+from typing import Final
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
+from jinja2 import Environment, select_autoescape
+from pydantic import BaseModel, Field, field_validator
+
+# Pinned server-side: every glyph is verified present in the UJG display subset.
+# Block-drawing characters look better and are the first thing a subset drops.
+SAFE_POOL: Final[str] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-"
+MAX_CELLS: Final[int] = 48
+
+env = Environment(autoescape=select_autoescape(["html"]))
+
+TEMPLATE = env.from_string(
+    """
+<h1 class="glitch" data-glitch="scramble" data-glitch-size="{{ size }}"
+    data-glitch-pool="{{ pool }}" style="--glitch-duration:{{ duration }}ms">
+  <span class="glitch__out" aria-hidden="true"></span>
+  <span class="glitch__truth">{{ headline }}</span>
+</h1>
+"""
+)
+
+
+def grapheme_count(value: str) -> int:
+    """Count user-perceived characters, not code points.
+
+    Python has no Intl.Segmenter; combining marks are the practical case, so drop
+    marks (category Mn/Mc/Me) when counting cells.
+    """
+    return sum(1 for ch in value if unicodedata.category(ch) not in {"Mn", "Mc", "Me"})
+
+
+@dataclass(frozen=True)
+class ScrambleCopy:
+    headline: str
+    size: str = "lg"
+    duration: int = 900
+    pool: str = SAFE_POOL
+
+    def render(self) -> str:
+        # The server emits the REAL headline. No derived string is ever rendered here:
+        # that is what keeps the crawler, the preview card and reader mode correct.
+        return TEMPLATE.render(
+            headline=self.headline,
+            size=self.size,
+            duration=self.duration,
+            pool=escape(self.pool, quote=True),
+        )
+
+
+class HeadlineIn(BaseModel):
+    headline: str = Field(min_length=1, max_length=120)
+    size: str = Field(default="lg", pattern="^(inline|sm|md|lg|xl)$")
+    duration: int = Field(default=900, ge=200, le=1200)
+
+    @field_validator("headline")
+    @classmethod
+    def clean(cls, v: str) -> str:
+        """Reject control and bidi-formatting codepoints, and cap cell count.
+
+        Bidi overrides (U+202E and relatives) can make rendered text read differently
+        from its source — a real spoofing vector in any string a server echoes into a
+        page, and a headline is the highest-visibility place to do it.
+        """
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("headline is empty after trimming")
+        if any(unicodedata.category(ch) in {"Cc", "Cf"} for ch in cleaned):
+            raise ValueError("headline contains control or formatting characters")
+        if grapheme_count(cleaned) > MAX_CELLS:
+            raise ValueError(f"headline exceeds {MAX_CELLS} cells; scramble reads as noise past that")
+        return cleaned
+
+
+router = APIRouter(prefix="/api/hero", tags=["hero"])
+
+
+@router.post("/scramble", response_class=HTMLResponse)
+async def render_scramble(payload: HeadlineIn) -> HTMLResponse:
+    """Render a scramble headline fragment.
+
+    The client's size and duration are advisory; the bounds here are final, and the
+    pool is never client-supplied — see §15.
+    """
+    try:
+        copy = ScrambleCopy(
+            headline=payload.headline, size=payload.size, duration=payload.duration
+        )
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return HTMLResponse(content=copy.render())
+```
+
+### 9.14 SwiftUI (iOS)
+
+```swift
+import SwiftUI
+
+/// One-shot decode. The accessibility label is always the real string, so VoiceOver
+/// never reads substituted glyphs.
+struct GlitchScramble: View {
+    let text: String
+    var duration: Double = 0.9
+    var pool: String = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-"
+
+    @State private var rendered: String = ""
+    @State private var task: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    /// Swift's Character IS a grapheme cluster, so this is correct for emoji and
+    /// combining marks without any extra work — unlike JS's text[i].
+    private var cells: [Character] { Array(text) }
+
+    var body: some View {
+        Text(rendered.isEmpty ? text : rendered)
+            .monospacedDigit()
+            .accessibilityLabel(text)            // the truth, always
+            .accessibilityAddTraits(.isHeader)
+            .onAppear(perform: start)
+            .onDisappear { task?.cancel() }
+    }
+
+    private func start() {
+        // Reduce Motion is a branch: render final text, schedule nothing.
+        guard !reduceMotion else { rendered = text; return }
+        task?.cancel()
+        task = Task { @MainActor in
+            let glyphs = Array(pool)
+            let began = Date()
+            defer { rendered = text }            // settle on every exit path
+            while true {
+                if Task.isCancelled { return }
+                let progress = min(1, Date().timeIntervalSince(began) / duration)
+                let upTo = Int(progress * Double(cells.count))
+                rendered = cells.enumerated().map { index, ch in
+                    (index < upTo || ch == " ") ? ch : (glyphs.randomElement() ?? ch)
+                }.map(String.init).joined()
+                if progress >= 1 { return }
+                try? await Task.sleep(for: .milliseconds(16))
+            }
+        }
+    }
+}
+```
+
+### 9.15 Jetpack Compose (Android)
+
+```kotlin
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import kotlinx.coroutines.delay
+import java.text.BreakIterator
+import kotlin.random.Random
+
+private const val POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-"
+
+/** Grapheme cells via BreakIterator — Kotlin's Char is a UTF-16 unit, so indexing
+ *  a String directly splits emoji exactly like JavaScript does. */
+private fun String.graphemeCells(): List<String> {
+    val iterator = BreakIterator.getCharacterInstance().apply { setText(this@graphemeCells) }
+    val cells = mutableListOf<String>()
+    var start = iterator.first()
+    var end = iterator.next()
+    while (end != BreakIterator.DONE) {
+        cells.add(substring(start, end))
+        start = end
+        end = iterator.next()
+    }
+    return cells
+}
+
+/** ANIMATOR_DURATION_SCALE of 0 means the user turned animations off. */
+@Composable
+private fun reduceMotion(): Boolean {
+    val context = LocalContext.current
+    return remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) == 0f
+    }
+}
+
+@Composable
+fun GlitchScramble(
+    text: String,
+    modifier: Modifier = Modifier,
+    durationMillis: Int = 900,
+    style: TextStyle = MaterialTheme.typography.displaySmall,
+) {
+    val reduced = reduceMotion()
+    val cells = remember(text) { text.graphemeCells() }
+    var rendered by remember(text) { mutableStateOf(text) }
+
+    LaunchedEffect(text, reduced) {
+        if (reduced) { rendered = text; return@LaunchedEffect }
+        val began = System.nanoTime()
+        try {
+            while (true) {
+                val elapsed = (System.nanoTime() - began) / 1_000_000f
+                val progress = (elapsed / durationMillis).coerceAtMost(1f)
+                val upTo = (progress * cells.size).toInt()
+                rendered = buildString {
+                    cells.forEachIndexed { index, cell ->
+                        append(
+                            if (index < upTo || cell == " ") cell
+                            else POOL[Random.nextInt(POOL.length)].toString()
+                        )
+                    }
+                }
+                if (progress >= 1f) break
+                delay(16)
+            }
+        } finally {
+            rendered = text   // settle even on cancellation
+        }
+    }
+
+    Text(
+        text = rendered,
+        style = style,
+        modifier = modifier.semantics {
+            heading()
+            contentDescription = text   // TalkBack hears the real sentence
+        },
+    )
+}
+```
+
+### 9.16 Flutter (Dart)
+
+```dart
+import 'dart:math';
+import 'package:characters/characters.dart';
+import 'package:flutter/material.dart';
+
+/// One-shot decode. Semantics always carry the real string; the rendered noise is excluded.
+class GlitchScramble extends StatefulWidget {
+  const GlitchScramble({
+    super.key,
+    required this.text,
+    this.duration = const Duration(milliseconds: 900),
+    this.style,
+    this.pool = r'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\|<>#*+=-',
+  });
+
+  final String text;
+  final Duration duration;
+  final TextStyle? style;
+  final String pool;
+
+  @override
+  State<GlitchScramble> createState() => _GlitchScrambleState();
+}
+
+class _GlitchScrambleState extends State<GlitchScramble>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: widget.duration);
+  final Random _random = Random();
+
+  /// package:characters gives grapheme clusters — the Dart equivalent of Intl.Segmenter.
+  late List<String> _cells = widget.text.characters.toList();
+  late List<String> _glyphs = widget.pool.characters.toList();
+  String _rendered = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _rendered = widget.text;
+    _controller.addListener(_onTick);
+  }
+
+  @override
+  void didUpdateWidget(GlitchScramble oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.text != widget.text) {
+      _cells = widget.text.characters.toList();
+      _rendered = widget.text;
+    }
+    if (oldWidget.pool != widget.pool) _glyphs = widget.pool.characters.toList();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // disableAnimations mirrors the OS reduce-motion setting: branch, don't soften.
+    if (MediaQuery.of(context).disableAnimations) {
+      setState(() => _rendered = widget.text);
+    } else if (!_controller.isAnimating && _controller.value == 0) {
+      _controller.forward();
+    }
+  }
+
+  void _onTick() {
+    final int upTo = (_controller.value * _cells.length).floor();
+    final StringBuffer buffer = StringBuffer();
+    for (int i = 0; i < _cells.length; i++) {
+      final String cell = _cells[i];
+      buffer.write(
+        i < upTo || cell == ' ' ? cell : _glyphs[_random.nextInt(_glyphs.length)],
+      );
+    }
+    setState(() => _rendered = _controller.isCompleted ? widget.text : buffer.toString());
+  }
+
+  @override
+  void dispose() {
+    _controller.removeListener(_onTick);
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      header: true,
+      label: widget.text,
+      child: ExcludeSemantics(
+        child: Text(
+          _rendered,
+          style: (widget.style ?? Theme.of(context).textTheme.displaySmall)
+              ?.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+        ),
+      ),
+    );
+  }
+}
+```
+
+### 9.17 Testing (Vitest/RTL unit tests + jest-axe + Playwright E2E)
+
+```tsx
+// GlitchScramble.test.tsx
+import { render, screen, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe, toHaveNoViolations } from "jest-axe";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { GlitchScramble } from "./GlitchScramble";
+
+expect.extend(toHaveNoViolations);
+
+function mockMatchMedia(reduced: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: reduced && query.includes("reduce"),
+      media: query, onchange: null,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+    }),
+  });
+}
+
+beforeEach(() => { mockMatchMedia(false); vi.useFakeTimers(); });
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("GlitchScramble", () => {
+  it("exposes the real text as the accessible name from the first frame", () => {
+    render(<GlitchScramble as="h1" trigger="mount">Built like you.</GlitchScramble>);
+    expect(screen.getByRole("heading", { name: "Built like you." })).toBeInTheDocument();
+  });
+
+  it("hides the noise node from assistive tech", () => {
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount">Built like you.</GlitchScramble>
+    );
+    expect(container.querySelector(".glitch__out")).toHaveAttribute("aria-hidden", "true");
+  });
+
+  it("never writes a derived string onto the host element", () => {
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount">Built like you.</GlitchScramble>
+    );
+    // The truth node is a child and holds the real string, untouched.
+    expect(container.querySelector(".glitch__truth")).toHaveTextContent("Built like you.");
+  });
+
+  it("settles on the real text even if rAF never fires (throttled tab)", () => {
+    vi.stubGlobal("requestAnimationFrame", vi.fn()); // never invokes the callback
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount" duration={900}>Built like you.</GlitchScramble>
+    );
+    act(() => { vi.advanceTimersByTime(1100); });    // settle timer = duration + 120
+    expect(container.querySelector(".glitch")).toHaveAttribute("data-glitch-state", "idle");
+    expect(container.querySelector(".glitch__out")).toHaveTextContent("Built like you.");
+  });
+
+  it("schedules nothing under prefers-reduced-motion", () => {
+    mockMatchMedia(true);
+    const raf = vi.fn();
+    vi.stubGlobal("requestAnimationFrame", raf);
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount">Built like you.</GlitchScramble>
+    );
+    expect(raf).not.toHaveBeenCalled();
+    expect(container.querySelector(".glitch__out")).toBeNull();
+    expect(container.querySelector(".glitch")).not.toHaveClass("is-enhanced");
+    expect(screen.getByRole("heading")).toHaveTextContent("Built like you.");
+  });
+
+  it("does not split graphemes — emoji and accents survive the pass", () => {
+    const text = "Café ✨ built";
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount" duration={900}>{text}</GlitchScramble>
+    );
+    act(() => { vi.advanceTimersByTime(1100); });
+    const settled = container.querySelector(".glitch__out")?.textContent ?? "";
+    expect(settled).toBe(text);
+    expect(settled).not.toContain("\uFFFD");   // no replacement characters
+  });
+
+  it("reserves a stable width so the pass cannot shift layout", () => {
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount">Built like you.</GlitchScramble>
+    );
+    const host = container.querySelector(".glitch") as HTMLElement;
+    // 15 grapheme cells in "Built like you." — the coarse fallback.
+    expect(host.style.getPropertyValue("--glitch-cells")).toBe("15ch");
+    // jsdom reports 0 for getBoundingClientRect, so the px pin is covered in E2E
+    // (see the width-drift assertion in the Playwright spec) rather than here.
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <GlitchScramble as="h1" trigger="mount">Built like you.</GlitchScramble>
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("replay control is a real button reachable by keyboard", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <>
+        <GlitchScramble as="h1" trigger="manual">Built like you.</GlitchScramble>
+        <button type="button">Replay decode</button>
+      </>
+    );
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Replay decode" })).toHaveFocus();
+  });
+});
+```
+
+```ts
+// e2e/glitch-scramble.spec.ts
+import { test, expect } from "@playwright/test";
+
+test.describe("Glitch Scramble Reveal", () => {
+  test("server HTML holds the real headline and no derived string", async ({ request }) => {
+    const response = await request.get("/");
+    const html = await response.text();
+    expect(html).toContain("Built like you.");
+    // The noise node must be empty in the server response.
+    expect(html).toMatch(/class="glitch__out"[^>]*>\s*<\/span>/);
+  });
+
+  test("accessible name never changes during the pass", async ({ page }) => {
+    await page.goto("/");
+    const heading = page.getByRole("heading", { level: 1 });
+    await expect(heading).toHaveAccessibleName("Built like you.");
+    await page.waitForTimeout(300);                       // mid-pass
+    await expect(heading).toHaveAccessibleName("Built like you.");
+    await page.waitForTimeout(1200);                      // settled
+    await expect(heading).toHaveAccessibleName("Built like you.");
+  });
+
+  test("settles and holds the real text", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(1400);
+    await expect(page.locator(".glitch__out").first()).toHaveText("Built like you.");
+  });
+
+  test("schedules no animation under reduced motion", async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    const host = page.locator(".glitch").first();
+    expect(await host.evaluate((el) => el.getAnimations({ subtree: true }).length)).toBe(0);
+    await expect(host).not.toHaveClass(/is-enhanced/);
+    await context.close();
+  });
+
+  test("does not shift layout while resolving", async ({ page }) => {
+    await page.goto("/");
+    const box = await page.locator(".glitch").first().boundingBox();
+    await page.waitForTimeout(1400);
+    const settled = await page.locator(".glitch").first().boundingBox();
+    expect(Math.abs((settled?.width ?? 0) - (box?.width ?? 0))).toBeLessThan(2);
+    expect(Math.abs((settled?.y ?? 0) - (box?.y ?? 0))).toBeLessThan(1);
+  });
+
+  test("renders no tofu — every pool glyph exists in the shipped font", async ({ page }) => {
+    await page.goto("/");
+    // A glyph missing from the subset measures identically to the .notdef box; compare
+    // each pool glyph's advance width against a known-present control character.
+    const suspicious = await page.evaluate(() => {
+      const pool = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-";
+      const probe = document.createElement("span");
+      probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
+      probe.style.font = getComputedStyle(document.querySelector("h1")!).font;
+      document.body.append(probe);
+      const widths = new Map<string, number>();
+      for (const glyph of pool) {
+        probe.textContent = glyph;
+        widths.set(glyph, probe.getBoundingClientRect().width);
+      }
+      probe.remove();
+      return [...widths.entries()].filter(([, w]) => w === 0).map(([g]) => g);
+    });
+    expect(suspicious).toEqual([]);
+  });
+});
+```
+
+* * *
+
+## 10. Accessibility
+
+This is the section that decides whether the variant ships. Its siblings decorate real text and
+inherit correctness; scramble substitutes glyphs and has to engineer it.
+
+**Roles and attributes.**
+
+* The host keeps its native semantics — a scrambled `h1` is an `h1` with exactly one accessible
+  name. The variant adds no role.
+* The noise node is `aria-hidden="true"`, always, in every framework target.
+* The truth node is **never** `aria-hidden`, `display: none` or `visibility: hidden`. It is
+  hidden with `clip-path: inset(50%)` so it stays in the accessibility tree. On native, the
+  equivalent is `accessibilityLabel` / `contentDescription` / `Semantics(label:)` carrying the real
+  string with the rendered noise excluded (`ExcludeSemantics` in Flutter).
+* **No `aria-live` anywhere near it.** Nothing here is a status change, and a live region would
+  announce either the noise or the same sentence dozens of times.
+* The scanline is `aria-hidden` and `pointer-events: none`.
+* Inside a link or button, the interactive host owns role, name and focus ring.
+
+**Keyboard map.** The text is not focusable and has no keyboard interaction — correct for
+decoration. Only the optional replay control is operable:
+
+| Key | Action |
+| ---| --- |
+| `Tab` | Moves focus to the replay control (if present) |
+| `Shift + Tab` | Moves focus to the previous control |
+| `Enter` | Fires the replay (native `button` behaviour) |
+| `Space` | Fires the replay (native `button` behaviour) |
+| `Esc` | No binding — the decode is not a dismissible surface |
+
+Using a real `button` is the entire keyboard implementation.
+
+**Focus management.** Nothing about a decode moves focus. Two hard rules: a focus ring on or near
+the element must never be part of the animation, and the decode-on-hover variant must be scoped to
+`@media (hover: hover) and (pointer: fine)` with `:hover` only — never `:focus-visible`, or a
+keyboard user triggers a decode at every tab stop.
+
+**Contrast.** The **settled** text carries the obligation: 4.5:1, or 3:1 for large text (≥24px
+bold / ≥18.66px). The chroma offsets are decorative and transient, but they must never be the only
+thing carrying meaning, and the scanline must not drop the text below threshold at its brightest
+frame. Over imagery, verify against the darkest and lightest regions the line crosses, not an
+average.
+
+**Target size.** The text is not a target. A replay control meets 44×44px (WCAG 2.5.8 AA asks
+24×24px; the house standard is 44px), delivered with padding rather than font size.
+
+**What changes under `prefers-reduced-motion`.** Everything, as a branch: `is-enhanced` is never
+added, so the noise node is not rendered at all, no loop is scheduled, the scanline is not in the
+DOM, and the truth node stays in normal flow. The result is a plain, correctly-set headline — not
+a slower decode. On native: `accessibilityReduceMotion`, `ANIMATOR_DURATION_SCALE == 0`, and
+`MediaQuery.disableAnimations`, all honoured in §9.14–9.16. WCAG 2.3.3 wants interaction-triggered
+motion disableable; 2.3.1 caps flashing at three per second, which the `steps(2, end)` chroma
+respects by design.
+
+**Common accessibility failures specific to this variant.**
+
+* Writing the derived string onto the heading itself, so the accessible name is garbage for the
+  duration — the single most common bug in every scramble tutorial in circulation.
+* Hiding the truth node with `display: none`, `visibility: hidden` or `aria-hidden`, which removes
+  it from the accessibility tree and leaves only the `aria-hidden` noise — a heading with **no**
+  accessible name.
+* Putting the element inside an `aria-live` region and firing dozens of announcements.
+* Rendering the noise node server-side, so assistive tech, crawlers and reader mode all get the
+  derived string.
+* Firing the hover decode on `:focus-visible`.
+* Omitting `aria-hidden` on the scanline so it enters the accessibility tree.
+* Leaving the pass running infinitely, which past five seconds is a WCAG 2.2.2 failure.
+* Splitting graphemes, so a screen reader reading the *settled* noise node (if the truth node was
+  wrongly removed) encounters replacement characters.
+
+* * *
+
+## 11. Innovative / Emerging Ideas
+
+* **CSS `random()` — a scramble with no JavaScript.** Specified and beginning to land, `random()`
+  can drive per-cell glyph selection from CSS alone, with the cells as pre-split spans. This is
+  the one platform change that would remove this variant's entire runtime cost. The accessibility
+  contract is unaffected: the truth node still has to exist.
+* **`@property`-typed chroma.** Registering `--glitch-chroma` as a `<length>` lets the offsets
+  interpolate smoothly instead of stepping, so one keyframe set serves every size tier by
+  animating the token rather than the shadow.
+* **`Intl.Segmenter` with word granularity for a word-order decode.** Segmenting by word rather
+  than grapheme gives a resolve that settles whole words at a time — far more legible on a long
+  line, and impossible to get right by splitting on spaces once the copy is localised.
+* **Scroll-driven chroma and scanline.** `animation-timeline: view()` drives the decorative layers
+  with no `IntersectionObserver`; the substitution still needs the tick, so this is a partial but
+  real reduction in main-thread work.
+* **View Transitions as a route-level decode.** With cross-document view transitions, the page
+  title can decode *between* routes using `::view-transition-old` / `::view-transition-new`,
+  turning the gesture into navigation grammar rather than entrance decoration.
+* **Houdini paint worklet for the noise field.** A `paint()` worklet can generate per-frame static
+  behind the text far more cheaply than stacked gradients, seeded from a registered custom
+  property. Chromium-only, so it needs a gradient fallback.
+
+* * *
+
+## 12. Conversion / UX Killers
+
+* **The derived string in the server HTML.** Compute the headline client-side and your `h1`, your
+  `og:description`, your search snippet and your Slack unfurl all read `K7#2Q/ L|<3 X0U.` The most
+  expensive mistake here, because it costs the traffic rather than the visit. Fix: server-render
+  the real sentence, leave the noise node empty, enhance after hydration (§9.6).
+* **Tofu boxes instead of glyphs.** The pool contains block-drawing characters the display face
+  does not include, so a subset webfont renders empty rectangles — and it looks exactly like a
+  broken font, because it is one. Fix: pin the pool to glyphs verified present in the shipped
+  subset (the house pool is ASCII-only), or set a monospace fallback on the noise node. The
+  Playwright zero-width probe in §9.17 catches it in CI.
+* **The line that jitters and shoves the page.** Proportional glyphs have different advance
+  widths, so the measured width changes every frame: the headline wobbles, the sub-line hops, and
+  the layout shift is counted against you. The trap inside the trap: `tabular-nums` governs digits
+  only, so a letters pool is unaffected by it, and an uppercase pool runs about **45% wider** than
+  lowercase copy. There are three ways the obvious pin silently fails: it is ignored entirely on an
+  `inline` box, `min-inline-size` only sets a floor so wider glyphs still grow the box, and a probe
+  seeded from `getComputedStyle(el).font` falls back to 16px whenever that shorthand serializes
+  empty — reporting 100px for text that renders at 362px, which is worse than no pin because it
+  looks applied. Fix: `inline-block`, a fixed `inline-size` from the settled width **measured on the
+  live node in px**, `white-space: pre`, and a reserved block height. This page's playground measures
+  the drift so the regression stays visible.
+* **Shattered emoji and accents.** `text[i]` iterates UTF-16 code units, so an emoji becomes two
+  broken halves and `é` composed of base plus combining mark loses its accent — sometimes
+  permanently, if the settle rebuilds from the split array. Fix: segment to grapheme clusters once
+  with `Intl.Segmenter` (§13). Most teams never hit this because they test with ASCII, then ship a
+  localised headline.
+* **Scrambling the host element.** Writing to the heading's own `textContent` destroys the
+  accessible name and, on some engines, blows away the child nodes you needed. Fix: write to an
+  `aria-hidden` leaf, never the host.
+* **Frame-counted progress.** Driving the index off a frame counter makes the pass twice as fast
+  on a 120Hz display and never-ending in a throttled tab. Fix: `elapsed / duration`.
+* **Decode on every scroll-by.** An `IntersectionObserver` without a spent flag re-fires each
+  time the headline re-enters the viewport, so scrolling up and down stutters repeatedly. Fix:
+  `once` plus `io.disconnect()`.
+* **A long scramble.** Past roughly 48 cells the effect stops reading as a word assembling and
+  starts reading as a wall of noise the visitor has to wait out. Fix: scramble the one line that
+  matters and leave the rest static.
+* **Decode on a price or a number.** Substituted glyphs over a figure makes the visitor doubt the
+  data, and doubt near money costs the sale outright. Fix: never on numbers — use a counter.
+
+* * *
+
+## 13. Advanced Patterns
+
+* **Grapheme-cluster cells (the correctness pattern).** `Intl.Segmenter` with
+  `granularity: "grapheme"`, segmented **once per string and memoised**, is the difference between
+  a component that works on `Built like you.` and one that works on real, localised, emoji-bearing
+  copy. The native targets get this nearly free and it is worth knowing why: Swift's `Character`
+  *is* a grapheme cluster, Dart has `package:characters`, and Kotlin needs `BreakIterator` because
+  its `Char` is a UTF-16 unit like JavaScript's. Four platforms, three different answers, one bug
+  if you assume.
+
+* **Resolve order as an injected strategy.** Expressing the order as a pure
+  `(count, progress) => boolean[]` mask (§9.3) rather than branching inside the tick keeps the
+  loop one shape and makes a new order a new function, not a new code path. The random order uses a
+  *deterministic* shuffle (`i * 7919 % count`) rather than `Math.random()` on the index, so a
+  replay resolves identically to its first pass — a genuine detail, because a non-deterministic
+  order makes the effect impossible to screenshot-test.
+
+* **Width-matched pools (a typography pattern).** The pin in §9.3 stops the page moving, but it
+  does not stop the noise from *overflowing* its reserved box — uppercase noise over lowercase copy
+  spills about a third of the line's width. That is why the house default pool is lowercase-leaning
+  rather than the better-looking uppercase set, and why `UPPERCASE_CHARSET` is opt-in for headlines
+  that are themselves uppercase. The refinement beyond that:
+  choose a pool whose glyphs share the display face's digit advance, then the
+  substitution is width-neutral by construction. Measure once at build time with a canvas
+  `measureText` pass over the candidate pool and keep only glyphs within a small tolerance of the
+  median. This turns a runtime CSS workaround into a design-time guarantee, and it is the only
+  approach that survives a proportional display face at hero size.
+
+* **TypeScript-enforced truth.** Typing `children: string` rather than `ReactNode` makes it a
+  compile error to scramble arbitrary nodes — which is what silently produces `[object Object]`.
+  Push it further and make the two-node contract structural rather than conventional:
+
+  ```ts
+  type ScrambleRender =
+    | { enhanced: true; noise: string; truth: string }   // both nodes, noise aria-hidden
+    | { enhanced: false; truth: string };                // one node, no noise to hide
+  ```
+
+  The noise string is only reachable in the enhanced branch, so a caller cannot render noise
+  without also being in the state where the truth node is exposed to assistive tech.
+
+* **The settle net as an invariant.** Every implementation pairs the loop with a
+  `setTimeout(duration + 120)` that force-lands the final state. Not belt-and-braces:
+  `requestAnimationFrame` is throttled to ~1fps or paused in a background tab, `animationend` does
+  not fire there, and an exception mid-pass would otherwise strand the headline in noise. Treating
+  "the element always reaches its settled state" as an invariant — enforced by a timer, proven in
+  §9.17 with `requestAnimationFrame` stubbed to a no-op — is what makes this safe on an H1.
+
+* **Zone-aware ticking.** In Angular, 60 `rAF` ticks per second inside the zone means 60
+  change-detection passes; `runOutsideAngular` plus a signal write keeps it to one render per
+  frame (§9.10). The same principle is `setState` batching in React 18+, a non-reactive loop
+  variable in Vue, and `ExcludeSemantics` in Flutter. Decorative motion must never pay framework
+  overhead per frame.
+
+* * *
+
+## 14. Performance & Bundle Cost
+
+* **The per-frame string rebuild is not the cost; the DOM write is.** Rebuilding a 44-cell string
+  54 times (900ms at 60fps) is trivial arithmetic. The expense is the text-node mutation and any
+  layout it triggers, which is why the write targets a leaf node with stable metrics — so the
+  change cannot reflow ancestors. Cap the technique at a headline: a paragraph-length scramble is a
+  real performance problem and a worse design one.
+* **Compositor discipline for the decorative layers.** The chroma is `text-shadow` (paint-only,
+  cheap at headline scale) and the scanline is `transform` plus `opacity` (compositor). Neither
+  touches geometry. This variant deliberately avoids `filter: blur()` — that is
+  [Signal Lock](/knowledge/glitch-signal-lock)'s cost, and the reason that sibling is the one
+  that drops frames on low-end Android.
+* **Tree-shaking and import discipline.** This is the only glitch variant with a runtime, so keep
+  it separable: export `useScramble` and `GlitchScramble` as distinct named entry points rather
+  than through a barrel file, so a page using slice tear pulls **zero** JavaScript. Do not reach
+  for GSAP plus `ScrambleTextPlugin` (~40KB+ gzipped) for this — the whole loop is about 40 lines.
+* **Lazy-load the runtime, never the text.** The enhancement is a good candidate for a dynamic
+  import triggered on in-view, so the JS never downloads for a headline the visitor scrolls past.
+  Invert the usual instinct for the content: the real string is in the initial HTML, always; only
+  the decoration is deferrable.
+* **Segment once, memoise.** `Intl.Segmenter` construction is not free and segmentation is O(n).
+  Doing either inside the tick turns a trivial loop into measurable per-frame work. Build the
+  segmenter at module scope, memoise cells per string (`useMemo` on `text`).
+* **Core Web Vitals.** Scramble usually sits on the LCP element, so: the headline must be
+  server-rendered (LCP not blocked on hydration), the block must have reserved height and the noise
+  node stable metrics (zero CLS), and the loop must not contend with hydration (INP). A decode that
+  delays the LCP paint has made the page measurably worse in exchange for style.
+* **Font loading interaction.** With `font-display: swap`, the pass can begin in the fallback face
+  and finish in the display face, producing a second, unintended glitch as metrics change — and the
+  same mechanism causes the tofu failure. Use `font-display: optional`, or gate the pass on
+  `document.fonts.ready`.
+
+* * *
+
+## 15. Security
+
+Small surface, but larger than its CSS-only siblings', because this variant writes to the DOM
+every frame and accepts a configurable glyph pool.
+
+**XSS via the noise node.** The component's job is to write a derived string into the DOM 54 times
+per pass, which makes `innerHTML` the obvious and wrong tool. Every implementation here uses
+`textContent` (or the framework's escaped interpolation) precisely because the headline may come
+from a CMS, a Supabase row, a URL parameter or a client's copy deck. With `innerHTML`, a headline
+of `<img src=x onerror=…>` executes; with `textContent` it renders as literal characters. The rule
+is absolute: **this component writes text, never markup.**
+
+**The glyph pool is an injection surface its siblings do not have.** The pool reaches the DOM as an
+HTML attribute (`data-glitch-pool`) in the server-rendered target, and it is the one input a
+developer is tempted to make configurable from a query string or a CMS field. It is escaped in
+§9.13 *and* pinned to a server-side allowlist, because a pool is not user content — it is a font
+dependency the server knows and the client does not. Never accept it from the client.
+
+**Server-side validation.** §9.13 treats client-supplied `size` and `duration` as advisory and
+enforces real bounds: a `Literal`-style pattern on size, `200–1200ms` on duration, a 120-character
+length cap, a 48-cell grapheme cap, and rejection of Unicode control and formatting characters.
+That last check is the one most people miss — bidi override codepoints (U+202E and relatives) can
+make rendered text read differently from its source, a genuine spoofing vector in any string a
+server echoes into a page, and a headline is the highest-visibility place to do it.
+
+**Authorization.** The component gates nothing and renders no privileged content, so it has no
+authorization surface of its own. The caveat is a CMS-driven hero: whoever can edit the headline
+can put arbitrary text on the most prominent element of the page, so that write path needs the same
+role check as any other published content. That is the CMS's boundary, not the component's.
+
+**Resource abuse.** Negligible by construction, but worth naming: per-frame work is linear in cell
+count, so an unbounded length plus an unbounded duration is a self-inflicted main-thread stall.
+Both are clamped server-side. A component that accepts `duration: 999999999` from a URL parameter
+is a denial of service you wrote yourself.
+
+**What it is not.** No storage, no network call in the default build, no `eval`, no dynamic code,
+no third-party script. Clamp the inputs, pin the pool, write text not markup, and the surface is
+closed.
+
+* * *
+
+## 16. Senior-Level Checklist
+
+* **Semantics** — the host keeps its native element and exactly one accessible name; the variant
+  adds no role.
+* **Two-node contract** — noise node `aria-hidden` and written with `textContent`; truth node
+  present, clipped with `clip-path: inset(50%)`, never `display: none` / `visibility: hidden` /
+  `aria-hidden`.
+* **Never write to the host** — the derived string touches a leaf node only.
+* **Server HTML is the real sentence** — the noise node is empty in the server response, and
+  nothing derived reaches `metadata`, `og:` tags or the title.
+* **No `aria-live`** on or around the element.
+* **Grapheme cells** — segmented once with `Intl.Segmenter` (or the platform equivalent), so
+  emoji, combining marks and non-Latin scripts survive the pass and the settle.
+* **Pool is subset-verified** — every glyph exists in the shipped font, enforced in CI by the
+  zero-width probe, and never accepted from the client.
+* **Stable metrics** — the noise node is `inline-block` with a fixed `inline-size` pinned to the
+  settled width measured on the live node in px, plus `white-space: pre` (`tabular-nums` alone is
+  not enough: it governs digits only; `min-inline-size` is not enough either: it is only a floor), plus a
+  reserved block height; measured CLS contribution is zero.
+* **Elapsed-time progress** — the index comes from `elapsed / duration`, never a frame counter.
+* **Settle net** — a `duration + 120ms` timer force-lands the final state, with a test that proves
+  it using a stubbed `requestAnimationFrame`.
+* **Once** — the spent flag holds and the observer disconnects, so the headline decodes once;
+  explicit replay may override it.
+* **Reduced motion** — a true branch: `is-enhanced` never applied, nothing scheduled, scanline not
+  rendered, on web and all three native targets.
+* **Keyboard and focus** — the text is not focusable; any replay control is a real `button` at a
+  ≥44px target with a visible ring; the hover decode never fires on `:focus-visible`.
+* **Contrast** — settled text at 4.5:1 (3:1 large), verified against the darkest and lightest
+  regions it crosses, scanline at its brightest frame included.
+* **Visible base** — nothing animates from `opacity: 0`; the settle state lives in base CSS.
+* **Performance** — one leaf DOM write per frame, segmenter memoised, no GSAP, runtime separable
+  so CSS-only pages ship no JS, and the pass never delays the LCP paint.
+* **Security** — `textContent` not `innerHTML`, server-pinned pool, clamped duration, length and
+  cell caps, control and bidi characters rejected.
+* **Content fit** — display type only (≥32px for the default tier), ≤48 cells, never on prices,
+  numbers, labels, errors, form text, or anything a user must trust.
+
+* * *
+
+## 17. Visual Styles
+
+The same decode skeleton across the 11 core visual languages. Each note is about *this* variant —
+the glyph pool, the chroma pair, the scanline, and the resolve.
+
+1. **Flat.** ASCII pool, a single flat accent as the chroma (one offset, not a true two-channel
+   split), no scanline, left-to-right resolve. The substitution does all the work against a flat
+   field. Safest decode to put on a dense page and the one that scales to any size.
+2. **Material.** The decode becomes an M3 transition: display type role, emphasized-decelerate
+   easing on the settle, chroma dropped entirely, and the scanline reading as a Material scrim
+   sweep. Faithful Material will not split channels — so what you keep here is the *resolve*, not
+   the corruption.
+3. **Glassmorphism.** Pool glyphs in near-white over a translucent blurred panel, the chroma
+   catching the frosted edge and blooming. The decode's risk here is legibility: noise glyphs over
+   a busy backdrop are harder to read than real words, so keep a solid scrim under the headline
+   band and the pool light on symbols.
+4. **Liquid Glass (2026).** The substitution reads as refraction instability — glyphs appear to
+   resolve *through* moving water, with a specular glint in place of a hard scanline. Favour the
+   digits-only pool (its uniform width survives the refraction) and keep the chroma to 1–2px;
+   reduced-motion is mandatory because the whole register is motion.
+5. **Neumorphism.** Soft-extruded glyphs on a same-color surface, chroma set to zero (this style's
+   contrast is already its weakness), no scanline. The decode becomes a shadow-misregistration
+   effect: each cell settles as its dual shadows snap into place. Keep it short and reserve it for a
+   calm, low-stakes headline.
+6. **Skeuomorphism.** The full terminal: monospaced pool on a phosphor-green field, a lingering
+   scanline, a faint barrel curve, and a blinking block cursor trailing the resolve index. This is
+   the style the decode was born in, so it earns the per-cell hold variant and the loudest scanline
+   in the family.
+7. **Neo-Brutalism.** Monospaced pool, maximum chroma offset in clashing saturated hues, hard
+   `steps()` so the glyphs snap rather than fade, zero radius, thick offset shadow. Random-order
+   resolve suits this skin — the chaos is the point. Campaign pages only.
+8. **Claymorphism.** Rounded chunky letterforms, the pool restricted to letters only (symbols read
+   as harsh against clay), chroma replaced by a warm inner light, and a centre-out resolve that
+   makes the word *bloom* rather than decode. The one skin where the effect stops meaning "broken"
+   and starts meaning "playful."
+9. **Aurora / Gradient.** Gradient-filled type where the gradient stays put while the glyphs
+   resolve through it, so colour bands appear to sweep as cells settle. Spectacular on a dark
+   field; verify 4.5:1 at every stop the text crosses rather than the average, and freeze the
+   gradient drift under reduced motion.
+10. **Minimal / Swiss.** Digits-only or letters-only pool, no chroma, no scanline, tightly tracked
+    type on a strict grid, left-to-right, short duration. The decode is almost subliminal — one
+    beat of unsettled type before precision reasserts itself. The restrained version, and the one
+    that survives on an editorial page.
+11. **UJG Brand (house default).** Platinum display type on deep Night/Eminence, the ASCII pool,
+    chroma set to Spanish Orange and Eminence (never red/cyan), a single Goldenrod scanline riding
+    the line once, Methanerse for the headline face, left-to-right resolve at 900–1100ms. Warm and
+    technical: the sound of a system coming online rather than a machine breaking. This is the
+    Shon register, and it is the variant and skin running on the UJG hero.
+
+**The rule that never changes:** style is skin, behaviour is the skeleton. Across all 11 skins the
+real string is in the DOM and in the accessibility tree from the first frame, the noise is
+`aria-hidden` and written with `textContent`, cells are grapheme clusters, the index is driven by
+elapsed time, the settle state lives in base CSS, reduced motion schedules nothing, and the decode
+never touches content a user has to trust. Semantics, the accessible name, focus behaviour of
+adjacent controls, and the 44px target on any replay control are identical no matter which skin is
+on top.

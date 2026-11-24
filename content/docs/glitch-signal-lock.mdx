@@ -1,0 +1,2371 @@
+---
+name: "Glitch Signal Lock"
+slug: glitch-signal-lock
+category: Marketing & Content
+status: built
+summary: "A headline that fights its way into focus — blur and contrast flickering until the feed locks. Pure CSS, the restrained member of the glitch family, and the only one whose cost is raster rather than script."
+tags: [motion, typography, headline, glitch, filter, blur, css-only, reduced-motion]
+preview:
+  label: "Built like you."
+snippets:
+  - language: html
+    label: HTML
+    code: |
+      <!-- One node. The real text is the animated thing, so there is nothing to hide
+           from assistive tech and nothing to duplicate. -->
+      <h1 class="glitch" data-glitch="signal" data-glitch-size="lg">
+        <span class="glitch__truth">Built like you.</span>
+      </h1>
+  - language: css
+    label: CSS
+    primary: true
+    code: |
+      /* Sharpness and luminance fight until the feed locks. Interpolated, not stepped —
+         which is what makes this the restrained variant. Ends on filter: none. */
+      .glitch[data-glitch="signal"] .glitch__truth {
+        animation: glitch-signal var(--glitch-duration, 900ms) cubic-bezier(.2,.6,.2,1) 1;
+      }
+      @keyframes glitch-signal {
+        0%   { filter: blur(6px) contrast(1.7); }
+        12%  { filter: blur(1px) contrast(1.1); }
+        16%  { filter: blur(5px) contrast(1.6); }
+        28%  { filter: none; }
+        33%  { filter: blur(4px) contrast(1.5); }
+        46%  { filter: none; }
+        52%  { filter: blur(2px) contrast(1.2); }
+        100% { filter: none; }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .glitch .glitch__truth { animation: none !important; filter: none !important; }
+      }
+  - language: css
+    label: "Containment + cheap raster"
+    code: |
+      /* filter creates a stacking context AND a containing block for fixed/absolute
+         descendants — so keep it on a text-only leaf, never a layout wrapper.
+         will-change buys a cheaper raster for the pass; remove it after, or the
+         promoted layer keeps costing memory for the life of the page. */
+      .glitch[data-glitch="signal"] .glitch__truth {
+        display: inline-block;
+        contain: paint;
+      }
+      .glitch[data-glitch="signal"][data-glitch-state="glitching"] .glitch__truth {
+        will-change: filter;
+      }
+      .glitch[data-glitch="signal"][data-glitch-state="idle"] .glitch__truth {
+        will-change: auto;
+      }
+references:
+  - title: "MDN — filter"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/filter
+    source: mdn
+  - title: "MDN — will-change"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/will-change
+    source: mdn
+  - title: "MDN — Stacking context"
+    url: https://developer.mozilla.org/en-US/docs/Web/CSS/CSS_positioned_layout/Stacking_context
+    source: mdn
+  - title: "WCAG 2.2 — 1.4.3 Contrast (Minimum)"
+    url: https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html
+    source: other
+  - title: "WCAG 2.2 — 2.3.1 Three Flashes or Below Threshold"
+    url: https://www.w3.org/WAI/WCAG22/Understanding/three-flashes-or-below-threshold.html
+    source: other
+---
+
+## Glitch Signal Lock
+
+The focus pull. A headline arrives soft and over-contrasted, fights through two or three failed
+attempts at sharpness, and locks. It reads as a feed acquiring signal rather than a machine
+breaking, which makes it the member of the glitch family you can put on a page that also has to be
+taken seriously.
+
+It is pure CSS, like [Slice Tear](/knowledge/glitch-slice-tear), and shares that variant's clean
+accessibility story — one node, real text, nothing substituted. But it swaps that sibling's
+problems for a different set, and they are the interesting part of this page. `filter` is the one
+property in the family whose cost is **raster**, not script or layout: blur is genuinely expensive
+on large type and weak GPUs. `filter` also quietly changes the box's semantics — it creates a
+stacking context and a containing block, which breaks positioned descendants in ways that look
+unrelated to the animation. And blur is the only glitch that makes text **temporarily
+illegible**, which turns a styling decision into an accessibility argument.
+
+Its siblings: [Scramble Reveal](/knowledge/glitch-scramble-reveal) substitutes glyphs and earns its
+JavaScript; [Slice Tear](/knowledge/glitch-slice-tear) is the loud one and the cheapest to run.
+
+* * *
+
+## 1. What It Actually Is
+
+A signal lock is a **one-shot filter animation** over a single run of text. `filter: blur()` moves
+the text in and out of focus while `contrast()` swings its luminance, and the keyframes resolve to
+`filter: none`. Nothing is substituted, nothing is displaced, nothing is clipped: the glyphs are
+exactly where they will end up, and only their *rendering* changes.
+
+Two properties define it. It is **interpolated**, not stepped — the transitions between keyframes
+are smooth, which is precisely why it reads as restrained where a tear reads as violent. And it is
+**non-destructive and layout-neutral**: `filter` does not participate in layout, so the box never
+changes and the accessible name is correct at every frame.
+
+What it gets confused with:
+
+* **Plain blur-in / fade-up reveal.** A monotonic blur from soft to sharp, usually paired with
+  opacity and a small translate. The standard entrance animation in every design system. A signal
+  lock is *non-monotonic* — it goes sharp, fails back to soft, and tries again. That
+  back-and-forth is the entire difference between "elegant reveal" and "glitch," and it is why this
+  variant belongs in this family at all. If your keyframes only decrease the blur radius, you have
+  built a blur-in.
+* **Focus pull (cinematic rack focus).** A continuous, smooth transfer of sharpness between two
+  depths, usually across two elements. Same optical vocabulary, but it is a *transfer* of attention
+  with no failure and no flicker.
+* **Text-shadow glow pulse.** A soft halo breathing around sharp text. The glyph edges stay crisp;
+  only the surrounding light changes. Cheap, and often mistaken for blur because it looks soft.
+* **Backdrop blur (frosted glass).** `backdrop-filter` blurs what is *behind* an element and leaves
+  its content sharp. The opposite operation, and a completely different performance profile. A
+  signal lock blurs the text itself.
+* **Scramble / slice tear.** Its siblings. Scramble replaces characters; slice tear displaces
+  bands. Signal lock touches neither position nor content.
+
+**Rule of thumb:** if the glyphs never move or change, the box never moves, and sharpness goes
+*backwards* at least once before settling — it is a signal lock. If sharpness only improves, it is
+a blur-in, and it is not a glitch.
+
+* * *
+
+## 2. Why It Matters
+
+* **It is the glitch you can use on serious content.** Distortion that reads as "broken" is
+  unusable next to a price, a credential, or a medical claim. An interpolated focus pull reads as
+  *cinematic* rather than faulty, which makes this the only variant in the family with a credible
+  case on a consulting page, a case study, or anything where the brand has to carry authority. On
+  Apple surfaces, where the whole motion doctrine is continuity, it is the only one that fits at
+  all (§8).
+* **Blur has a real raster cost, and it is the family's only genuine performance risk.** `transform`
+  and `opacity` are compositor-driven; `clip-path` triggers paint; `filter: blur()` triggers a
+  comparatively expensive **raster** pass, every frame, scaled by the blurred area and the radius.
+  On a 58px headline it is invisible. On a full-bleed section, a 72px display face on a low-end
+  Android, or several elements at once, it is the variant that drops frames — and it does so during
+  the first second of the page, which is exactly when the visitor forms their judgement (§14).
+* **`filter` changes the box's semantics, not just its pixels.** A non-`none` filter creates a
+  **stacking context** and a **containing block for fixed and absolutely positioned descendants**.
+  Put it on a wrapper and a `position: fixed` child suddenly positions against the wrapper instead
+  of the viewport, `z-index` relationships reshuffle, and a sticky header inside stops sticking.
+  These bugs look nothing like an animation bug, which is what makes them expensive (§12).
+* **Blur is the only glitch that makes text illegible.** Scramble substitutes glyphs but keeps
+  them crisp; a tear displaces bands but every band stays readable. Blur genuinely removes the
+  ability to read, which is a different kind of claim on the visitor — and it is why duration
+  discipline here is an accessibility argument rather than a taste one. Soft text is also
+  **lower-contrast text**: blurring blends glyph edges into the background, so mid-pass contrast is
+  measurably worse than the settled value you tested (§10).
+* **Its failure mode is the quietest and the worst.** A stalled scramble leaves visible noise; a
+  stalled tear leaves readable text at an offset. A stalled signal lock can leave a headline
+  **permanently blurred** — present in the DOM, in the accessibility tree, and unreadable to
+  everyone looking at the screen. Hence `filter: none` as the base state, not just the final
+  keyframe (§5).
+
+* * *
+
+## 3. Anatomy
+
+* **Host element.** The semantic element the lock is applied to — `h1`…`h6`, or a `span` inside
+  one. The animation must **not** live here if the host wraps positioned or interactive content; it
+  belongs on a text-only leaf (§12).
+* **Truth node.** The single `span` holding the real text and carrying the filter. There is no
+  second node. Remove the animation and a correctly set headline remains, because the animation was
+  only ever decoration on this element.
+* **Blur ramp.** The sequence of `blur()` radii over time. The non-monotonic shape — sharp, soft
+  again, sharp — is the signature; a monotonic ramp is a blur-in.
+* **Contrast swing.** The `contrast()` multiplier riding alongside the blur. It supplies the
+  luminance flicker that makes the pass read as *signal* rather than *focus*, and it is the part
+  that interacts with flash-safety limits.
+* **Lock points.** The keyframes at `filter: none` mid-pass (28% and 46% in the house ramp) where
+  the text is briefly fully sharp. These are what make it a *lock* — the feed almost acquires,
+  loses it, and acquires again.
+* **Settle state.** `filter: none`, declared in base CSS rather than only at the keyframe's `100%`
+  stop. The safety net, and more load-bearing here than in any sibling, because the stalled state
+  is unreadable rather than merely untidy.
+* **Containment.** `contain: paint` (and `display: inline-block`) on the filtered node, keeping the
+  raster region as small as the effect allows.
+* **`will-change` window.** `will-change: filter` applied **only** while the pass runs and removed
+  after. A promoted layer left on permanently costs memory for the life of the page.
+* **Scanline.** Optional bright band travelling the line once per pass. Positioned, `aria-hidden`,
+  `pointer-events: none`. Sits outside the filtered node so it is not itself blurred.
+* **Chroma pair (optional).** Offset colour channels via `text-shadow`. Weaker here than in its
+  siblings, because blur smears the offsets into a muddy halo — usually dialled to 1px or off.
+* **Trigger.** `animation-timeline: view()` (no script), a `data-glitch-state` attribute toggled by
+  a small observer, or a plain mount declaration.
+* **Reduced-motion branch.** `animation: none` **and** `filter: none`, both forced. The second is
+  not redundant: an interrupted pass can leave an inline or computed filter in place.
+
+* * *
+
+## 4. Sizes / Scale / Density
+
+Signal lock is sized by type size, and the thing that scales with it is the **blur radius** — which
+is also the cost driver. Radius must scale with the glyph weight, because 6px of blur on 16px text
+is unreadable mush while on 76px text it is a gentle softness. The house ceiling is 6px, and it is
+a performance limit as much as a legibility one.
+
+| Tier | Token | Type size | Max blur | Contrast swing | Lock points | Duration | Use case |
+| ---| ---| ---| ---| ---| ---| ---| --- |
+| Inline | `--glitch-inline` | 14–16px / `0.875–1rem` | 1.5px | 1.0–1.15 | 1 | 420ms | One accent word; hover softening on nav items |
+| SM | `--glitch-sm` | 20–24px / `1.25–1.5rem` | 2.5px | 1.0–1.25 | 1 | 600ms | Card titles, eyebrows, sub-heads |
+| MD | `--glitch-md` | 32–40px / `2–2.5rem` | 4px | 1.0–1.4 | 2 | 800ms | Section headings, page titles |
+| LG | `--glitch-lg` | 48–58px / `3–3.625rem` | 6px | 1.0–1.7 | 2 | 900ms | Hero H1 — the house default |
+| XL | `--glitch-xl` | 72px+ / `4.5rem+` | 6px (cap) | 1.0–1.7 | 2–3 | 1100ms | Full-bleed statement type |
+
+Rules that matter:
+
+* **6px is the radius ceiling, for two reasons at once.** Beyond it the raster cost climbs
+  noticeably on mobile GPUs, and the text stops reading as "soft" and starts reading as "gone" —
+  which lengthens the period of genuine illegibility.
+* **Scale the radius with the type, never with the drama.** Roughly `0.1em`, capped at 6px. For
+  more intensity, add a lock point or widen the contrast swing; do not reach for a bigger radius.
+* **Keep the blurred area small.** Raster cost scales with the filtered region, so the filter goes
+  on a text-only `inline-block` span with `contain: paint` — never on a section, a card, or a
+  wrapper that also contains images.
+* **Duration ceiling 1200ms**, and here it is also a legibility budget: the total time the headline
+  is meaningfully unreadable should stay under about 400ms, which the lock points guarantee by
+  returning to sharp twice.
+* **Contrast swing caps at 1.7.** Past that the luminance change per keyframe gets large enough to
+  approach flash territory when combined with a dark background (§10).
+* **One per viewport.** Two simultaneous blur passes is the most expensive thing this family can do
+  to a frame budget.
+* **Target size is unaffected** — the text is not a target. Any replay control carries 44px on its
+  own.
+
+* * *
+
+## 5. States
+
+* **Idle / settled.** `filter: none`, from base CSS. What a crawler, a printer, a no-JS visitor, a
+  reduced-motion user and a stalled animation all get. Sharp and fully readable. For this variant
+  the base state is the *most* important declaration in the stylesheet, because the alternative is
+  an unreadable headline.
+* **Armed.** The animation is declared but not running — the state attribute is absent, or
+  `animation-timeline: view()` has not reached its range. Visually identical to idle.
+* **Acquiring (active pass).** The keyframes are running: blur and contrast cycling.
+  `data-glitch-state="glitching"` is on the host so the scanline can sync, and it is also what gates
+  `will-change: filter` to the duration of the pass.
+* **Locked (mid-pass).** The brief `filter: none` keyframes at 28% and 46%. Worth naming as a state
+  because it is the variant's signature: a visitor reads the headline, loses it, reads it again. If
+  your implementation has no lock points, the pass is a blur-in.
+* **Stalled → unreadable (the failure mode to design against).** If the animation is interrupted
+  mid-pass — a `fill-mode` left on `forwards`, an inline style applied by script and not cleared, a
+  class removed at the wrong moment — the computed filter can persist and the headline stays
+  blurred indefinitely. This is the one genuinely dangerous state in the glitch family, and it is
+  why §9.2 forces `filter: none` in the base rule, in the reduced-motion branch, and in print,
+  rather than relying on the keyframe's final stop.
+* **Scrubbing.** With `animation-timeline: view()` the pass is positioned by scroll offset rather
+  than running, so it can reverse when the visitor scrolls up. There is no completion event and
+  `once` is meaningless. Use the state-attribute trigger if the lock must happen exactly once —
+  and note the specific risk here: scrolling to a position mid-range parks the headline *blurred*.
+  Keep the `animation-range` narrow and near the entry edge so a parked state is almost always
+  sharp.
+* **Hover (optional micro-pass).** A brief softening on pointer-enter for links and labels.
+  Pointer-only, scoped to `@media (hover: hover) and (pointer: fine)` — never `:focus-visible`.
+  Keep the radius at the inline tier: a blurred link label under the cursor is harder to read at
+  exactly the moment the visitor is reading it.
+* **Focus.** The text is not focusable and has no focus state. Inside an interactive element, the
+  focus ring belongs to that host — and this variant has a specific hazard: a `filter` on an
+  ancestor **blurs the descendant's focus ring too**. Never animate a wrapper that contains
+  interactive content.
+* **Active / pressed.** Only on a replay control; standard press treatment, no blur on the button.
+* **Disabled.** Not applicable to the text. A replay control is disabled while a pass is in flight.
+* **Loading / error.** Not applicable: the text is known before render and there is no runtime to
+  fail.
+* **Reduced-motion.** First-class: `animation: none` *and* `filter: none`, scanline removed, text
+  renders sharp. Not a smaller blur, not a shorter one.
+* **Print.** Settle state, with `filter` explicitly cleared — a blurred heading in a PDF is a
+  defect that outlives the session.
+
+* * *
+
+## 6. Types / Variants
+
+1. **Signal lock (the house default).** Non-monotonic blur with a contrast swing and two lock
+   points. Reads as a feed acquiring. The restrained member of the family and the one to reach for
+   when the glitch has to coexist with authority.
+2. **Focus stutter (blur only).** The contrast multiplier dropped entirely, leaving pure sharpness
+   oscillation. The most restrained version in the whole library — closer to a camera hunting for
+   focus than to a glitch. Right for luxury, editorial and institutional registers, and the only
+   variant that survives on a light background without looking washed out.
+3. **Luminance flicker (contrast only).** Blur dropped, contrast and brightness swinging. Keeps
+   text sharp and legible throughout, which makes it the safest option for anything with real
+   reading work nearby. It is also the one to watch for flash safety, since luminance is doing all
+   the work (§10).
+4. **Chromatic aberration lock.** Blur paired with offset channel shadows so the softening smears
+   into colour fringing, like a cheap lens. Richer and more "broken" than the default; keep the
+   chroma at 1–2px, because blur multiplies the apparent offset and 3px turns into a muddy halo.
+5. **Interlace lock.** The blur ramp combined with a repeating-gradient scanline overlay at low
+   opacity, so the pass reads as a CRT or video feed rather than an optical lens. The scanline sits
+   *outside* the filtered node — blur it and it turns to grey wash.
+6. **Scroll-scrubbed lock.** `animation-timeline: view()` ties sharpness to scroll offset. Zero
+   JavaScript and reversible, but see the parking hazard in §5: keep the range narrow and near the
+   entry edge, or a visitor can stop scrolling with the headline soft.
+7. **Hover softening.** A brief inline-tier pass on pointer-enter for links. Pointer-only, never
+   `:focus-visible`, and the smallest radius you have — a label that blurs while being read is a
+   worse interaction than no effect at all.
+
+* * *
+
+## 7. When to Use (and When Not To)
+
+**Use when:**
+
+* The brand needs glitch *texture* without glitch *violence* — a consulting hero, a case study
+  opener, a credentials page, anything where "broken" would undercut the message.
+* You want the closest thing in the family to a conventional reveal, so the effect reads as
+  cinematic polish rather than a stylistic statement. It is the variant most likely to survive a
+  stakeholder review.
+* **The platform has no scripting**, or you want zero JavaScript: like slice tear, this is CSS
+  only, and with `animation-timeline: view()` even the trigger is script-free.
+* The headline is long, multi-line, or localised into an untested script — the pass is
+  content-agnostic, so it cannot corrupt glyphs, split graphemes or render tofu.
+* The register is optical and continuous rather than digital and discontinuous — and especially on
+  Apple platforms, where a hard tear is simply the wrong grammar.
+
+**Don't use / use something else when:**
+
+* **You want the "word assembling" read.** That is [Scramble](/knowledge/glitch-scramble-reveal) —
+  nothing here is ever decoded.
+* **You want the loud, unmistakably digital glitch.** That is
+  [Slice Tear](/knowledge/glitch-slice-tear). Blur reads as optics, not as data corruption.
+* **The headline is on a low-end device, is very large, or sits on a page already fighting for
+  frames.** Blur is the family's expensive variant; slice tear gives you a glitch for free.
+* **Legibility has to hold continuously** — a long headline a visitor is mid-way through reading,
+  or anything with a reading-order dependency below it. Use the luminance-flicker variant, which
+  keeps text sharp.
+* **The animated element wraps positioned, sticky, or interactive content.** `filter` creates a
+  stacking context and a containing block, and blurs descendant focus rings. Move it to a text-only
+  span, or use a sibling.
+* **It is body copy, a label, a number, a form field, an error or a confirmation.** Errors must
+  never animate — use **Alert**.
+* **You need the effect to park safely at any scroll position.** A scrubbed blur can park soft; a
+  scrubbed tear parks readable. Prefer slice tear for long scroll ranges.
+* **It would be the second glitch in view.** Use a plain **Reveal on scroll** for the rest.
+
+**Placement heuristics.** One per viewport, display type ≥32px, on a text-only `inline-block` node
+with `contain: paint`, fired on in-view with a narrow range. Keep total unreadable time under about
+400ms by keeping both lock points. Pair with a static eyebrow and sub-line — like every glitch, it
+only reads as deliberate against stillness.
+
+* * *
+
+## 8. Across Design Systems
+
+No major design system ships a "signal lock," but unlike its siblings this variant has genuine
+relatives in several of them — because a blur-based entrance is a mainstream idea, and the glitch
+version is one keyframe away from it.
+
+* **Material 3 (Google).** No glitch, but the closest philosophical fit of any system to this
+  variant: M3 Expressive motion is continuous and physical, and an interpolated focus pull is
+  continuous and physical. A Material-faithful build keeps the blur ramp and the easing, drops the
+  contrast flicker, and removes one lock point — which lands on M3's own blur-in entrance. That is
+  not a failure; it means this variant degrades gracefully into Material rather than fighting it.
+* **Apple HIG.** The only variant with a real case on Apple platforms. HIG wants motion brief,
+  purposeful and physically plausible, and an optical focus pull is all three — the 2026 Liquid
+  Glass language is itself built on refraction and softness. Use the focus-stutter sub-variant, keep
+  the radius low, and treat `accessibilityReduceMotion` as the hard branch it is on that platform
+  (§9.14).
+* **Fluent 2 (Microsoft).** No glitch, and Fluent's acrylic material is a *backdrop* blur rather
+  than a content blur — the opposite operation, worth knowing so you do not reach for
+  `backdrop-filter` by analogy. Fluent's contribution is its curve and duration taxonomy; map the
+  pass onto its slow tier.
+* **Ant Design.** No glitch. Ant's animation set is utilitarian and its surfaces are dense, so a
+  blurred heading next to a data table is exactly the wrong call. Useful as a boundary marker.
+* **Tailwind CSS.** No component, but full expressive coverage: `blur-*` utilities exist, custom
+  `@keyframes` go in `@theme` (v4) or the config (v3), and `motion-reduce:animate-none` is a true
+  and sufficient compliance story — like slice tear and unlike scramble, a Tailwind-only build is
+  complete (§9.5). Watch the one trap: Tailwind's `blur-sm`-style utilities set a filter on the
+  element permanently, so compose them with care around the stacking-context side effect.
+* **shadcn/ui + Radix.** No primitive, and barely any need for the headless pattern: with no
+  lifecycle to own, a `cva` skin plus `Slot` is the whole component (§9.7).
+* **Bootstrap 5.** No glitch and a thin animation layer, so this is a utility class beside
+  `display-1`. Bootstrap does ship `.blur` helpers in some builds, which makes the honest add-on
+  shape obvious.
+* **Creative-web tooling.** GSAP can tween `filter` and Motion can animate it, but neither buys
+  much here — the CSS is shorter and the library cannot make blur cheaper, because the cost is in
+  the compositor's raster pass, not in the tweening. Where GSAP genuinely helps is sequencing a lock
+  against other elements on a shared timeline; for a single headline, hand-written CSS wins.
+
+### 8b. Visual Styles / Trends — What's trending in 2026
+
+Blur is in the middle of a mainstream moment, and this variant benefits from it in a specific way:
+a soft-focus reveal no longer reads as a 2019 hero cliché, because the surrounding visual language
+— Apple's Liquid Glass, refractive UI, depth and material — has made optical softness feel current
+again. The glitch reading comes entirely from the *non-monotonic* ramp, which is a cheap difference
+to author and a large difference to perceive.
+
+Three platform changes matter. **Scroll-driven animations** make the lock scrubbable with no
+script, with the parking caveat in §5. **`@property`** lets a `--glitch-blur` token be registered as
+a `<length>` so radius interpolates smoothly and one keyframe set serves every tier — more useful
+here than in any sibling, because radius is the thing that must scale. And **View Transitions**,
+now cross-document, make a focus pull a natural route transition: the incoming page resolves into
+sharpness, which is a far better use of the gesture than repeating it per section.
+
+Against all that, the honest trend note is a performance one: as blur has become fashionable,
+pages have started stacking `backdrop-filter` panels, blurred images and blurred text in the same
+viewport, and the raster cost compounds. The 2026 discipline is **one blurred thing at a time**.
+
+* * *
+
+## 9. The Code
+
+The contract: one node holding real text, animation on `filter` only, `filter: none` forced in the
+base rule and every escape hatch, the filter scoped to a contained text-only leaf, `will-change`
+gated to the pass, and reduced motion as a branch that declares no animation and no filter.
+
+### 9.1 HTML (semantic foundation with ARIA)
+
+```html
+<!-- One node. Nothing to hide from assistive tech, nothing to duplicate.
+     The scanline sits OUTSIDE the filtered node, or the blur turns it to grey wash. -->
+<h1 class="glitch" data-glitch="signal" data-glitch-size="lg" data-glitch-trigger="scroll">
+  <span class="glitch__truth">Built like you.</span>
+  <span class="glitch__scan" aria-hidden="true"></span>
+</h1>
+
+<!-- Optional replay. A real button: typed, labelled, keyboard-operable, 44px target. -->
+<button type="button" class="glitch__replay" data-glitch-replay="hero-title"
+        aria-describedby="glitch-help">
+  Replay lock
+</button>
+<p id="glitch-help" class="u-visually-hidden">
+  Replays the decorative focus animation on the heading. The heading text does not change.
+</p>
+
+<!-- Lock inside a link: the anchor owns role, name and focus ring. The animated span is
+     text-only and does NOT wrap the interactive element — a filter on an ancestor blurs
+     the descendant's focus ring and creates a containing block for positioned children. -->
+<a href="/suites" class="nav__link">
+  <span class="glitch" data-glitch="signal" data-glitch-trigger="hover" data-glitch-size="inline">
+    <span class="glitch__truth">Five service suites</span>
+  </span>
+</a>
+
+<!-- What NOT to do. A filter here would make the sticky child stop sticking and the
+     fixed child position against this div instead of the viewport. See §12.
+<div class="hero" style="filter: blur(6px)">
+  <header style="position: sticky">…</header>
+</div>
+-->
+```
+
+### 9.2 CSS (states, layout, reduced-motion)
+
+```css
+.glitch[data-glitch="signal"] {
+  --glitch-duration: 900ms;
+  --glitch-blur: 6px;
+  --glitch-contrast: 1.7;
+  --glitch-chroma: 0px;              /* blur smears offsets; usually off for this variant */
+  --glitch-chroma-a: var(--ember, #d9531a);
+  --glitch-chroma-b: var(--amethyst, #47107d);
+
+  position: relative;
+  display: inline-block;
+}
+
+.glitch[data-glitch="signal"] .glitch__truth {
+  display: inline-block;
+  /* Keep the raster region as small as the effect allows. */
+  contain: paint;
+  /* THE SETTLE STATE — and the most load-bearing declaration on this page. If the pass
+     is interrupted, this is what keeps the headline readable rather than permanently
+     blurred. Never rely on the keyframe's 100% stop alone. */
+  filter: none;
+}
+
+.glitch[data-glitch-size="inline"] { --glitch-blur: 1.5px; --glitch-contrast: 1.15; --glitch-duration: 420ms; }
+.glitch[data-glitch-size="sm"]     { --glitch-blur: 2.5px; --glitch-contrast: 1.25; --glitch-duration: 600ms; }
+.glitch[data-glitch-size="md"]     { --glitch-blur: 4px;   --glitch-contrast: 1.4;  --glitch-duration: 800ms; }
+.glitch[data-glitch-size="lg"]     { --glitch-blur: 6px;   --glitch-contrast: 1.7;  --glitch-duration: 900ms; }
+.glitch[data-glitch-size="xl"]     { --glitch-blur: 6px;   --glitch-contrast: 1.7;  --glitch-duration: 1100ms; }
+
+/* ---- The pass. Two identical sets under different names so a replay restarts by
+        swapping the name — re-applying the same animation-name is a no-op. ---- */
+.glitch[data-glitch="signal"][data-glitch-state="glitching"] .glitch__truth {
+  animation: glitch-signal-a var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+  /* Gate the promoted layer to the pass. Left on permanently it costs memory for the
+     life of the page, which is the classic will-change mistake. */
+  will-change: filter;
+}
+.glitch[data-glitch="signal"][data-glitch-state="glitching-alt"] .glitch__truth {
+  animation: glitch-signal-b var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+  will-change: filter;
+}
+.glitch[data-glitch="signal"][data-glitch-state="idle"] .glitch__truth {
+  will-change: auto;
+}
+
+/* Non-monotonic: sharp at 28% and 46% (the LOCK POINTS), soft again in between.
+   A monotonic ramp would be a blur-in, not a glitch. */
+@keyframes glitch-signal-a {
+  0%   { filter: blur(var(--glitch-blur)) contrast(var(--glitch-contrast)); }
+  12%  { filter: blur(calc(var(--glitch-blur) * 0.17)) contrast(1.1); }
+  16%  { filter: blur(calc(var(--glitch-blur) * 0.83)) contrast(calc(var(--glitch-contrast) * 0.94)); }
+  28%  { filter: none; }                                     /* lock point 1 */
+  33%  { filter: blur(calc(var(--glitch-blur) * 0.67)) contrast(calc(var(--glitch-contrast) * 0.88)); }
+  46%  { filter: none; }                                     /* lock point 2 */
+  52%  { filter: blur(calc(var(--glitch-blur) * 0.33)) contrast(1.2); }
+  100% { filter: none; }
+}
+@keyframes glitch-signal-b {
+  0%   { filter: blur(var(--glitch-blur)) contrast(var(--glitch-contrast)); }
+  12%  { filter: blur(calc(var(--glitch-blur) * 0.17)) contrast(1.1); }
+  16%  { filter: blur(calc(var(--glitch-blur) * 0.83)) contrast(calc(var(--glitch-contrast) * 0.94)); }
+  28%  { filter: none; }
+  33%  { filter: blur(calc(var(--glitch-blur) * 0.67)) contrast(calc(var(--glitch-contrast) * 0.88)); }
+  46%  { filter: none; }
+  52%  { filter: blur(calc(var(--glitch-blur) * 0.33)) contrast(1.2); }
+  100% { filter: none; }
+}
+
+/* ---- Focus stutter: blur only, no luminance change. The most restrained version. ---- */
+@keyframes glitch-signal-focus {
+  0%   { filter: blur(var(--glitch-blur)); }
+  22%  { filter: none; }
+  34%  { filter: blur(calc(var(--glitch-blur) * 0.5)); }
+  58%  { filter: none; }
+  70%  { filter: blur(calc(var(--glitch-blur) * 0.2)); }
+  100% { filter: none; }
+}
+
+/* ---- Luminance flicker: contrast only. Text stays sharp and legible throughout. ---- */
+@keyframes glitch-signal-luma {
+  0%   { filter: contrast(var(--glitch-contrast)) brightness(1.15); }
+  20%  { filter: none; }
+  30%  { filter: contrast(calc(var(--glitch-contrast) * 0.85)) brightness(.9); }
+  48%  { filter: none; }
+  60%  { filter: contrast(1.15); }
+  100% { filter: none; }
+}
+
+/* ---- Chromatic aberration lock: blur plus 1px channel offsets. Keep chroma low —
+        blur multiplies the apparent offset. ---- */
+.glitch[data-glitch="signal"][data-glitch-variant="chroma"] .glitch__truth {
+  --glitch-chroma: 1px;
+  text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a),
+               var(--glitch-chroma) 0 var(--glitch-chroma-b);
+}
+
+/* ---- Interlace overlay. OUTSIDE the filtered node, or the blur greys it out. ---- */
+.glitch__interlace {
+  position: absolute; inset: 0; pointer-events: none; opacity: .18;
+  background: repeating-linear-gradient(
+    180deg, transparent 0 2px, rgba(0, 0, 0, .6) 2px 3px
+  );
+}
+
+/* ---- Hover micro-pass. Pointer only, smallest radius — a label that blurs while being
+        read is worse than no effect. ---- */
+@media (hover: hover) and (pointer: fine) {
+  .glitch[data-glitch-trigger="hover"]:hover .glitch__truth {
+    animation: glitch-signal-focus 460ms cubic-bezier(.2,.6,.2,1) 1;
+  }
+}
+
+/* ---- Scroll-driven: no script. Keep the range NARROW and near the entry edge, or a
+        visitor can park mid-range with the headline soft (§5). ---- */
+@supports (animation-timeline: view()) {
+  .glitch[data-glitch-trigger="scroll"] .glitch__truth {
+    animation: glitch-signal-a linear both;
+    animation-timeline: view();
+    animation-range: entry 15% entry 45%;
+  }
+}
+
+/* ---- Scanline ---- */
+.glitch__scan {
+  position: absolute; inset-inline: -12px; top: 0; height: 14px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24, rgba(242,176,30,.24)), transparent);
+}
+.glitch[data-glitch-state^="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-scan {
+  0%   { transform: translateY(-120%); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+
+/* ---- Reduced motion: a branch. BOTH animation and filter are forced off — the second
+        is not redundant, because an interrupted pass can leave a computed filter. ---- */
+@media (prefers-reduced-motion: reduce) {
+  .glitch[data-glitch="signal"] .glitch__truth {
+    animation: none !important;
+    filter: none !important;
+    will-change: auto;
+  }
+  .glitch .glitch__scan,
+  .glitch .glitch__interlace { display: none; }
+}
+
+/* ---- Print: a blurred heading in a PDF outlives the session. Force it sharp. ---- */
+@media print {
+  .glitch[data-glitch="signal"] .glitch__truth {
+    animation: none !important;
+    filter: none !important;
+    text-shadow: none;
+  }
+  .glitch__scan, .glitch__interlace, .glitch__replay { display: none; }
+}
+```
+
+### 9.3 React + TypeScript (full reusable component)
+
+```tsx
+"use client";
+
+import * as React from "react";
+
+export type SignalSize = "inline" | "sm" | "md" | "lg" | "xl";
+export type SignalTrigger = "mount" | "in-view" | "scroll" | "hover" | "manual";
+export type SignalFlavour = "lock" | "focus" | "luma" | "chroma";
+
+export function usePrefersReducedMotion(): boolean {
+  const [reduced, setReduced] = React.useState(false);
+  React.useEffect(() => {
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setReduced(mq.matches);
+    const onChange = (e: MediaQueryListEvent) => setReduced(e.matches);
+    mq.addEventListener("change", onChange);
+    return () => mq.removeEventListener("change", onChange);
+  }, []);
+  return reduced;
+}
+
+type PassState = "idle" | "glitching" | "glitching-alt";
+
+interface UseSignalOptions {
+  trigger?: SignalTrigger;
+  once?: boolean;
+  duration?: number;
+}
+
+export function useSignal({ trigger = "in-view", once = true, duration = 900 }: UseSignalOptions) {
+  const reduced = usePrefersReducedMotion();
+  const hostRef = React.useRef<HTMLElement | null>(null);
+  const [state, setState] = React.useState<PassState>("idle");
+  const spent = React.useRef(false);
+  const flip = React.useRef(false);
+  const settleRef = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const cssOwnsIt =
+    trigger === "scroll" &&
+    typeof CSS !== "undefined" &&
+    CSS.supports?.("animation-timeline: view()");
+
+  const run = React.useCallback(() => {
+    if (reduced || cssOwnsIt) return;
+    if (once && spent.current) return;
+    spent.current = true;
+    flip.current = !flip.current;
+    setState(flip.current ? "glitching" : "glitching-alt");
+    if (settleRef.current) clearTimeout(settleRef.current);
+    /* Returning to "idle" does two jobs: it drops will-change (releasing the promoted
+       layer) and it guarantees the element is back on the unfiltered base rule. For this
+       variant that second job is the difference between readable and not. */
+    settleRef.current = setTimeout(() => setState("idle"), duration + 120);
+  }, [cssOwnsIt, duration, once, reduced]);
+
+  const replay = React.useCallback(() => { spent.current = false; run(); }, [run]);
+
+  React.useEffect(() => () => { if (settleRef.current) clearTimeout(settleRef.current); }, []);
+
+  React.useEffect(() => {
+    if (reduced || cssOwnsIt || trigger === "manual" || trigger === "hover") return;
+    if (trigger === "mount") { run(); return; }
+    const el = hostRef.current;
+    if (!el) return;
+    if (typeof IntersectionObserver === "undefined") { run(); return; }
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          run();
+          if (once) io.disconnect();
+        }
+      },
+      { threshold: 0.35 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [cssOwnsIt, once, reduced, run, trigger]);
+
+  return { hostRef, state, reduced, cssOwnsIt, run, replay };
+}
+
+type OwnProps<T extends React.ElementType> = {
+  children: React.ReactNode;      // any node: nothing is rewritten
+  as?: T;
+  size?: SignalSize;
+  flavour?: SignalFlavour;
+  trigger?: SignalTrigger;
+  duration?: number;
+  once?: boolean;
+  /** Blur radius ceiling in px. Capped at 6 — a performance AND legibility limit (§4). */
+  blur?: 1.5 | 2.5 | 4 | 6;
+  scanline?: boolean;
+  interlace?: boolean;
+  className?: string;
+};
+
+export type GlitchSignalProps<T extends React.ElementType> = OwnProps<T> &
+  Omit<React.ComponentPropsWithoutRef<T>, keyof OwnProps<T>>;
+
+export function GlitchSignal<T extends React.ElementType = "span">({
+  children, as, size = "lg", flavour = "lock", trigger = "in-view", duration = 900,
+  once = true, blur, scanline = true, interlace = false, className, ...rest
+}: GlitchSignalProps<T>) {
+  const Host = (as ?? "span") as React.ElementType;
+  const { hostRef, state, reduced } = useSignal({ trigger, once, duration });
+
+  return (
+    <Host
+      ref={hostRef as React.Ref<never>}
+      className={["glitch", className].filter(Boolean).join(" ")}
+      data-glitch="signal"
+      data-glitch-size={size}
+      data-glitch-variant={flavour}
+      data-glitch-state={state}
+      data-glitch-trigger={trigger}
+      style={{
+        ["--glitch-duration" as string]: `${duration}ms`,
+        ...(blur ? { ["--glitch-blur" as string]: `${blur}px` } : null),
+      }}
+      {...rest}
+    >
+      {/* The real text IS the filtered element — a text-only leaf, so the filter cannot
+          create a containing block around anything positioned or interactive. */}
+      <span className="glitch__truth">{children}</span>
+      {/* Decoration lives OUTSIDE the filtered node or the blur would grey it out. */}
+      {interlace && !reduced ? <span className="glitch__interlace" aria-hidden="true" /> : null}
+      {scanline && !reduced ? <span className="glitch__scan" aria-hidden="true" /> : null}
+    </Host>
+  );
+}
+
+GlitchSignal.displayName = "GlitchSignal";
+```
+
+### 9.4 Vanilla JavaScript (no framework, full keyboard)
+
+```js
+/** glitch-signal.js — OPTIONAL. Markup plus CSS works with this absent; it only adds a
+ *  one-shot in-view trigger and replay for engines without animation-timeline. */
+const reduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const cssOwnsIt = () => CSS.supports?.("animation-timeline: view()");
+
+export class GlitchSignal {
+  constructor(host, options = {}) {
+    this.host = host;
+    this.target = host.querySelector(".glitch__truth");
+    this.duration = Number(options.duration ?? host.dataset.glitchDuration ?? 900);
+    this.once = options.once !== false;
+    this.spent = false;
+    this.flip = false;
+    this.settle = null;
+
+    const trigger = host.dataset.glitchTrigger || "in-view";
+    if (reduced()) { this.#clearFilter(); return; }
+    if (trigger === "scroll" && cssOwnsIt()) return;
+    if (trigger === "manual") return;
+    if (trigger === "hover") {
+      host.addEventListener("pointerenter", () => { this.spent = false; this.run(); });
+      return;
+    }
+    if (trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+
+    this.io = new IntersectionObserver((entries) => {
+      for (const entry of entries) {
+        if (!entry.isIntersecting) continue;
+        this.run();
+        if (this.once) this.io.disconnect();
+      }
+    }, { threshold: 0.35 });
+    this.io.observe(host);
+  }
+
+  run() {
+    if (reduced()) { this.#clearFilter(); return; }
+    if (this.once && this.spent) return;
+    this.spent = true;
+    if (this.settle) clearTimeout(this.settle);
+
+    // Swapping the state swaps the animation NAME — re-applying the same name is a no-op.
+    this.flip = !this.flip;
+    this.host.dataset.glitchState = this.flip ? "glitching" : "glitching-alt";
+
+    /* The settle timer matters more here than in any sibling: returning to "idle" drops
+       will-change AND puts the node back on the unfiltered base rule. Without it an
+       interrupted pass can leave the headline permanently blurred. */
+    this.settle = setTimeout(() => {
+      this.host.dataset.glitchState = "idle";
+      this.#clearFilter();
+    }, this.duration + 120);
+  }
+
+  /** Belt and braces: clear any inline filter a script or a cancelled animation left. */
+  #clearFilter() {
+    if (this.target) this.target.style.filter = "";
+    this.host.dataset.glitchState = "idle";
+  }
+
+  destroy() {
+    if (this.settle) clearTimeout(this.settle);
+    this.io?.disconnect();
+    this.#clearFilter();
+  }
+}
+
+const registry = new Map();
+for (const host of document.querySelectorAll('[data-glitch="signal"]')) {
+  const instance = new GlitchSignal(host);
+  if (host.id) registry.set(host.id, instance);
+}
+/* A real <button> needs no key handling: Enter and Space fire click natively. */
+for (const control of document.querySelectorAll("[data-glitch-replay]")) {
+  control.addEventListener("click", () => {
+    const instance = registry.get(control.dataset.glitchReplay);
+    if (!instance) return;
+    instance.spent = false;
+    instance.run();
+  });
+}
+```
+
+### 9.5 Tailwind CSS
+
+```js
+// tailwind.config.ts (v3) — v4 users put this in @theme.
+export default {
+  theme: {
+    extend: {
+      keyframes: {
+        "glitch-signal": {
+          "0%":   { filter: "blur(6px) contrast(1.7)" },
+          "12%":  { filter: "blur(1px) contrast(1.1)" },
+          "16%":  { filter: "blur(5px) contrast(1.6)" },
+          "28%":  { filter: "none" },                   // lock point 1
+          "33%":  { filter: "blur(4px) contrast(1.5)" },
+          "46%":  { filter: "none" },                   // lock point 2
+          "52%":  { filter: "blur(2px) contrast(1.2)" },
+          "100%": { filter: "none" },
+        },
+        "glitch-focus": {
+          "0%":   { filter: "blur(6px)" },
+          "22%":  { filter: "none" },
+          "34%":  { filter: "blur(3px)" },
+          "58%":  { filter: "none" },
+          "100%": { filter: "none" },
+        },
+      },
+      animation: {
+        "glitch-signal": "glitch-signal 900ms cubic-bezier(.2,.6,.2,1) 1",
+        "glitch-focus": "glitch-focus 900ms cubic-bezier(.2,.6,.2,1) 1",
+      },
+    },
+  },
+};
+```
+
+```html
+<!-- One-shot on load. inline-block + contain keep the raster region small;
+     motion-reduce handles the compliance story. -->
+<h1 class="font-display text-[3.625rem] leading-[1.05] text-platinum">
+  <span class="inline-block [contain:paint] animate-glitch-signal motion-reduce:animate-none
+               motion-reduce:!filter-none">
+    Built like you.
+  </span>
+</h1>
+
+<!-- Scroll-scrubbed, zero JavaScript. Keep the range narrow so a parked scroll
+     position almost always lands sharp. -->
+<h2 class="text-4xl">
+  <span class="inline-block [contain:paint] [animation:glitch-signal_linear_both]
+               [animation-timeline:view()] [animation-range:entry_15%_entry_45%]
+               motion-reduce:animate-none">
+    Culture is the source code.
+  </span>
+</h2>
+
+<!-- Hover softening on a nav link: smallest radius, group-hover only, never focus. -->
+<a href="/suites" class="group text-sm uppercase tracking-[0.16em]">
+  <span class="inline-block group-hover:animate-glitch-focus motion-reduce:animate-none">
+    Five service suites
+  </span>
+</a>
+```
+
+### 9.6 Next.js (App Router pattern)
+
+Like slice tear and unlike scramble, this variant needs no Client Component: the lock is CSS, so a
+Server Component ships the complete, animated headline with zero JavaScript.
+
+```tsx
+// app/page.tsx — Server Component. No "use client", no hydration, no runtime.
+import "@/components/glitch-text/glitch-text.css";
+import { getHeroCopy } from "@/lib/content";
+
+export const revalidate = 3600;
+
+export default async function HomePage() {
+  const { eyebrow, headline, sub } = await getHeroCopy();
+
+  return (
+    <section className="hero">
+      <p className="hero__eyebrow">{eyebrow}</p>
+
+      {/* The lock is declared in CSS and triggered by animation-timeline: view().
+          Nothing hydrates. The filter sits on a text-only leaf, so it cannot create a
+          containing block around the section's positioned children. */}
+      <h1 className="glitch" data-glitch="signal" data-glitch-size="lg" data-glitch-trigger="scroll">
+        <span className="glitch__truth">{headline}</span>
+      </h1>
+
+      <p className="hero__sub">{sub}</p>
+    </section>
+  );
+}
+
+export async function generateMetadata() {
+  const { headline } = await getHeroCopy();
+  return { title: "Urban Jungle Goddess", description: headline };
+}
+```
+
+One Next.js-specific caution: if the hero sits inside a layout with a `position: sticky` header or
+a `position: fixed` element, make sure the filter is on the text span and not on any ancestor they
+share — a filtered ancestor becomes their containing block and the header stops sticking (§12).
+
+### 9.7 shadcn/ui or Radix pattern
+
+```tsx
+import * as React from "react";
+import { Slot } from "@radix-ui/react-slot";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+
+/* No "use client", no hook, no state: with the scroll-driven trigger there is no
+   lifecycle to own. */
+const signalVariants = cva("glitch inline-block", {
+  variants: {
+    size: {
+      inline: "[--glitch-blur:1.5px] [--glitch-contrast:1.15] [--glitch-duration:420ms]",
+      sm:     "[--glitch-blur:2.5px] [--glitch-contrast:1.25] [--glitch-duration:600ms]",
+      md:     "[--glitch-blur:4px]   [--glitch-contrast:1.4]  [--glitch-duration:800ms]",
+      lg:     "[--glitch-blur:6px]   [--glitch-contrast:1.7]  [--glitch-duration:900ms]",
+      xl:     "[--glitch-blur:6px]   [--glitch-contrast:1.7]  [--glitch-duration:1100ms]",
+    },
+    flavour: {
+      lock:   "",
+      focus:  "data-[glitch-variant=focus]:[--glitch-contrast:1]",
+      luma:   "data-[glitch-variant=luma]:[--glitch-blur:0px]",
+      chroma: "data-[glitch-variant=chroma]:[--glitch-chroma:1px]",
+    },
+  },
+  defaultVariants: { size: "lg", flavour: "lock" },
+});
+
+export interface SignalProps
+  extends React.HTMLAttributes<HTMLElement>, VariantProps<typeof signalVariants> {
+  asChild?: boolean;
+  trigger?: "scroll" | "mount" | "hover";
+}
+
+export const Signal = React.forwardRef<HTMLElement, SignalProps>(
+  ({ className, size, flavour, asChild = false, trigger = "scroll", children, ...props }, ref) => {
+    const Comp = asChild ? Slot : "span";
+    return (
+      <Comp
+        ref={ref as never}
+        data-glitch="signal"
+        data-glitch-size={size ?? "lg"}
+        data-glitch-variant={flavour ?? "lock"}
+        data-glitch-trigger={trigger}
+        className={cn(signalVariants({ size, flavour }), className)}
+        {...props}
+      >
+        <span className="glitch__truth">{children}</span>
+      </Comp>
+    );
+  }
+);
+Signal.displayName = "Signal";
+
+// <Signal asChild size="xl" flavour="focus"><h1>Built like you.</h1></Signal>
+```
+
+### 9.8 Vue 3 (SFC)
+
+```vue
+<!-- GlitchSignal.vue -->
+<script setup lang="ts">
+import { computed, onBeforeUnmount, onMounted, ref } from "vue";
+
+const props = withDefaults(defineProps<{
+  size?: "inline" | "sm" | "md" | "lg" | "xl";
+  flavour?: "lock" | "focus" | "luma" | "chroma";
+  duration?: number;
+  trigger?: "mount" | "in-view" | "scroll" | "hover" | "manual";
+  once?: boolean;
+}>(), { size: "lg", flavour: "lock", duration: 900, trigger: "in-view", once: true });
+
+const host = ref<HTMLElement | null>(null);
+const truth = ref<HTMLElement | null>(null);
+const state = ref<"idle" | "glitching" | "glitching-alt">("idle");
+const reduced = ref(false);
+let spent = false, flip = false, settle: ReturnType<typeof setTimeout> | null = null;
+let io: IntersectionObserver | null = null;
+
+const cssOwnsIt = computed(
+  () => props.trigger === "scroll" && CSS.supports?.("animation-timeline: view()")
+);
+
+function clearFilter() {
+  if (truth.value) truth.value.style.filter = "";
+  state.value = "idle";
+}
+
+function run() {
+  if (reduced.value) return clearFilter();
+  if (cssOwnsIt.value) return;
+  if (props.once && spent) return;
+  spent = true;
+  if (settle) clearTimeout(settle);
+  flip = !flip;
+  state.value = flip ? "glitching" : "glitching-alt";
+  settle = setTimeout(clearFilter, props.duration + 120);
+}
+
+onMounted(() => {
+  reduced.value = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  if (reduced.value) return clearFilter();
+  if (cssOwnsIt.value || props.trigger === "manual") return;
+  if (props.trigger === "hover") {
+    host.value?.addEventListener("pointerenter", () => { spent = false; run(); });
+    return;
+  }
+  if (props.trigger === "mount" || !("IntersectionObserver" in window)) return run();
+  io = new IntersectionObserver((entries) => {
+    for (const e of entries) if (e.isIntersecting) { run(); if (props.once) io?.disconnect(); }
+  }, { threshold: 0.35 });
+  if (host.value) io.observe(host.value);
+});
+
+onBeforeUnmount(() => { if (settle) clearTimeout(settle); io?.disconnect(); });
+defineExpose({ run });
+</script>
+
+<template>
+  <span
+    ref="host"
+    class="glitch"
+    data-glitch="signal"
+    :data-glitch-size="size"
+    :data-glitch-variant="flavour"
+    :data-glitch-state="state"
+    :data-glitch-trigger="trigger"
+    :style="{ '--glitch-duration': duration + 'ms' }"
+  >
+    <span ref="truth" class="glitch__truth"><slot /></span>
+    <span v-if="!reduced" class="glitch__scan" aria-hidden="true" />
+  </span>
+</template>
+```
+
+### 9.9 Svelte
+
+```svelte
+<!-- GlitchSignal.svelte (Svelte 5 runes) -->
+<script lang="ts">
+  import type { Snippet } from "svelte";
+
+  interface Props {
+    children: Snippet;
+    size?: "inline" | "sm" | "md" | "lg" | "xl";
+    flavour?: "lock" | "focus" | "luma" | "chroma";
+    duration?: number;
+    trigger?: "mount" | "in-view" | "scroll" | "hover" | "manual";
+    once?: boolean;
+  }
+  let {
+    children, size = "lg", flavour = "lock",
+    duration = 900, trigger = "in-view", once = true,
+  }: Props = $props();
+
+  let host: HTMLElement | undefined = $state();
+  let truth: HTMLElement | undefined = $state();
+  let glitchState = $state<"idle" | "glitching" | "glitching-alt">("idle");
+  let reduced = $state(false);
+  let spent = false, flip = false, settle: ReturnType<typeof setTimeout> | null = null;
+
+  const cssOwnsIt = $derived(trigger === "scroll" && CSS.supports?.("animation-timeline: view()"));
+
+  function clearFilter() {
+    if (truth) truth.style.filter = "";
+    glitchState = "idle";
+  }
+
+  export function run() {
+    if (reduced) return clearFilter();
+    if (cssOwnsIt) return;
+    if (once && spent) return;
+    spent = true;
+    if (settle) clearTimeout(settle);
+    flip = !flip;
+    glitchState = flip ? "glitching" : "glitching-alt";
+    settle = setTimeout(clearFilter, duration + 120);
+  }
+
+  $effect(() => {
+    reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) { clearFilter(); return; }
+    if (cssOwnsIt || trigger === "manual" || trigger === "hover") return;
+    if (trigger === "mount" || !("IntersectionObserver" in window)) { run(); return; }
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { run(); if (once) io.disconnect(); }
+    }, { threshold: 0.35 });
+    if (host) io.observe(host);
+    return () => { io.disconnect(); if (settle) clearTimeout(settle); };
+  });
+</script>
+
+<span
+  bind:this={host}
+  class="glitch"
+  data-glitch="signal"
+  data-glitch-size={size}
+  data-glitch-variant={flavour}
+  data-glitch-state={glitchState}
+  data-glitch-trigger={trigger}
+  style="--glitch-duration:{duration}ms"
+>
+  <span bind:this={truth} class="glitch__truth">{@render children()}</span>
+  {#if !reduced}<span class="glitch__scan" aria-hidden="true"></span>{/if}
+</span>
+```
+
+### 9.10 Angular (standalone)
+
+```ts
+// glitch-signal.component.ts
+import {
+  AfterViewInit, ChangeDetectionStrategy, Component, DestroyRef, ElementRef,
+  Input, OnDestroy, Renderer2, inject, signal, viewChild,
+} from "@angular/core";
+import { NgIf } from "@angular/common";
+
+@Component({
+  selector: "ujg-glitch-signal",
+  standalone: true,
+  imports: [NgIf],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  template: `
+    <span
+      class="glitch"
+      data-glitch="signal"
+      [attr.data-glitch-size]="size"
+      [attr.data-glitch-variant]="flavour"
+      [attr.data-glitch-state]="state()"
+      [attr.data-glitch-trigger]="trigger"
+      [style.--glitch-duration.ms]="duration"
+    >
+      <span #truth class="glitch__truth"><ng-content></ng-content></span>
+      <span *ngIf="!reduced" class="glitch__scan" aria-hidden="true"></span>
+    </span>
+  `,
+})
+export class GlitchSignalComponent implements AfterViewInit, OnDestroy {
+  @Input() size: "inline" | "sm" | "md" | "lg" | "xl" = "lg";
+  @Input() flavour: "lock" | "focus" | "luma" | "chroma" = "lock";
+  @Input() duration = 900;
+  @Input() trigger: "mount" | "in-view" | "scroll" | "hover" | "manual" = "in-view";
+  @Input() once = true;
+
+  private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly renderer = inject(Renderer2);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly truth = viewChild.required<ElementRef<HTMLElement>>("truth");
+
+  readonly state = signal<"idle" | "glitching" | "glitching-alt">("idle");
+  reduced = false;
+
+  private io?: IntersectionObserver;
+  private settle: ReturnType<typeof setTimeout> | null = null;
+  private spent = false;
+  private flip = false;
+
+  /** No per-frame work: the filter animation runs in the compositor's raster pass, not
+   *  in a zone-bound callback. Unlike scramble, there is nothing to run outside the zone. */
+  private get cssOwnsIt(): boolean {
+    return this.trigger === "scroll" && CSS.supports?.("animation-timeline: view()");
+  }
+
+  ngAfterViewInit(): void {
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (this.reduced) { this.clearFilter(); return; }
+    if (this.cssOwnsIt || this.trigger === "manual") return;
+    if (this.trigger === "hover") {
+      this.host.nativeElement.addEventListener("pointerenter", () => {
+        this.spent = false;
+        this.run();
+      });
+      return;
+    }
+    if (this.trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+
+    this.io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { this.run(); if (this.once) this.io?.disconnect(); }
+    }, { threshold: 0.35 });
+    this.io.observe(this.host.nativeElement);
+    this.destroyRef.onDestroy(() => this.io?.disconnect());
+  }
+
+  run(): void {
+    if (this.reduced) { this.clearFilter(); return; }
+    if (this.cssOwnsIt) return;
+    if (this.once && this.spent) return;
+    this.spent = true;
+    if (this.settle) clearTimeout(this.settle);
+    this.flip = !this.flip;
+    this.state.set(this.flip ? "glitching" : "glitching-alt");
+    this.settle = setTimeout(() => this.clearFilter(), this.duration + 120);
+  }
+
+  /** Clear any inline filter a cancelled animation left behind, then return to base. */
+  private clearFilter(): void {
+    this.renderer.removeStyle(this.truth().nativeElement, "filter");
+    this.state.set("idle");
+  }
+
+  ngOnDestroy(): void { if (this.settle) clearTimeout(this.settle); this.io?.disconnect(); }
+}
+```
+
+### 9.11 Bootstrap 5
+
+```html
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
+<style>
+  .signal { display: inline-block; contain: paint; filter: none; }
+  .signal.is-a { animation: signal-a 900ms cubic-bezier(.2,.6,.2,1) 1; will-change: filter; }
+  .signal.is-b { animation: signal-b 900ms cubic-bezier(.2,.6,.2,1) 1; will-change: filter; }
+
+  /* Two identical sets so a replay can swap names — re-adding one class does nothing. */
+  @keyframes signal-a {
+    0%   { filter: blur(6px) contrast(1.7); }
+    28%  { filter: none; }
+    33%  { filter: blur(4px) contrast(1.5); }
+    46%  { filter: none; }
+    52%  { filter: blur(2px) contrast(1.2); }
+    100% { filter: none; }
+  }
+  @keyframes signal-b {
+    0%   { filter: blur(6px) contrast(1.7); }
+    28%  { filter: none; }
+    33%  { filter: blur(4px) contrast(1.5); }
+    46%  { filter: none; }
+    52%  { filter: blur(2px) contrast(1.2); }
+    100% { filter: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .signal.is-a, .signal.is-b { animation: none; filter: none; }
+  }
+  @media print { .signal { animation: none !important; filter: none !important; } }
+</style>
+
+<div class="container py-5 bg-dark text-light">
+  <h1 class="display-1 fw-normal">
+    <span class="signal" id="bsSignal">Built like you.</span>
+  </h1>
+  <button type="button" class="btn btn-warning btn-lg mt-3" id="bsReplay">Replay lock</button>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+  const signal = document.getElementById("bsSignal");
+  const bsReduced = window.matchMedia("(prefers-reduced-motion: reduce)");
+  let useA = true;
+
+  function land() {
+    signal.classList.remove("is-a", "is-b");
+    signal.style.filter = "";          // never leave the headline blurred
+    signal.style.willChange = "auto";  // release the promoted layer
+  }
+
+  function play() {
+    if (bsReduced.matches) return land();
+    land();
+    signal.classList.add(useA ? "is-a" : "is-b");
+    useA = !useA;
+  }
+
+  signal.addEventListener("animationend", land);
+  document.getElementById("bsReplay").addEventListener("click", play);
+  play();
+</script>
+```
+
+### 9.12 Web Component (custom element)
+
+```js
+/** <glitch-signal> — framework-free. Light-DOM text stays indexable and selectable.
+ *  Usage: <glitch-signal duration="900" trigger="scroll">Built like you.</glitch-signal> */
+const SHEET = new CSSStyleSheet();
+SHEET.replaceSync(`
+  :host { display: inline-block; position: relative; --blur: 6px; --contrast: 1.7; }
+  /* The filtered node is a text-only leaf inside the shadow root, so the host's own box
+     never becomes a containing block for anything the page positions. */
+  .lens { display: inline-block; contain: paint; filter: none; }
+  :host([data-state="a"]) .lens { animation: signal-a var(--d, 900ms) cubic-bezier(.2,.6,.2,1) 1; will-change: filter; }
+  :host([data-state="b"]) .lens { animation: signal-b var(--d, 900ms) cubic-bezier(.2,.6,.2,1) 1; will-change: filter; }
+  :host([data-state="idle"]) .lens { will-change: auto; }
+
+  @keyframes signal-a {
+    0%   { filter: blur(var(--blur)) contrast(var(--contrast)); }
+    28%  { filter: none; }
+    33%  { filter: blur(calc(var(--blur) * 0.67)) contrast(calc(var(--contrast) * 0.88)); }
+    46%  { filter: none; }
+    52%  { filter: blur(calc(var(--blur) * 0.33)) contrast(1.2); }
+    100% { filter: none; }
+  }
+  @keyframes signal-b {
+    0%   { filter: blur(var(--blur)) contrast(var(--contrast)); }
+    28%  { filter: none; }
+    33%  { filter: blur(calc(var(--blur) * 0.67)) contrast(calc(var(--contrast) * 0.88)); }
+    46%  { filter: none; }
+    52%  { filter: blur(calc(var(--blur) * 0.33)) contrast(1.2); }
+    100% { filter: none; }
+  }
+
+  @supports (animation-timeline: view()) {
+    :host([trigger="scroll"]) .lens {
+      animation: signal-a linear both;
+      animation-timeline: view();
+      animation-range: entry 15% entry 45%;
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lens { animation: none !important; filter: none !important; }
+  }
+  @media print { .lens { animation: none !important; filter: none !important; } }
+`);
+
+class GlitchSignalElement extends HTMLElement {
+  static observedAttributes = ["duration", "trigger", "once", "blur"];
+  #io = null; #settle = null; #spent = false; #flip = false;
+
+  connectedCallback() {
+    const root = this.attachShadow({ mode: "open" });
+    root.adoptedStyleSheets = [SHEET];
+    root.innerHTML = `<span class="lens"><slot></slot></span>`;
+    this.lens = root.querySelector(".lens");
+    this.style.setProperty("--d", this.duration + "ms");
+    if (this.getAttribute("blur")) this.style.setProperty("--blur", this.getAttribute("blur"));
+
+    this.reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (this.reduced) { this.#land(); return; }
+    if (this.trigger === "scroll" && CSS.supports?.("animation-timeline: view()")) return;
+    if (this.trigger === "manual") return;
+    if (this.trigger === "mount" || !("IntersectionObserver" in window)) { this.run(); return; }
+
+    this.#io = new IntersectionObserver((entries) => {
+      for (const e of entries) if (e.isIntersecting) { this.run(); if (this.once) this.#io.disconnect(); }
+    }, { threshold: 0.35 });
+    this.#io.observe(this);
+  }
+
+  disconnectedCallback() {
+    if (this.#settle) clearTimeout(this.#settle);
+    this.#io?.disconnect();
+  }
+
+  get duration() { return Number(this.getAttribute("duration") ?? 900); }
+  get trigger() { return this.getAttribute("trigger") ?? "in-view"; }
+  get once() { return this.getAttribute("once") !== "false"; }
+
+  run() {
+    if (this.reduced) { this.#land(); return; }
+    if (this.once && this.#spent) return;
+    this.#spent = true;
+    if (this.#settle) clearTimeout(this.#settle);
+    this.#flip = !this.#flip;
+    this.dataset.state = this.#flip ? "a" : "b";
+    this.#settle = setTimeout(() => this.#land(), this.duration + 120);
+  }
+
+  #land() {
+    this.dataset.state = "idle";
+    if (this.lens) this.lens.style.filter = "";
+  }
+}
+
+customElements.define("glitch-signal", GlitchSignalElement);
+```
+
+### 9.13 Python (Jinja2 rendering + FastAPI endpoint)
+
+The server owns two ceilings here, and both are more than hygiene: **blur radius** (a performance
+and legibility limit) and **duration** (a legibility budget). Unlike scramble there is no glyph
+pool, and unlike slice tear the dangerous input is not step rate but radius.
+
+```python
+# app/signal.py
+from __future__ import annotations
+
+import unicodedata
+from dataclasses import dataclass
+from typing import Final, Literal
+
+from fastapi import APIRouter, HTTPException
+from fastapi.responses import HTMLResponse
+from jinja2 import Environment, select_autoescape
+from pydantic import BaseModel, Field, field_validator
+
+Size = Literal["inline", "sm", "md", "lg", "xl"]
+Flavour = Literal["lock", "focus", "luma", "chroma"]
+
+# Blur radius is capped for two reasons at once: raster cost on weak GPUs, and the
+# length of time the headline is genuinely unreadable. 6px is the house ceiling (§4).
+MAX_BLUR_PX: Final[float] = 6.0
+# Total pass length is a legibility budget, not just a taste one.
+MAX_DURATION_MS: Final[int] = 1200
+
+env = Environment(autoescape=select_autoescape(["html"]))
+
+TEMPLATE = env.from_string(
+    """
+<h1 class="glitch" data-glitch="signal" data-glitch-size="{{ size }}"
+    data-glitch-variant="{{ flavour }}" data-glitch-trigger="scroll"
+    style="--glitch-duration:{{ duration }}ms; --glitch-blur:{{ blur }}px">
+  <span class="glitch__truth">{{ headline }}</span>
+</h1>
+"""
+)
+
+# Per-tier radius ceilings. A client may request less, never more.
+TIER_BLUR: Final[dict[str, float]] = {
+    "inline": 1.5,
+    "sm": 2.5,
+    "md": 4.0,
+    "lg": 6.0,
+    "xl": 6.0,
+}
+
+
+@dataclass(frozen=True)
+class SignalCopy:
+    headline: str
+    size: Size = "lg"
+    flavour: Flavour = "lock"
+    duration: int = 900
+    blur: float = MAX_BLUR_PX
+
+    def render(self) -> str:
+        # One node, real text, autoescaped. The radius is clamped to the tier ceiling
+        # here rather than trusted from the client.
+        ceiling = TIER_BLUR[self.size]
+        return TEMPLATE.render(
+            headline=self.headline,
+            size=self.size,
+            flavour=self.flavour,
+            duration=min(self.duration, MAX_DURATION_MS),
+            blur=min(self.blur, ceiling),
+        )
+
+
+class HeadlineIn(BaseModel):
+    headline: str = Field(min_length=1, max_length=160)
+    size: Size = "lg"
+    flavour: Flavour = "lock"
+    duration: int = Field(default=900, ge=200, le=MAX_DURATION_MS)
+    blur: float = Field(default=MAX_BLUR_PX, gt=0, le=MAX_BLUR_PX)
+
+    @field_validator("headline")
+    @classmethod
+    def clean(cls, v: str) -> str:
+        """Reject control characters and bidi overrides.
+
+        Bidi override codepoints (U+202E and relatives) make rendered text read
+        differently from its source — a spoofing vector in any string a server echoes
+        into a page, and a headline is the most visible place to try it.
+        """
+        cleaned = v.strip()
+        if not cleaned:
+            raise ValueError("headline is empty after trimming")
+        if any(unicodedata.category(ch) in {"Cc", "Cf"} for ch in cleaned):
+            raise ValueError("headline contains control or formatting characters")
+        return cleaned
+
+
+router = APIRouter(prefix="/api/hero", tags=["hero"])
+
+
+@router.post("/signal", response_class=HTMLResponse)
+async def render_signal(payload: HeadlineIn) -> HTMLResponse:
+    """Render a signal-lock headline fragment.
+
+    No character cap is needed — a filter is content-agnostic and cannot corrupt
+    glyphs, split graphemes or render tofu. What is clamped is the radius and the
+    duration, because together they decide how long the headline is unreadable.
+    """
+    try:
+        copy = SignalCopy(
+            headline=payload.headline,
+            size=payload.size,
+            flavour=payload.flavour,
+            duration=payload.duration,
+            blur=payload.blur,
+        )
+    except ValueError as exc:  # pragma: no cover - defensive
+        raise HTTPException(status_code=422, detail=str(exc)) from exc
+    return HTMLResponse(content=copy.render())
+```
+
+### 9.14 SwiftUI (iOS)
+
+```swift
+import SwiftUI
+
+/// Focus lock. The text is never replaced or moved, so the accessibility label is simply
+/// the text — no label juggling needed, unlike the scramble variant.
+struct GlitchSignal: View {
+    let text: String
+    var duration: Double = 0.9
+    var maxBlur: CGFloat = 6
+
+    /// (atProgress, blurMultiplier) — non-monotonic, with lock points at 0 blur.
+    private let ramp: [(progress: Double, blur: CGFloat)] = [
+        (0.00, 1.00),
+        (0.12, 0.17),
+        (0.16, 0.83),
+        (0.28, 0.00),   // lock point 1
+        (0.33, 0.67),
+        (0.46, 0.00),   // lock point 2
+        (0.52, 0.33),
+        (1.00, 0.00),
+    ]
+
+    @State private var blur: CGFloat = 0
+    @State private var task: Task<Void, Never>?
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        Text(text)
+            .blur(radius: blur)
+            .accessibilityAddTraits(.isHeader)
+            .onAppear(perform: start)
+            .onDisappear {
+                task?.cancel()
+                blur = 0          // never leave the headline soft
+            }
+    }
+
+    private func start() {
+        // Reduce Motion is a hard branch on Apple platforms.
+        guard !reduceMotion else { blur = 0; return }
+        task?.cancel()
+        task = Task { @MainActor in
+            defer { blur = 0 }    // settle on every exit path, including cancellation
+            for index in 0..<(ramp.count - 1) {
+                if Task.isCancelled { return }
+                let from = ramp[index]
+                let to = ramp[index + 1]
+                let segment = (to.progress - from.progress) * duration
+                withAnimation(.easeOut(duration: segment)) {
+                    blur = to.blur * maxBlur
+                }
+                try? await Task.sleep(for: .seconds(segment))
+            }
+        }
+    }
+}
+```
+
+### 9.15 Jetpack Compose (Android)
+
+```kotlin
+import androidx.compose.animation.core.*
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.*
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.BlurredEdgeTreatment
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.unit.dp
+
+@Composable
+private fun reduceMotion(): Boolean {
+    val context = LocalContext.current
+    return remember(context) {
+        android.provider.Settings.Global.getFloat(
+            context.contentResolver,
+            android.provider.Settings.Global.ANIMATOR_DURATION_SCALE,
+            1f
+        ) == 0f
+    }
+}
+
+@Composable
+fun GlitchSignal(
+    text: String,
+    modifier: Modifier = Modifier,
+    durationMillis: Int = 900,
+    maxBlurDp: Float = 6f,
+    style: TextStyle = MaterialTheme.typography.displaySmall,
+) {
+    val reduced = reduceMotion()
+
+    // Non-monotonic keyframes with lock points at 0f — the Compose expression of the
+    // CSS ramp. Modifier.blur is hardware-accelerated on API 31+ and a no-op below it,
+    // which is a graceful degradation rather than a break.
+    val blurMultiplier by if (reduced) {
+        remember { mutableFloatStateOf(0f) }
+    } else {
+        val animatable = remember { Animatable(1f) }
+        LaunchedEffect(text) {
+            animatable.snapTo(1f)
+            animatable.animateTo(
+                targetValue = 0f,
+                animationSpec = keyframes {
+                    durationMillis = durationMillis
+                    1.00f at 0
+                    0.17f at (durationMillis * 0.12f).toInt()
+                    0.83f at (durationMillis * 0.16f).toInt()
+                    0.00f at (durationMillis * 0.28f).toInt()   // lock point 1
+                    0.67f at (durationMillis * 0.33f).toInt()
+                    0.00f at (durationMillis * 0.46f).toInt()   // lock point 2
+                    0.33f at (durationMillis * 0.52f).toInt()
+                    0.00f at durationMillis
+                },
+            )
+        }
+        animatable.asState()
+    }
+
+    val radius = (blurMultiplier * maxBlurDp).dp
+
+    Text(
+        text = text,
+        style = style,
+        modifier = modifier
+            .then(
+                if (radius.value > 0.1f) {
+                    Modifier.blur(radius, edgeTreatment = BlurredEdgeTreatment.Unbounded)
+                } else {
+                    Modifier   // drop the blur layer entirely once settled
+                }
+            )
+            .semantics {
+                heading()
+                contentDescription = text
+            },
+    )
+}
+```
+
+### 9.16 Flutter (Dart)
+
+```dart
+import 'dart:ui' as ui;
+import 'package:flutter/material.dart';
+
+/// Focus lock. Text is never replaced or moved, so Semantics is trivial.
+class GlitchSignal extends StatefulWidget {
+  const GlitchSignal({
+    super.key,
+    required this.text,
+    this.duration = const Duration(milliseconds: 900),
+    this.maxBlur = 6,
+    this.style,
+  });
+
+  final String text;
+  final Duration duration;
+  final double maxBlur;
+  final TextStyle? style;
+
+  @override
+  State<GlitchSignal> createState() => _GlitchSignalState();
+}
+
+class _GlitchSignalState extends State<GlitchSignal>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller =
+      AnimationController(vsync: this, duration: widget.duration);
+
+  /// Non-monotonic ramp with lock points at 0 — a TweenSequence is the Flutter
+  /// equivalent of the CSS keyframes.
+  late final Animation<double> _blur = TweenSequence<double>([
+    TweenSequenceItem(tween: Tween(begin: 1.00, end: 0.17), weight: 12),
+    TweenSequenceItem(tween: Tween(begin: 0.17, end: 0.83), weight: 4),
+    TweenSequenceItem(tween: Tween(begin: 0.83, end: 0.00), weight: 12), // lock 1
+    TweenSequenceItem(tween: Tween(begin: 0.00, end: 0.67), weight: 5),
+    TweenSequenceItem(tween: Tween(begin: 0.67, end: 0.00), weight: 13), // lock 2
+    TweenSequenceItem(tween: Tween(begin: 0.00, end: 0.33), weight: 6),
+    TweenSequenceItem(tween: Tween(begin: 0.33, end: 0.00), weight: 48),
+  ]).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOut));
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // disableAnimations mirrors the OS reduce-motion setting: branch, don't soften.
+    if (MediaQuery.of(context).disableAnimations) {
+      _controller.value = 1;
+    } else if (!_controller.isAnimating && _controller.value == 0) {
+      _controller.forward();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle? style = widget.style ?? Theme.of(context).textTheme.displaySmall;
+
+    return Semantics(
+      header: true,
+      label: widget.text,
+      child: AnimatedBuilder(
+        animation: _blur,
+        builder: (context, child) {
+          final double sigma = _blur.value * widget.maxBlur;
+          // Drop the ImageFiltered layer entirely once settled: an identity filter
+          // still costs a saveLayer on every frame.
+          if (sigma < 0.1) return child!;
+          return ImageFiltered(
+            imageFilter: ui.ImageFilter.blur(sigmaX: sigma, sigmaY: sigma),
+            child: child,
+          );
+        },
+        child: Text(widget.text, style: style),
+      ),
+    );
+  }
+}
+```
+
+### 9.17 Testing (Vitest/RTL unit tests + jest-axe + Playwright E2E)
+
+```tsx
+// GlitchSignal.test.tsx
+import { render, screen, act } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { axe, toHaveNoViolations } from "jest-axe";
+import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
+import { GlitchSignal } from "./GlitchSignal";
+
+expect.extend(toHaveNoViolations);
+
+function mockMatchMedia(reduced: boolean) {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: (query: string) => ({
+      matches: reduced && query.includes("reduce"),
+      media: query, onchange: null,
+      addEventListener: vi.fn(), removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
+    }),
+  });
+}
+
+beforeEach(() => {
+  mockMatchMedia(false);
+  vi.stubGlobal("CSS", { supports: () => false });   // force the JS trigger path
+  vi.useFakeTimers();
+});
+afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); });
+
+describe("GlitchSignal", () => {
+  it("renders exactly one copy of the text with no hidden duplicate", () => {
+    render(<GlitchSignal as="h1" trigger="mount">Built like you.</GlitchSignal>);
+    expect(screen.getAllByText("Built like you.")).toHaveLength(1);
+    expect(screen.getByRole("heading", { name: "Built like you." })).toBeInTheDocument();
+  });
+
+  it("returns to the idle state so the headline cannot stay blurred", () => {
+    const { container } = render(
+      <GlitchSignal as="h1" trigger="mount" duration={900}>Built like you.</GlitchSignal>
+    );
+    const host = container.querySelector(".glitch") as HTMLElement;
+    expect(host.dataset.glitchState).toBe("glitching");
+    act(() => { vi.advanceTimersByTime(1100); });
+    // Back on the unfiltered base rule — the variant's most important guarantee.
+    expect(host.dataset.glitchState).toBe("idle");
+  });
+
+  it("puts the filter on a text-only leaf, never on the host", () => {
+    const { container } = render(
+      <GlitchSignal as="h1" trigger="mount">Built like you.</GlitchSignal>
+    );
+    const host = container.querySelector(".glitch") as HTMLElement;
+    const truth = container.querySelector(".glitch__truth") as HTMLElement;
+    // A filter on the host would create a containing block for positioned descendants.
+    expect(host.style.filter).toBe("");
+    expect(truth).toBeInTheDocument();
+  });
+
+  it("keeps decoration outside the filtered node", () => {
+    const { container } = render(
+      <GlitchSignal as="h1" trigger="mount" interlace>Built like you.</GlitchSignal>
+    );
+    const truth = container.querySelector(".glitch__truth") as HTMLElement;
+    // The scanline and interlace are siblings of the filtered node, not children —
+    // blurring them would turn them to grey wash.
+    expect(truth.querySelector(".glitch__scan")).toBeNull();
+    expect(truth.querySelector(".glitch__interlace")).toBeNull();
+    expect(container.querySelector(".glitch__scan")).toBeInTheDocument();
+  });
+
+  it("declares nothing and renders sharp under prefers-reduced-motion", () => {
+    mockMatchMedia(true);
+    const { container } = render(
+      <GlitchSignal as="h1" trigger="mount">Built like you.</GlitchSignal>
+    );
+    const host = container.querySelector(".glitch") as HTMLElement;
+    expect(host.dataset.glitchState).toBe("idle");
+    expect(container.querySelector(".glitch__scan")).toBeNull();
+    expect(screen.getByRole("heading")).toHaveTextContent("Built like you.");
+  });
+
+  it("caps the blur radius at the type level", () => {
+    const { container } = render(
+      // @ts-expect-error — 12 is not an allowed radius; the union enforces the ceiling.
+      <GlitchSignal as="h1" trigger="mount" blur={12}>Built like you.</GlitchSignal>
+    );
+    expect(container.querySelector(".glitch")).toBeInTheDocument();
+  });
+
+  it("stays out of the way entirely when CSS owns the trigger", () => {
+    vi.stubGlobal("CSS", { supports: () => true });
+    const { container } = render(
+      <GlitchSignal as="h1" trigger="scroll">Built like you.</GlitchSignal>
+    );
+    expect((container.querySelector(".glitch") as HTMLElement).dataset.glitchState).toBe("idle");
+  });
+
+  it("has no axe violations", async () => {
+    const { container } = render(
+      <GlitchSignal as="h1" trigger="mount">Built like you.</GlitchSignal>
+    );
+    expect(await axe(container)).toHaveNoViolations();
+  });
+
+  it("replay control is a real button reachable by keyboard", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    render(
+      <>
+        <GlitchSignal as="h1" trigger="manual">Built like you.</GlitchSignal>
+        <button type="button">Replay lock</button>
+      </>
+    );
+    await user.tab();
+    expect(screen.getByRole("button", { name: "Replay lock" })).toHaveFocus();
+  });
+});
+```
+
+```ts
+// e2e/glitch-signal.spec.ts
+import { test, expect } from "@playwright/test";
+
+test.describe("Glitch Signal Lock", () => {
+  test("ships with no JavaScript required", async ({ browser }) => {
+    const context = await browser.newContext({ javaScriptEnabled: false });
+    const page = await context.newPage();
+    await page.goto("/");
+    await expect(page.locator("h1")).toHaveText("Built like you.");
+    await context.close();
+  });
+
+  test("settles to filter: none and never parks blurred", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(1400);
+    const filter = await page.locator(".glitch__truth").first()
+      .evaluate((el) => getComputedStyle(el).filter);
+    expect(filter).toBe("none");
+  });
+
+  test("releases the promoted layer after the pass", async ({ page }) => {
+    await page.goto("/");
+    await page.waitForTimeout(1400);
+    const willChange = await page.locator(".glitch__truth").first()
+      .evaluate((el) => getComputedStyle(el).willChange);
+    // A promoted layer left on costs memory for the life of the page.
+    expect(willChange).toBe("auto");
+  });
+
+  test("the filter does not sit on an ancestor of positioned content", async ({ page }) => {
+    await page.goto("/");
+    const offenders = await page.evaluate(() => {
+      const bad: string[] = [];
+      for (const el of document.querySelectorAll("*")) {
+        const style = getComputedStyle(el);
+        if (style.filter === "none") continue;
+        // A filtered element is a containing block for fixed/absolute descendants.
+        for (const child of el.querySelectorAll("*")) {
+          const position = getComputedStyle(child).position;
+          if (position === "fixed" || position === "sticky") {
+            bad.push(`${el.className} > ${child.tagName}.${child.className} (${position})`);
+          }
+        }
+      }
+      return bad;
+    });
+    expect(offenders).toEqual([]);
+  });
+
+  test("contributes zero layout shift", async ({ page }) => {
+    await page.goto("/");
+    const before = await page.locator(".glitch").first().boundingBox();
+    await page.waitForTimeout(1400);
+    const after = await page.locator(".glitch").first().boundingBox();
+    expect(Math.abs((after?.width ?? 0) - (before?.width ?? 0))).toBeLessThan(1);
+    expect(Math.abs((after?.y ?? 0) - (before?.y ?? 0))).toBeLessThan(1);
+  });
+
+  test("total unreadable time stays within budget", async ({ page }) => {
+    await page.goto("/");
+    // Sample the computed blur radius and count frames above the legibility threshold.
+    const softFrames = await page.locator(".glitch__truth").first().evaluate(async (el) => {
+      let soft = 0;
+      for (let i = 0; i < 90; i++) {
+        const filter = getComputedStyle(el).filter;
+        const match = /blur\(([\d.]+)px\)/.exec(filter);
+        if (match && Number(match[1]) > 3) soft++;
+        await new Promise((r) => setTimeout(r, 16));
+      }
+      return soft;
+    });
+    // ~1440ms sampled at 16ms; keep meaningfully-unreadable time under ~400ms (§4).
+    expect(softFrames * 16).toBeLessThan(400);
+  });
+
+  test("declares no animation under reduced motion", async ({ browser }) => {
+    const context = await browser.newContext({ reducedMotion: "reduce" });
+    const page = await context.newPage();
+    await page.goto("/");
+    const target = page.locator(".glitch__truth").first();
+    expect(await target.evaluate((el) => el.getAnimations().length)).toBe(0);
+    expect(await target.evaluate((el) => getComputedStyle(el).filter)).toBe("none");
+    await context.close();
+  });
+
+  test("prints sharp", async ({ page }) => {
+    await page.goto("/");
+    await page.emulateMedia({ media: "print" });
+    const filter = await page.locator(".glitch__truth").first()
+      .evaluate((el) => getComputedStyle(el).filter);
+    expect(filter).toBe("none");
+  });
+});
+```
+
+* * *
+
+## 10. Accessibility
+
+The single-element implementation inherits slice tear's strong starting position — real text,
+animated directly, correct accessible name at every frame. What is specific here is that blur makes
+text **temporarily unreadable**, and softened text is **lower-contrast** text. Those two facts
+carry this section.
+
+**Roles and attributes.**
+
+* The host keeps its native semantics — a locked `h1` is an `h1` with exactly one accessible name.
+  The variant adds no role.
+* **There is no noise node and no text duplicate.** Any `aria-hidden` in the markup belongs to the
+  scanline or the interlace overlay, and nothing else.
+* **No `aria-live`** on or around the element. Nothing here is a status change.
+* Decoration (scanline, interlace) is `aria-hidden`, `pointer-events: none`, and lives **outside**
+  the filtered node — blurring it both wastes raster and turns it to grey wash.
+* Inside a link or button, the interactive host owns role, name and focus ring.
+
+**Keyboard map.** The text is not focusable and has no keyboard interaction — correct for
+decoration. Only an optional replay control is operable:
+
+| Key | Action |
+| ---| --- |
+| `Tab` | Moves focus to the replay control (if present) |
+| `Shift + Tab` | Moves focus to the previous control |
+| `Enter` | Fires the replay (native `button` behaviour) |
+| `Space` | Fires the replay (native `button` behaviour) |
+| `Esc` | No binding — a lock is not a dismissible surface |
+
+**Focus management.** Nothing about a lock moves focus, and this variant has a focus hazard of its
+own: **a `filter` on an ancestor blurs the descendant's focus ring**, and because a filtered element
+also becomes a containing block, a focus ring positioned with `absolute` can land in the wrong
+place entirely. Put the animation on a text-only span, never on a wrapper containing interactive
+content. The hover softening must be scoped to `@media (hover: hover) and (pointer: fine)` with
+`:hover` only — never `:focus-visible`.
+
+**Contrast — the variant-specific obligation.** Two distinct claims, and both matter:
+
+1. The **settled** text carries the formal obligation: 4.5:1, or 3:1 for large text (≥24px bold /
+   ≥18.66px). That is what WCAG 1.4.3 measures and what an audit will check.
+2. The **blurred** text is genuinely lower-contrast than the settled text, because blur blends
+   glyph edges into the background — a 4.6:1 headline can measure below 3:1 mid-pass. WCAG does not
+   test transient states, so this will never show up in an automated audit; it is still a real
+   reduction in legibility for a low-vision visitor. The mitigations are the ones already in the
+   spec: keep the radius ≤6px, keep the lock points so sharp frames recur, keep the total
+   meaningfully-unreadable time under about 400ms, and do not combine a high blur with a
+   contrast-reducing background. Over imagery, verify the settled state against the darkest and
+   lightest regions the line crosses, and keep a scrim.
+
+**Target size.** The text is not a target. A replay control meets 44×44px (WCAG 2.5.8 AA asks
+24×24px; the house standard is 44px), delivered with padding.
+
+**Flash and seizure safety.** Gentler than slice tear, because the transitions are interpolated
+rather than stepped — but the `contrast()` swing is a luminance change, and the luminance-flicker
+sub-variant makes it the only moving part. The house configuration (contrast capped at 1.7, two
+lock points, 900ms, eased transitions) produces well under three high-contrast changes per second.
+Two rules follow: **cap the contrast swing at 1.7**, and never pair the luminance-flicker variant
+with a near-black background and near-white text, where the swing is at its most severe.
+
+**Cognitive and vestibular load.** Blur is implicated in motion sickness less than displacement is,
+which is a point in this variant's favour. The cognitive cost is the opposite: a visitor who began
+reading and then loses sharpness has to re-fixate. That is the argument for keeping the pass short
+and the lock points frequent, and the argument against ever using this on body copy or on a
+headline a visitor is likely to arrive mid-read.
+
+**What changes under `prefers-reduced-motion`.** Everything, as a branch: `animation: none` **and**
+`filter: none`, both forced, plus `will-change: auto` and the decoration removed from the DOM. The
+doubled declaration is deliberate — an interrupted pass or a script-applied inline style can leave a
+computed filter in place, and for this variant the stalled state is unreadable rather than untidy.
+On native: `accessibilityReduceMotion`, `ANIMATOR_DURATION_SCALE == 0`, and
+`MediaQuery.disableAnimations`, all honoured in §9.14–9.16. WCAG 2.3.3 wants interaction-triggered
+motion disableable; the scroll-scrubbed variant is motion triggered by scrolling and is covered by
+the same branch.
+
+**Common accessibility failures specific to this variant.**
+
+* Leaving the headline blurred because the settle state was only in the keyframe's `100%` stop, or
+  because `animation-fill-mode: forwards` held a soft frame.
+* Putting the filter on a wrapper containing a link, button, sticky header or absolutely positioned
+  element — blurring the focus ring and breaking the containing block.
+* A radius above 6px, extending the unreadable window and crushing contrast.
+* Pairing the luminance-flicker variant with maximum contrast on a black background, producing a
+  luminance swing near the flash threshold.
+* Scroll-scrubbing over a wide `animation-range`, so a visitor can park with the headline soft
+  indefinitely.
+* Blurring the scanline or interlace along with the text, which greys out the decoration and
+  obscures the glyphs further.
+* Running the pass infinitely with no pause control (WCAG 2.2.2 failure past five seconds) — and
+  here an infinite blur is worse than an infinite tear, because the text is periodically unreadable
+  rather than merely moving.
+* Firing the hover softening on `:focus-visible`, blurring labels for keyboard users at every tab
+  stop.
+* Printing with the filter still applied, producing a permanently blurred heading in a PDF.
+
+* * *
+
+## 11. Innovative / Emerging Ideas
+
+* **`@property`-typed blur radius.** Registering `--glitch-blur` as a `<length>` makes the radius
+  interpolate smoothly and lets a single keyframe set serve every tier by animating the token. More
+  valuable here than in any sibling, because radius is the thing that *must* scale with type size —
+  one ramp, five tiers, no duplicated keyframes.
+* **Scroll-driven lock with a narrow range.** `animation-timeline: view()` with
+  `animation-range: entry 15% entry 45%` scrubs sharpness against viewport entry with no script.
+  The narrow range is the innovation, not the timeline: it keeps a parked scroll position almost
+  always on the sharp side, which is what makes a scrubbed blur safe to ship at all.
+* **View Transitions as a route-level focus pull.** With cross-document view transitions, the
+  incoming page can resolve into sharpness using `::view-transition-new`, which is a far better use
+  of the gesture than repeating it per section — the site's navigation becomes the camera.
+* **`backdrop-filter` inversion.** Blurring the *backdrop* while the text stays sharp produces the
+  same "signal acquiring" read with none of the legibility cost, because the glyphs never soften.
+  Different performance profile (the blurred region is larger), but worth testing when the headline
+  sits over imagery and contrast is already tight.
+* **SVG filter primitives for real signal artefacts.** `feTurbulence` plus `feDisplacementMap` can
+  produce genuine analogue distortion — rolling noise rather than a uniform Gaussian blur — driven
+  by an animated `baseFrequency`. Far more authentic than `blur()`, and far more expensive; viable
+  for a one-shot hero on desktop, not for anything on mobile.
+* **Variable-font optical-size axis instead of blur.** Animating `opsz` (or a custom weight axis)
+  changes how the letterforms are *drawn* rather than rasterising and smearing them, so the text
+  never truly loses its edges. It reads as a focus pull without the contrast cost or the raster
+  pass — the most promising direction for making this variant genuinely cheap, and it degrades to
+  nothing on a static font.
+
+* * *
+
+## 12. Conversion / UX Killers
+
+* **The headline that stays blurred.** The worst failure in the glitch family: a `fill-mode:
+  forwards` holding a soft frame, an inline filter a script never cleared, or a settle state that
+  lived only in the keyframe's `100%` stop. The page looks broken in a way that cannot be read
+  around, and it will not throw an error. Fix: `filter: none` in the base rule, in the
+  reduced-motion branch, and in print; clear inline filters on settle (§9.4); return to an explicit
+  `idle` state.
+* **`filter` on a wrapper, breaking things that look unrelated.** A non-`none` filter creates a
+  stacking context *and* a containing block for fixed and absolutely positioned descendants. Put it
+  on a hero wrapper and a `position: sticky` header inside stops sticking, a `position: fixed`
+  modal positions against the wrapper, and `z-index` ordering reshuffles. Nothing about those
+  symptoms points at an animation. Fix: filter a text-only leaf, verified by the ancestor test in
+  §9.17.
+* **Blur as the expensive mistake on mobile.** Raster cost scales with the filtered area and the
+  radius, so a 6px blur on a full-bleed section or a 76px headline drops frames on low-end Android —
+  during the first second of the page. Fix: smallest possible element, `contain: paint`, radius
+  ≤6px, and slice tear when the device budget is tight.
+* **`will-change: filter` left on permanently.** The classic premature-optimisation bug: a promoted
+  layer that costs memory for the life of the page, multiplied by every instance. Fix: gate it to
+  `data-glitch-state="glitching"` and drop it on idle (§9.2), verified in §9.17.
+* **The blurred scanline.** Putting the scanline or interlace overlay *inside* the filtered node
+  blurs it into grey wash, which both loses the effect and further obscures the glyphs. Fix:
+  decoration is a sibling of the filtered node, never a child.
+* **A monotonic ramp sold as a glitch.** Blur that only ever decreases is a blur-in — a perfectly
+  good entrance animation, but it is not this component, and shipping it as "the glitch option"
+  means the brand gesture never lands. Fix: at least one lock point, with sharpness going backwards
+  after it.
+* **The scrubbed lock parked soft.** A wide `animation-range` lets a visitor stop scrolling with the
+  headline mid-blur and leave it there. Fix: narrow range near the entry edge, or use the one-shot
+  trigger.
+* **The replay that silently does nothing.** Re-applying the same `animation-name` does not restart
+  a CSS animation. Fix: alternate between two identically-defined keyframe names (§9.2), or use
+  `getAnimations()` with `cancel()` and `play()`.
+* **Text antialiasing shifting at the edges of the pass.** Applying any filter typically forces text
+  onto grayscale antialiasing instead of subpixel, so glyph weight changes subtly the instant the
+  filter is applied and again when it is removed. It reads as a tiny unexplained flicker on the
+  settled headline. Fix: accept it (it is small), or keep a permanent `filter: opacity(1)` so the
+  rendering path never changes — at the cost of a permanent layer, which is usually the wrong trade.
+* **Lock on the wrong content.** Over a price, an error, a form label or a confirmation number,
+  blur makes the visitor doubt the *data* while also preventing them from reading it. Fix: display
+  type only.
+
+* * *
+
+## 13. Advanced Patterns
+
+* **The ramp as data, not keyframes.** Expressing the pass as a list of `(progress, multiplier)`
+  pairs — as §9.14's `ramp`, §9.15's `keyframes` block and §9.16's `TweenSequence` all do — rather
+  than hardcoding radii makes the lock points explicit, makes the tier scaling a single
+  multiplication, and makes the "is this monotonic?" question answerable by inspection. On the web
+  the same shape is achievable with `@property`-typed tokens plus `calc()` in the keyframes (§9.2),
+  which is why those keyframes multiply `var(--glitch-blur)` rather than naming pixel values.
+
+* **Containment as a performance contract.** `display: inline-block` plus `contain: paint` on the
+  filtered node is not cosmetic: it bounds the raster region to the element's own box, so the
+  compositor does not have to consider ancestors or siblings when rasterising the blur. Paired with
+  the rule that the filter goes on a text-only leaf, this turns an unbounded cost into a bounded
+  one — and it is why the same keyframes are cheap on a headline and expensive on a section.
+
+* **A `will-change` window rather than a `will-change` declaration.** `will-change: filter` is only
+  correct *during* the pass. The pattern is to bind it to the same state attribute that drives the
+  animation and to set `will-change: auto` on idle, so the promoted layer exists for 900ms and not
+  for the life of the page. This generalises: any `will-change` that is not scoped to a state is
+  usually a memory leak with good intentions.
+
+* **TypeScript enforcing the safety ceiling.** Scramble needs `children: string`; signal lock needs
+  the radius bounded, because radius is simultaneously a performance limit and a legibility limit:
+
+  ```ts
+  type BlurRadius = 1.5 | 2.5 | 4 | 6;          // tier ceilings; 6px is the house max
+  interface SignalProps { blur?: BlurRadius; contrast?: number & { __max?: 1.7 } }
+  ```
+
+  A literal union makes `blur={12}` a build error rather than an audit finding, and it documents the
+  tier table in the type. The §9.17 test asserts this with `@ts-expect-error`, so the ceiling is
+  covered by the test suite rather than by a comment.
+
+* **Capability-gated progressive enhancement.** The hook checks
+  `CSS.supports("animation-timeline: view()")` and, when it is true with `trigger="scroll"`, does
+  nothing at all — no observer, no state, no timer. The modern path is the zero-code path and the
+  JavaScript is the legacy fallback, which means the fallback can be deleted outright when support
+  is universal without touching the component's API.
+
+* **Knowing when to leave the family.** The genuinely senior judgement on this variant is that two
+  of its own alternatives are often better than it: `backdrop-filter` on the surface behind the text
+  gives the same read with no legibility cost, and animating a variable font's optical-size axis
+  gives it with no raster cost. Reaching for `filter: blur()` on text should be a decision, not a
+  default — and this page's job is to make the trade explicit rather than to sell the effect.
+
+* * *
+
+## 14. Performance & Bundle Cost
+
+* **Zero JavaScript, non-zero raster — the family's one real trade.** With
+  `animation-timeline: view()` this variant ships about 1.3KB of gzipped CSS and no script. But
+  where slice tear's properties are compositor and paint, `filter: blur()` triggers a **raster**
+  pass each frame, and its cost scales with both the filtered area and the radius. Slice tear is
+  free in both senses; signal lock is free in bundle terms and paid for in GPU terms.
+* **Bound the area, cap the radius.** The two levers that matter: keep the filter on the smallest
+  element that produces the effect (a text-only `inline-block` span with `contain: paint`), and keep
+  the radius ≤6px. A 6px blur on a 58px headline is invisible in a frame profile; the same keyframes
+  on a full-bleed section or at 3× the radius is a different component performance-wise.
+* **`will-change: filter` gated to the pass.** Promoting the layer makes the blur meaningfully
+  cheaper to re-raster during the animation, and leaving it promoted afterwards costs memory for the
+  life of the page. Scope it to the glitching state and release it on idle (§9.2, §13), and verify
+  with the computed-style test in §9.17.
+* **The grayscale-antialiasing side effect.** Applying any filter typically moves text off subpixel
+  antialiasing, so there is a small rendering change at both edges of the pass. It costs nothing in
+  frame time but it is a visible artefact; §12 covers the trade-off between accepting it and holding
+  a permanent layer.
+* **Mobile is where this is decided.** On a mid-range Android, a 6px blur on a hero headline is
+  comfortably within budget; stacked with a `backdrop-filter` panel and a blurred hero image in the
+  same viewport, the raster passes compound and frames drop. The 2026 discipline, as §8b puts it, is
+  one blurred thing at a time — and this component should be the one that yields when something
+  else on the page already blurs.
+* **Tree-shaking and import discipline.** No JavaScript is required, so none should be pulled:
+  export it as CSS plus optional markup, never through a barrel file that also exports
+  `useScramble`. Do not reach for GSAP to tween `filter` — the library cannot make raster cheaper,
+  which is the only cost here.
+* **Nothing to lazy-load.** No runtime to dynamically import; the text is in the initial HTML and
+  the animation is in the stylesheet, so the effect is complete at first paint.
+* **Core Web Vitals.** CLS is zero (`filter` does not participate in layout, verified in §9.17).
+  LCP is unaffected by hydration, but note one subtlety specific to this variant: if the LCP element
+  is the blurred text, a browser may record the LCP paint at the blurred frame — the element is
+  painted, just soft. That does not change the metric's timing, but it does mean the visitor's *first
+  readable* paint is later than LCP suggests, which is a real experience cost the number hides. INP
+  is unaffected: no main-thread work.
+* **Font loading interaction, and the absence of one.** No glyph pool, so no tofu hazard and nothing
+  to gate on `document.fonts.ready`. A font swap mid-pass changes metrics but cannot corrupt
+  anything — one less failure mode than scramble.
+
+* * *
+
+## 15. Security
+
+This variant has **no meaningful attack surface of its own**, and the honest version of this section
+is short rather than padded.
+
+There is no runtime in the default build: no JavaScript, no DOM writes, no derived string, no
+glyph pool, no `innerHTML`, no `eval`, no storage, no network call, no third-party script. The
+component is a stylesheet and one element containing text. Where the optional JS trigger is used
+(§9.4), it toggles a `data-` attribute, sets a timer, and clears an inline `filter` — it never
+writes content, so the XSS vector scramble must engineer against does not exist here.
+
+What remains is the **headline string**, and it is not this component's boundary: the text is
+rendered through the framework's normal escaping (Jinja autoescape in §9.13, JSX interpolation in
+§9.3), the same protection any other text on the page gets. The server-side validation is therefore
+thin by design — bound the duration (200–1200ms), restrict size and flavour to closed sets, cap
+length, and reject Unicode control and bidi-formatting codepoints, that last one because bidi
+overrides (U+202E and relatives) can make rendered text read differently from its source, a
+spoofing vector in any string a server echoes into a page.
+
+**The one input that is genuinely this component's own is the blur radius**, and it is clamped
+server-side (§9.13) and typed as a literal union (§13) for a reason that is about **safety and
+accessibility rather than security**: an unbounded radius makes the headline unreadable for longer
+and crushes its effective contrast, and an unbounded radius on a large element is a self-inflicted
+frame-rate problem. A client-supplied value should not be able to degrade a visitor's ability to
+read the page, so it is enforced in the same place and with the same finality as any other
+untrusted input. The same logic covers the contrast multiplier, capped at 1.7 for flash safety.
+
+**Authorization.** The component gates nothing and renders no privileged content. The only caveat
+is a CMS-driven hero: whoever can edit the headline can put arbitrary text on the most prominent
+element of the page, so that write path needs the same role check as any other published content.
+That is the CMS's boundary, not the component's.
+
+* * *
+
+## 16. Senior-Level Checklist
+
+* **Semantics** — the host keeps its native element and exactly one accessible name; the variant
+  adds no role.
+* **Single element** — one copy of the text, no `aria-hidden` duplicate, no generated-content
+  copies.
+* **`filter: none` is the base state** — declared in the base rule, the reduced-motion branch and
+  the print branch, never only at the keyframe's `100%` stop. The headline must be unable to stay
+  blurred.
+* **Filter on a text-only leaf** — never on a wrapper containing positioned, sticky or interactive
+  content, because a filtered element is a stacking context and a containing block, and it blurs
+  descendant focus rings. Verified by the ancestor test.
+* **Decoration outside the filtered node** — scanline and interlace are siblings, not children.
+* **Non-monotonic ramp with lock points** — at least one return to sharp mid-pass, or it is a
+  blur-in rather than a glitch.
+* **Radius ≤6px, scaled to the type** (~0.1em), with the ceiling enforced in the type system and
+  clamped server-side.
+* **Contrast swing ≤1.7**, and never the luminance-flicker variant on a near-black field with
+  near-white text.
+* **Unreadable time under ~400ms**, measured, not assumed.
+* **`contain: paint` and `display: inline-block`** on the filtered node, bounding the raster region.
+* **`will-change: filter` gated to the pass** and released on idle; never a permanent declaration.
+* **Restart works** — alternating keyframe names, or `getAnimations()` with `cancel()` and
+  `play()`; re-applying the same animation name is a silent no-op.
+* **Scrubbed range is narrow** and near the entry edge, so a parked scroll position lands sharp.
+* **Reduced motion** — `animation: none` *and* `filter: none` forced, `will-change: auto`,
+  decoration removed, on web and all three native targets.
+* **Print** — filter cleared; a blurred heading in a PDF outlives the session.
+* **Contrast** — settled text at 4.5:1 (3:1 large), verified against the darkest and lightest
+  regions it crosses, with the understanding that mid-pass contrast is lower and is mitigated by
+  radius and duration rather than measured.
+* **Keyboard and focus** — the text is not focusable; any replay control is a real `button` at a
+  ≥44px target with a visible ring; hover softening never fires on `:focus-visible`.
+* **No `aria-live`**, and `aria-hidden` on decoration only.
+* **Zero JavaScript on the modern path** — no hook, no observer, no barrel import dragging in the
+  scramble runtime.
+* **Content fit** — display type only (≥32px for the default tier); never on prices, numbers,
+  labels, errors, form text, body copy, or anything a user must read continuously or trust.
+
+* * *
+
+## 17. Visual Styles
+
+The same blur-and-lock skeleton across the 11 core visual languages. Each note is about *this*
+variant — the radius, the contrast swing, the lock points, and what the softness reads as.
+
+1. **Flat.** Low radius, no contrast swing (the focus-stutter sub-variant), one lock point, no
+   scanline. On a flat field the blur is the only depth cue in the design, so it reads as
+   surprisingly sophisticated — and it is the version that survives on a light background, where
+   bigger radii wash out.
+2. **Material.** The most natural fit in the family: M3 motion is continuous, so the lock becomes an
+   M3 blur-in with one extra sharpness failure. Use display type roles, emphasized-decelerate
+   easing, drop the contrast swing, and keep a single lock point. This is the one skin where the
+   glitch and the system genuinely agree.
+3. **Glassmorphism.** Risky and worth the care: the panel is already blurred, so blurring the text
+   on top compounds the softness and contrast collapses. Use the luminance-flicker sub-variant
+   instead — sharp glyphs, swinging brightness — or move the blur to the backdrop and leave the text
+   crisp (§11).
+4. **Liquid Glass (2026).** The variant this skin was waiting for. The lock reads as refraction
+   finding focus, with a specular glint instead of a hard scanline and the radius kept low so the
+   type never fully dissolves. Pair it with the chromatic-aberration sub-variant at 1px for a lens
+   reading. The right glitch for an Apple-adjacent surface, where a tear would be the wrong grammar
+   entirely.
+5. **Neumorphism.** Blur plus soft shadows is a legibility trap — this style's contrast is already
+   marginal, and softening the glyphs pushes it under. Use the shortest duration, the smallest
+   radius, one lock point, no contrast swing, and treat it as a 300ms grace note rather than an
+   effect.
+6. **Skeuomorphism.** Full analogue signal: the interlace overlay at low opacity, a lingering
+   scanline with bloom, a brightness swing alongside the blur, and the SVG `feTurbulence` route
+   (§11) if the budget allows. This skin wants genuine noise rather than a clean Gaussian, and it is
+   the one place the expensive version is justified.
+7. **Neo-Brutalism.** An awkward pairing worth naming: brutalism is about hard edges, and blur
+   softens them. If the skin demands a glitch, use [Slice Tear](/knowledge/glitch-slice-tear). If
+   you must lock, use the luminance-flicker sub-variant — maximum contrast swing, zero blur — so the
+   type stays as hard as the design language.
+8. **Claymorphism.** The blur reads as depth of field rather than failure: puffy letterforms
+   drifting in and out of focus against a soft field, warm contrast swing, no scanline. Gentle and
+   quite beautiful, and the one skin where this variant is unambiguously the right pick over its
+   siblings.
+9. **Aurora / Gradient.** The blur smears the gradient fill into the letterforms, so colour bleeds
+   through the glyph edges as sharpness returns — the most visually interesting version of this
+   variant. Verify 4.5:1 at every stop the settled text crosses, and keep the radius at 4px so the
+   bleed reads as intentional rather than as a rendering fault.
+10. **Minimal / Swiss.** One lock point, 2px radius, no contrast swing, no scanline, tightly tracked
+    type on a strict grid. The softness is almost subliminal — a single beat of the page finding its
+    focus before precision reasserts itself. The most restrained thing in the entire glitch library,
+    and the one that belongs on an editorial or institutional page.
+11. **UJG Brand (house default).** Platinum display type on deep Night/Eminence, 6px radius with the
+    contrast swing at 1.7, two lock points, a single Goldenrod scanline riding the line once,
+    Methanerse for the headline face, 900ms on the house easing. Reads as a transmission coming in
+    from somewhere — the Amazonia-adjacent register of the glitch family, warmer and more patient
+    than Shon's tear, and the right choice for a UJG page that has to carry authority as well as
+    attitude.
+
+**The rule that never changes:** style is skin, behaviour is the skeleton. Across all 11 skins there
+is one copy of the real text, the animation touches only `filter`, `filter: none` is the base state
+in every escape hatch, the filter sits on a contained text-only leaf, the ramp is non-monotonic with
+lock points, radius and contrast stay under their ceilings, `will-change` is scoped to the pass,
+reduced motion declares no animation and no filter, and the lock never sits on an ancestor of
+interactive content or on text a visitor has to read continuously. Semantics, the accessible name,
+focus behaviour of adjacent controls, and the 44px target on any replay control are identical no
+matter which skin is on top.

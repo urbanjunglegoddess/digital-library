@@ -7,8 +7,18 @@ stalled, stripped, throttled, or printed render still shows a correct headline.
 
 **Status:** Built. Audit pending.
 
-Reference doc: `content/docs/glitch-text-reveal.mdx` (17 sections, 17 code targets).
-Playground: `playground/glitch-text-reveal.html`.
+One implementation, three reference pages — the variants diverge in exactly the places
+that decide whether they ship, so each gets its own full Template v2 page:
+
+| Variant | Reference doc | Playground |
+| --- | --- | --- |
+| `scramble` | `content/docs/glitch-scramble-reveal.mdx` | `playground/glitch-scramble-reveal.html` |
+| `slice` | `content/docs/glitch-slice-tear.mdx` | `playground/glitch-slice-tear.html` |
+| `signal` | `content/docs/glitch-signal-lock.mdx` | `playground/glitch-signal-lock.html` |
+| family overview | `content/docs/glitch-text-reveal.mdx` | `playground/glitch-text-reveal.html` |
+
+The hook is shared deliberately: three docs, one lifecycle. Duplicating the settle net and
+the spent flag three times would be worse code than one component with a `variant` prop.
 
 ## Files
 
@@ -71,7 +81,7 @@ const { hostRef, state, noise, enhanced, replay } = useGlitch({
 | `trigger` | `GlitchTrigger` | `"in-view"` | `mount` · `in-view` · `hover` · `manual`. |
 | `duration` | `number` | `900` | Milliseconds. Ceiling is 1200 — past that it reads as a broken page. |
 | `once` | `boolean` | `true` | Keeps the headline from re-glitching on every scroll-by. |
-| `charset` | `string` | `DEFAULT_CHARSET` | Scramble only. Restrict to glyphs in the shipped font subset. |
+| `charset` | `string` | `DEFAULT_CHARSET` | Scramble only. Restrict to glyphs in the shipped font subset. `UPPERCASE_CHARSET` is opt-in — it looks better but measures ~a third wider than lowercase copy. |
 | `scanline` | `boolean` | `true` | Decorative band; removed entirely under reduced motion. |
 
 ## Styling across the 11 skins
@@ -96,6 +106,13 @@ Swap `data-style` to any of: `ujg`, `flat`, `material`, `glass`, `liquid`, `neu`
   accessible name garbage for the length of the pass. Write to a leaf noise node.
 - Never `aria-live` on or around a glitching element.
 - Never animate from `opacity: 0`. The settle state is the base state.
+- The scramble width pin is three things or it silently does nothing: the noise node must be
+  `inline-block` (an inline box ignores inline sizing), it must use `inline-size` not
+  `min-inline-size` (a minimum is only a floor, so wider glyphs still grow the box), and the
+  measurement must come off the live node — `getComputedStyle(el).font` serializes empty for a
+  non-trivial font-family list, so a probe seeded from it falls back to 16px and reports 100px
+  for text that renders at 362px. Each playground measures the drift so this cannot regress
+  unnoticed.
 - Reduced motion is a branch, not a softening: nothing schedules, nothing animates.
 - `textContent`, never `innerHTML` — the headline may come from a CMS.
 - Display type only (≥32px for the default tier). Never on prices, labels, errors,
