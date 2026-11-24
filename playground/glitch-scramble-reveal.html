@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glitch Scramble Reveal — Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&family=Space+Mono:wght@400;700&family=Orbitron:wght@400;700&family=Fredoka:wght@400;600&display=swap" rel="stylesheet">
+<style>
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --page-bg: #0a0a0a; --page-text: #e8e6e1; --muted: #a8a5a0;
+  --card-bg: #131313; --card-border: rgba(232,230,225,.14);
+  --gold: #f2b01e; --ember: #d9531a; --amethyst: #47107d;
+  --platinum: #e8e6e1; --jungle: #2e6b4f;
+  --alpha-gold-24: rgba(242,176,30,.24);
+  --alpha-platinum-24: rgba(232,230,225,.24);
+}
+
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--page-bg); color: var(--page-text);
+  padding: 48px 24px 96px; min-height: 100vh; line-height: 1.6;
+}
+.wrap { max-width: 1120px; margin: 0 auto; }
+
+.eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .28em; text-transform: uppercase; color: var(--gold);
+}
+h1.page-title { font-size: 40px; line-height: 1.1; font-weight: 400; margin: 12px 0 16px; }
+.lede { color: var(--muted); max-width: 72ch; margin-bottom: 14px; }
+.siblings { color: var(--muted); font-size: 14px; margin-bottom: 40px; }
+.siblings a { color: var(--gold); }
+
+.panel {
+  background: var(--card-bg); border: 1px solid var(--card-border);
+  border-radius: 10px; padding: 28px; margin-bottom: 24px;
+}
+.panel > h2 {
+  font-size: 13px; font-weight: 600; letter-spacing: .16em;
+  text-transform: uppercase; color: var(--gold); margin-bottom: 20px;
+}
+
+.stage {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 260px; padding: 40px 24px; border-radius: 8px;
+  background: #000; border: 1px solid var(--card-border);
+  overflow: hidden; text-align: center;
+}
+.stage__inner { display: flex; flex-direction: column; gap: 18px; align-items: center; }
+.stage__eyebrow {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .28em; text-transform: uppercase; color: var(--gold);
+}
+#headline { font-size: 58px; line-height: 1.05; font-weight: 400; margin: 0; }
+
+.controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 22px; }
+.field { display: flex; flex-direction: column; gap: 8px; }
+.field > label, .field > .legend {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+select, input[type="text"] {
+  background: #0a0a0a; color: var(--page-text); border: 1px solid var(--card-border);
+  border-radius: 4px; padding: 11px 12px; font: inherit; font-size: 14px; min-height: 44px;
+}
+input[type="range"] { accent-color: var(--gold); min-height: 44px; }
+.range-row { display: flex; align-items: center; gap: 12px; }
+.range-row output {
+  font-family: 'JetBrains Mono', monospace; font-size: 13px;
+  color: var(--gold); min-width: 64px;
+}
+select:focus-visible, input:focus-visible, button:focus-visible {
+  outline: 2px solid var(--gold); outline-offset: 2px;
+}
+.check { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.check input { width: 18px; height: 18px; accent-color: var(--gold); }
+.check label { font-size: 14px; color: var(--page-text); }
+
+.btn-row { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 22px; }
+button {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 44px; padding: 10px 18px; background: none;
+  border: 1px solid var(--alpha-platinum-24); border-radius: 4px; color: var(--page-text);
+  font-family: 'JetBrains Mono', monospace; font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; cursor: pointer;
+}
+button.primary { background: var(--gold); border-color: var(--gold); color: #0a0a0a; font-weight: 700; }
+button[disabled] { opacity: .5; cursor: not-allowed; }
+
+.tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.tab { font-size: 11px; }
+.tab[aria-selected="true"] { border-color: var(--gold); color: var(--gold); }
+pre {
+  background: #000; border: 1px solid var(--card-border); border-radius: 8px;
+  padding: 20px; overflow-x: auto; font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px; line-height: 1.7; color: #d6d3cd; max-height: 460px;
+}
+
+.meters { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 18px; }
+.meter {
+  border: 1px solid var(--card-border); border-radius: 8px; padding: 18px;
+  display: flex; flex-direction: column; gap: 6px;
+}
+.meter__label {
+  font-family: 'JetBrains Mono', monospace; font-size: 10px;
+  letter-spacing: .16em; text-transform: uppercase; color: var(--muted);
+}
+.meter__value { font-family: 'JetBrains Mono', monospace; font-size: 24px; color: var(--gold); }
+.meter__note { font-size: 13px; color: var(--muted); }
+.meter[data-verdict="pass"] { border-color: var(--jungle); }
+.meter[data-verdict="pass"] .meter__value { color: var(--jungle); }
+.meter[data-verdict="fail"] { border-color: var(--ember); }
+.meter[data-verdict="fail"] .meter__value { color: var(--ember); }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.note { font-size: 14px; color: var(--muted); }
+.note strong { color: var(--page-text); display: block; margin-bottom: 4px; font-weight: 600; }
+.note code, .meter__note code { font-family: 'JetBrains Mono', monospace; font-size: 12.5px; color: var(--gold); }
+
+.status {
+  font-family: 'JetBrains Mono', monospace; font-size: 11px; letter-spacing: .12em;
+  text-transform: uppercase; color: var(--muted); margin-top: 16px;
+}
+.u-visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  clip-path: inset(50%); overflow: hidden; white-space: nowrap;
+}
+footer { color: var(--muted); font-size: 13px; margin-top: 40px; }
+footer code { font-family: 'JetBrains Mono', monospace; color: var(--gold); }
+
+/* ================= THE COMPONENT ================= */
+
+.glitch {
+  --glitch-duration: 900ms; --glitch-chroma: 3px;
+  --glitch-chroma-a: var(--ember); --glitch-chroma-b: var(--amethyst);
+  position: relative; display: inline-block; text-shadow: none;
+}
+.glitch .glitch__out { display: none; }
+.glitch.is-enhanced .glitch__out {
+  /* inline-block, NOT inline: an inline box ignores min-inline-size, so the pin below
+     would silently do nothing. tabular-nums governs digits only — a letters pool stays
+     proportional, and the uppercase pool measures ~45% wider than lowercase copy. */
+  display: inline-block;
+  font-variant-numeric: tabular-nums; font-feature-settings: "tnum" 1;
+  /* inline-size, not min-inline-size: a minimum is only a floor, so wider pool glyphs
+     still grow the box. white-space: pre keeps the overflow on one line. */
+  inline-size: var(--glitch-width, auto);
+  white-space: pre;
+}
+/* Visually hidden, STILL IN THE ACCESSIBILITY TREE. */
+.glitch.is-enhanced .glitch__truth {
+  position: absolute; inset: 0; clip-path: inset(50%); white-space: nowrap; overflow: hidden;
+}
+.glitch[data-glitch-state="glitching"] .glitch__out {
+  animation: glitch-chroma var(--glitch-duration) steps(2, end) 1;
+}
+@keyframes glitch-chroma {
+  0%   { text-shadow: calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-a), var(--glitch-chroma) 0 var(--glitch-chroma-b); }
+  18%  { text-shadow: var(--glitch-chroma) 0 var(--glitch-chroma-a), calc(var(--glitch-chroma) * -1) 0 var(--glitch-chroma-b); }
+  36%  { text-shadow: -2px 1px var(--glitch-chroma-a), 2px -1px var(--glitch-chroma-b); }
+  60%  { text-shadow: 1px 0 var(--glitch-chroma-a), -1px 0 var(--glitch-chroma-b); }
+  100% { text-shadow: none; }
+}
+.glitch__scan {
+  position: absolute; inset-inline: -12px; top: 0; height: 14px;
+  pointer-events: none; opacity: 0;
+  background: linear-gradient(180deg, transparent, var(--alpha-gold-24), transparent);
+}
+.glitch[data-glitch-state="glitching"] .glitch__scan {
+  animation: glitch-scan var(--glitch-duration) cubic-bezier(.2,.6,.2,1) 1;
+}
+@keyframes glitch-scan {
+  0% { transform: translateY(-120%); opacity: 0; } 10% { opacity: 1; }
+  100% { transform: translateY(420%); opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .glitch .glitch__out, .glitch .glitch__scan { animation: none !important; }
+  .glitch .glitch__scan { display: none; }
+  .glitch.is-enhanced .glitch__out { display: none; }
+  .glitch.is-enhanced .glitch__truth { position: static; clip-path: none; overflow: visible; white-space: inherit; }
+}
+[data-force-reduced="true"] .glitch .glitch__out,
+[data-force-reduced="true"] .glitch .glitch__scan { animation: none !important; }
+[data-force-reduced="true"] .glitch .glitch__scan { display: none; }
+[data-force-reduced="true"] .glitch.is-enhanced .glitch__out { display: none; }
+[data-force-reduced="true"] .glitch.is-enhanced .glitch__truth { position: static; clip-path: none; overflow: visible; white-space: inherit; }
+
+
+/* ================= 11 SKINS ================= */
+[data-style="ujg"]      #headline { font-family: 'Inter', sans-serif; color: var(--platinum); }
+[data-style="ujg"]      .glitch { --glitch-chroma-a: #d9531a; --glitch-chroma-b: #47107d; }
+[data-style="flat"]     #headline { font-family: 'Inter', sans-serif; font-weight: 700; color: #fff; }
+[data-style="flat"]     .glitch { --glitch-chroma-a: #2563eb; --glitch-chroma-b: #2563eb; --glitch-chroma: 2px; }
+[data-style="material"] #headline { font-family: 'Inter', sans-serif; font-weight: 500; color: #e6e0e9; letter-spacing: -.5px; }
+[data-style="material"] .glitch { --glitch-chroma-a: #d0bcff; --glitch-chroma-b: #4f378b; }
+[data-style="glass"]    #headline { font-family: 'Inter', sans-serif; color: rgba(255,255,255,.95); }
+[data-style="glass"]    .stage__inner { backdrop-filter: blur(14px); background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.18); border-radius: 18px; padding: 32px 40px; }
+[data-style="liquid"]   #headline { font-family: 'Inter', sans-serif; font-weight: 300; color: #f5f7ff; }
+[data-style="liquid"]   .glitch { --glitch-chroma-a: #7dd3fc; --glitch-chroma-b: #a78bfa; --glitch-chroma: 2px; }
+[data-style="neu"]      #headline { font-family: 'Inter', sans-serif; color: #d7dae0; }
+[data-style="neu"]      .stage { background: #22262c; }
+[data-style="neu"]      .glitch { --glitch-chroma: 0px; }
+[data-style="skeu"]     #headline { font-family: 'Space Mono', monospace; color: #9effa8; text-shadow: 0 0 12px rgba(158,255,168,.5); }
+[data-style="skeu"]     .stage { background: #0b1410; }
+[data-style="skeu"]     .glitch { --glitch-chroma-a: #4ade80; --glitch-chroma-b: #16a34a; }
+[data-style="brut"]     #headline { font-family: 'Space Mono', monospace; font-weight: 700; color: #000; background: #ffe600; padding: 8px 16px; box-shadow: 8px 8px 0 #000; }
+[data-style="brut"]     .stage { background: #f2f0eb; }
+[data-style="brut"]     .glitch { --glitch-chroma-a: #ff2d55; --glitch-chroma-b: #00a3ff; --glitch-amplitude: 18px; }
+[data-style="clay"]     #headline { font-family: 'Fredoka', sans-serif; color: #fff; }
+[data-style="clay"]     .stage { background: #6c5ce7; }
+[data-style="clay"]     .glitch { --glitch-chroma-a: #ffeaa7; --glitch-chroma-b: #fd79a8; --glitch-amplitude: 5px; }
+[data-style="aurora"]   #headline { font-family: 'Orbitron', sans-serif; background: linear-gradient(100deg,#a78bfa,#f0abfc,#67e8f9); -webkit-background-clip: text; background-clip: text; color: transparent; }
+[data-style="aurora"]   .glitch { --glitch-chroma-a: #f0abfc; --glitch-chroma-b: #67e8f9; }
+[data-style="swiss"]    #headline { font-family: 'Inter', sans-serif; font-weight: 500; letter-spacing: -1.5px; color: #111; }
+[data-style="swiss"]    .stage { background: #fafafa; }
+[data-style="swiss"]    .glitch { --glitch-chroma: 1px; --glitch-chroma-a: #e00; --glitch-chroma-b: #000; --glitch-amplitude: 3px; }
+[data-style="swiss"]    .stage__eyebrow { color: #e00; }
+
+.skin-select-wrap { margin-top: 4px; }
+
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <p class="eyebrow">Digital Asset Library · Playground</p>
+  <h1 class="page-title">Glitch Scramble Reveal</h1>
+  <p class="lede">Characters resolve out of substituted glyphs under a chromatic split. The only glitch variant where the visible characters are not the real ones — so every control here is really a test of one contract: the real sentence stays in the accessibility tree, the noise is <code>aria-hidden</code>, and the line never changes width.</p>
+  <p class="siblings">Siblings: <a href="glitch-slice-tear.html">Slice Tear</a> (CSS-only, loudest) · <a href="glitch-signal-lock.html">Signal Lock</a> (CSS-only, restrained)</p>
+
+  <section class="panel" aria-labelledby="preview-h">
+    <h2 id="preview-h">Live preview</h2>
+    <div class="stage" id="stage" data-style="ujg">
+      <div class="stage__inner">
+        <p class="stage__eyebrow" id="stage-eyebrow">Urban Jungle Goddess · Est. in the Diaspora</p>
+        <h2 id="headline" class="glitch" data-glitch="scramble" data-glitch-size="lg" data-glitch-state="idle">
+          <span class="glitch__out" aria-hidden="true"></span>
+          <span class="glitch__truth">Built like you.</span>
+          <span class="glitch__scan" aria-hidden="true"></span>
+        </h2>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="primary" id="replay" aria-describedby="replay-help">Replay</button>
+      <button type="button" id="copy">Copy current code</button>
+      <p id="replay-help" class="u-visually-hidden">
+        Replays the decorative animation on the preview heading. The heading text does not change.
+      </p>
+    </div>
+    <p class="status" id="status">state: idle</p>
+  </section>
+
+  <section class="panel" aria-labelledby="controls-h">
+    <h2 id="controls-h">Controls</h2>
+    <div class="controls">
+      <div class="field">
+        <label for="order">Resolve order</label>
+        <select id="order">
+          <option value="ltr" selected>ltr — assembles as it reads</option>
+          <option value="random">random — static clearing</option>
+          <option value="center">center — expands from the middle</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="pool">Glyph pool</label>
+        <select id="pool">
+          <option value="ascii" selected>ASCII lowercase (house default)</option>
+          <option value="upper">ASCII uppercase (wider — overflows the pin)</option>
+          <option value="digits">digits only (perfect tabular width)</option>
+          <option value="blocks">block glyphs (tofu risk — watch the meter)</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="duration">Duration</label>
+        <div class="range-row">
+          <input type="range" id="duration" min="200" max="1200" step="20" value="900">
+          <output for="duration" id="duration-out">900ms</output>
+        </div>
+      </div>
+      <div class="field">
+        <label for="size">Size tier</label>
+        <select id="size">
+          <option value="inline">inline — 14–16px</option>
+          <option value="sm">sm — 20–24px</option>
+          <option value="md">md — 32–40px</option>
+          <option value="lg" selected>lg — 48–58px</option>
+          <option value="xl">xl — 72px+</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="skin">Visual style (skin)</label>
+        <select id="skin">
+          <option value="ujg" selected>UJG Brand (house default)</option>
+          <option value="flat">Flat</option>
+          <option value="material">Material</option>
+          <option value="glass">Glassmorphism</option>
+          <option value="liquid">Liquid Glass (2026)</option>
+          <option value="neu">Neumorphism</option>
+          <option value="skeu">Skeuomorphism</option>
+          <option value="brut">Neo-Brutalism</option>
+          <option value="clay">Claymorphism</option>
+          <option value="aurora">Aurora / Gradient</option>
+          <option value="swiss">Minimal / Swiss</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="copytext">Headline text</label>
+        <input type="text" id="copytext" value="Built like you." maxlength="160">
+      </div>
+      <div class="field">
+        <span class="legend">Switches</span>
+        <div class="check">
+          <input type="checkbox" id="scanline" checked>
+          <label for="scanline">Scanline</label>
+        </div>
+        <div class="check">
+          <input type="checkbox" id="reduced">
+          <label for="reduced">Simulate prefers-reduced-motion</label>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="audit-h">
+    <h2 id="audit-h">Audit meters — measured, not asserted</h2>
+    <div class="meters">
+      <div class="meter" id="m-name">
+        <span class="meter__label">Accessible name</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Must equal the real sentence at every frame.</span>
+      </div>
+      <div class="meter" id="m-tofu">
+        <span class="meter__label">Tofu probe</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Zero-width glyphs in the pool — a missing glyph renders as an empty box.</span>
+      </div>
+      <div class="meter" id="m-width">
+        <span class="meter__label">Width drift</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Measured px change while resolving. Anything above 2px shifts the page.</span>
+      </div>
+      <div class="meter" id="m-graph">
+        <span class="meter__label">Grapheme integrity</span>
+        <span class="meter__value">—</span>
+        <span class="meter__note">Settled string must equal the input exactly, emoji and accents included.</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="code-h">
+    <h2 id="code-h">Copy-paste code</h2>
+    <div class="tabs" role="tablist" aria-label="Code target">
+      <button type="button" class="tab" role="tab" id="tab-html" aria-selected="true" data-target="html">HTML</button>
+      <button type="button" class="tab" role="tab" id="tab-css" aria-selected="false" data-target="css">CSS</button>
+      <button type="button" class="tab" role="tab" id="tab-react" aria-selected="false" data-target="react">React · TS</button>
+      <button type="button" class="tab" role="tab" id="tab-js" aria-selected="false" data-target="js">Vanilla JS</button>
+    </div>
+    <pre id="code" tabindex="0"></pre>
+  </section>
+
+  <section class="panel" aria-labelledby="notes-h">
+    <h2 id="notes-h">What this playground proves</h2>
+    <div class="notes">
+      <p class="note"><strong>The accessible name never changes.</strong> Inspect the heading mid-pass: its name stays the real sentence. The scrambling node is <code>aria-hidden</code>; the truth node is clipped, not <code>display:none</code>.</p>
+      <p class="note"><strong>Try the block pool.</strong> Switch the glyph pool to block glyphs and watch the tofu meter. If your display face is subset, those glyphs render as empty rectangles — indistinguishable from a broken font.</p>
+      <p class="note"><strong>Try an emoji.</strong> Put <code>Caf&eacute; &#10024; built</code> in the headline field. The grapheme meter stays green because cells come from <code>Intl.Segmenter</code>; <code>text[i]</code> would split the emoji into halves.</p>
+      <p class="note"><strong>Reduced motion is a branch.</strong> Tick the switch: <code>is-enhanced</code> is never applied, the noise node is not rendered, no loop is scheduled, and the scanline leaves the DOM.</p>
+      <p class="note"><strong>Width stays stable.</strong> <code>tabular-nums</code> plus a roughly monospaced pool keeps the measured width within 2px, so nothing below the headline hops.</p>
+      <p class="note"><strong>Text stays text.</strong> Select it, search it, zoom it, print it. The noise is written with <code>textContent</code>, never <code>innerHTML</code>.</p>
+    </div>
+  </section>
+
+  <footer>
+    Reference doc: <code>content/docs/glitch-scramble-reveal.mdx</code> ·
+    Component: <code>components/glitch-text/</code> ·
+    Family overview: <code>content/docs/glitch-text-reveal.mdx</code> ·
+    Built to Component Asset Template v2.
+  </footer>
+
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- Shared chrome: skin, size, text, tabs, copy, reduced-motion simulation ----
+  const SIZE_FONT = { inline: 16, sm: 24, md: 40, lg: 58, xl: 76 };
+  const SIZE_DURATION = { inline: 420, sm: 600, md: 800, lg: 900, xl: 1100 };
+
+  const stage = document.getElementById("stage");
+  const host = document.getElementById("headline");
+  const statusEl = document.getElementById("status");
+  const codeEl = document.getElementById("code");
+  let activeTab = "html";
+
+  const osReduced = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const el = (id) => document.getElementById(id);
+  const isReduced = () => el("reduced").checked || osReduced();
+
+  function wireChrome(onChange) {
+    el("skin").addEventListener("change", () => { stage.dataset.style = el("skin").value; onChange(); });
+    el("size").addEventListener("change", () => {
+      host.style.fontSize = SIZE_FONT[el("size").value] + "px";
+      host.dataset.glitchSize = el("size").value;
+      if (el("duration")) el("duration").value = String(SIZE_DURATION[el("size").value]);
+      onChange();
+    });
+    el("copytext").addEventListener("input", onChange);
+    el("reduced").addEventListener("change", () => {
+      document.documentElement.dataset.forceReduced = String(el("reduced").checked);
+      onChange();
+    });
+    el("copy").addEventListener("click", () => {
+      navigator.clipboard.writeText(codeEl.textContent).then(() => {
+        el("copy").textContent = "Copied";
+        setTimeout(() => { el("copy").textContent = "Copy current code"; }, 1600);
+      });
+    });
+    document.querySelectorAll('[role="tab"]').forEach((tab) => {
+      tab.addEventListener("click", () => {
+        document.querySelectorAll('[role="tab"]').forEach((t) =>
+          t.setAttribute("aria-selected", String(t === tab)));
+        activeTab = tab.dataset.target;
+        onChange();
+      });
+    });
+  }
+
+  function setMeter(id, value, verdict, note) {
+    const node = el(id);
+    if (!node) return;
+    node.querySelector(".meter__value").textContent = value;
+    if (verdict) node.dataset.verdict = verdict;
+    if (note !== undefined) node.querySelector(".meter__note").innerHTML = note;
+  }
+
+
+  // ---- Scramble engine ----
+  const POOLS = {
+    ascii: "abcdefghijklmnopqrstuvwxyz0123456789/\\|<>#*+=-",
+    upper: "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/\\|<>#*+=-",
+    digits: "0123456789",
+    blocks: "\u2588\u2592\u2591\u259a\u259e\u259b\u259c\u2599\u259f",
+  };
+
+  const out = host.querySelector(".glitch__out");
+  const truth = host.querySelector(".glitch__truth");
+  const scan = host.querySelector(".glitch__scan");
+
+  let raf = null, settle = null, widthSamples = [];
+
+  function cells(text) {
+    if (typeof Intl !== "undefined" && "Segmenter" in Intl) {
+      const seg = new Intl.Segmenter(undefined, { granularity: "grapheme" });
+      return Array.from(seg.segment(text), (s) => s.segment);
+    }
+    return Array.from(text);
+  }
+
+  function settledMask(order, count, progress) {
+    const upTo = Math.floor(progress * count);
+    const mask = new Array(count).fill(false);
+    if (order === "ltr") { for (let i = 0; i < upTo; i++) mask[i] = true; }
+    else if (order === "center") {
+      const mid = (count - 1) / 2;
+      for (let i = 0; i < count; i++) mask[i] = Math.abs(i - mid) * 2 < upTo;
+    } else { for (let i = 0; i < count; i++) mask[(i * 7919) % count] = i < upTo; }
+    return mask;
+  }
+
+  const state = () => ({
+    text: el("copytext").value || "Built like you.",
+    order: el("order").value,
+    pool: POOLS[el("pool").value],
+    duration: Number(el("duration").value),
+  });
+
+  /** Measure the settled text with a probe in the same font, then pin the noise node.
+   *  Measured px, not ch: ch comes from the "0" advance and is too coarse for a display face. */
+  function pinWidth(text) {
+    const probe = document.createElement("span");
+    probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
+    // Explicit properties, never the `font` shorthand: getComputedStyle(el).font
+    // serializes empty whenever the font-family list is non-trivial, and a probe seeded
+    // from it silently falls back to 16px — reporting 100px for text that renders at 362px.
+    const cs = getComputedStyle(out);
+    for (const prop of ["fontFamily", "fontSize", "fontWeight", "fontStyle",
+                        "fontStretch", "letterSpacing", "textTransform", "fontVariant"]) {
+      probe.style[prop] = cs[prop];
+    }
+    probe.textContent = text;
+    document.body.append(probe);
+    const w = probe.getBoundingClientRect().width;
+    probe.remove();
+    if (w > 0) host.style.setProperty("--glitch-width", w + "px");
+    return w;
+  }
+
+  function stop() {
+    if (raf) cancelAnimationFrame(raf);
+    if (settle) clearTimeout(settle);
+    raf = settle = null;
+  }
+
+  function land() {
+    stop();
+    const s = state();
+    out.textContent = s.text;
+    host.dataset.glitchState = "idle";
+    el("replay").disabled = false;
+    statusEl.textContent = "state: idle";
+    audit();
+  }
+
+  function run() {
+    const s = state();
+    if (isReduced()) {
+      land();
+      statusEl.textContent = "state: reduced-motion \u00b7 nothing scheduled";
+      return;
+    }
+    stop();
+    widthSamples = [];
+    pinWidth(s.text);
+    host.dataset.glitchState = "glitching";
+    el("replay").disabled = true;
+    statusEl.textContent = "state: resolving \u00b7 " + s.order + " \u00b7 " + s.duration + "ms";
+
+    settle = setTimeout(land, s.duration + 120);   // the settle net
+
+    const list = cells(s.text);
+    host.style.setProperty("--glitch-cells", list.length + "ch");
+    const start = performance.now();
+    const tick = (now) => {
+      const p = Math.min(1, (now - start) / s.duration);
+      const mask = settledMask(s.order, list.length, p);
+      let str = "";
+      for (let i = 0; i < list.length; i++) {
+        const cell = list[i];
+        str += (mask[i] || cell === " ") ? cell : s.pool[(Math.random() * s.pool.length) | 0];
+      }
+      out.textContent = str;                        // textContent, never innerHTML
+      widthSamples.push(out.getBoundingClientRect().width);
+      if (p < 1) raf = requestAnimationFrame(tick);
+      else land();
+    };
+    raf = requestAnimationFrame(tick);
+  }
+
+  // ---- Audit meters ----
+  function audit() {
+    const s = state();
+
+    // Accessible name: the clipped truth node is what assistive tech reads.
+    const name = truth.textContent;
+    setMeter("m-name", name === s.text ? "correct" : "WRONG",
+      name === s.text ? "pass" : "fail");
+
+    // Tofu probe: measure every pool glyph; zero width means it is missing from the font.
+    const probe = document.createElement("span");
+    probe.style.cssText = "position:absolute;visibility:hidden;white-space:pre";
+    const pcs = getComputedStyle(out);
+    for (const prop of ["fontFamily", "fontSize", "fontWeight", "fontStyle", "fontStretch"]) {
+      probe.style[prop] = pcs[prop];
+    }
+    document.body.append(probe);
+    let missing = 0;
+    for (const glyph of s.pool) {
+      probe.textContent = glyph;
+      if (probe.getBoundingClientRect().width === 0) missing++;
+    }
+    probe.remove();
+    setMeter("m-tofu", missing === 0 ? "0 missing" : missing + " missing",
+      missing === 0 ? "pass" : "fail",
+      missing === 0
+        ? "Every pool glyph exists in the shipped font."
+        : "<strong>" + missing + " glyph(s) render as empty boxes.</strong> Switch to the ASCII-safe pool.");
+
+    // Width drift across the pass.
+    if (widthSamples.length > 1) {
+      const drift = Math.max(...widthSamples) - Math.min(...widthSamples);
+      setMeter("m-width", drift.toFixed(1) + "px", drift <= 2 ? "pass" : "fail",
+        drift <= 2
+          ? "Held by the px width pin on an inline-block noise node."
+          : "<strong>Above 2px: this shifts the page.</strong> The pin is not holding — check that " +
+            "the noise node is <code>inline-block</code> (an inline box ignores <code>min-inline-size</code>).");
+    }
+
+    // Grapheme integrity: rebuild through the segmenter and compare.
+    const rebuilt = cells(s.text).join("");
+    setMeter("m-graph", rebuilt === s.text ? "intact" : "CORRUPT",
+      rebuilt === s.text ? "pass" : "fail");
+  }
+
+  // ---- Code generation ----
+  function htmlFor(s) {
+    return [
+      '<link rel="stylesheet" href="components/glitch-text/glitch-text.css">',
+      "",
+      '<h1 class="glitch" data-glitch="scramble" data-glitch-size="' + el("size").value + '"',
+      '    style="--glitch-duration:' + s.duration + 'ms">',
+      "  <!-- Noise: empty in the server HTML, so no derived string is ever indexed. -->",
+      '  <span class="glitch__out" aria-hidden="true"></span>',
+      "  <!-- Truth: always present, always in the accessibility tree. -->",
+      '  <span class="glitch__truth">' + s.text + "</span>",
+      el("scanline").checked ? '  <span class="glitch__scan" aria-hidden="true"></span>' : null,
+      "</h1>",
+    ].filter(Boolean).join("\n");
+  }
+
+  function cssFor() {
+    return [
+      '.glitch[data-glitch="scramble"] .glitch__out { display: none; }',
+      '.glitch[data-glitch="scramble"].is-enhanced .glitch__out {',
+      "  display: inline;",
+      "  font-variant-numeric: tabular-nums;   /* stable width while resolving */",
+      "}",
+      '.glitch[data-glitch="scramble"].is-enhanced .glitch__truth {',
+      "  position: absolute; inset: 0;",
+      "  clip-path: inset(50%);                /* hidden visually, NOT from a11y */",
+      "  white-space: nowrap; overflow: hidden;",
+      "}",
+      "",
+      "@media (prefers-reduced-motion: reduce) {",
+      "  .glitch .glitch__out { display: none; }",
+      "  .glitch .glitch__truth { position: static; clip-path: none; }",
+      "}",
+      "",
+      "/* Full keyframes: components/glitch-text/glitch-text.css */",
+    ].join("\n");
+  }
+
+  function reactFor(s) {
+    return [
+      'import { GlitchScramble } from "@/components/glitch-text/GlitchScramble";',
+      'import "@/components/glitch-text/glitch-text.css";',
+      "",
+      "export function Hero() {",
+      "  return (",
+      "    <GlitchScramble",
+      '      as="h1"',
+      '      size="' + el("size").value + '"',
+      '      order="' + s.order + '"',
+      '      trigger="in-view"',
+      "      duration={" + s.duration + "}",
+      "      once",
+      "    >",
+      "      " + s.text,
+      "    </GlitchScramble>",
+      "  );",
+      "}",
+    ].join("\n");
+  }
+
+  function jsFor(s) {
+    return [
+      'import { GlitchScramble } from "./components/glitch-text/glitch-scramble.js";',
+      "",
+      "const glitch = new GlitchScramble(document.querySelector('.glitch'), {",
+      "  duration: " + s.duration + ",",
+      "  pool: " + JSON.stringify(s.pool) + ",",
+      "  once: true,",
+      "});",
+      "",
+      "// Replay is an explicit user request, so it overrides the once-flag.",
+      "document.querySelector('[data-glitch-replay]')",
+      "  .addEventListener('click', () => { glitch.spent = false; glitch.run(); });",
+    ].join("\n");
+  }
+
+  function renderCode() {
+    const s = state();
+    const map = { html: htmlFor, css: cssFor, react: reactFor, js: jsFor };
+    codeEl.textContent = map[activeTab](s);
+  }
+
+  function sync() {
+    const s = state();
+    truth.textContent = s.text;
+    out.textContent = s.text;
+    host.classList.toggle("is-enhanced", !isReduced());
+    pinWidth(s.text);
+    scan.style.display = el("scanline").checked && !isReduced() ? "" : "none";
+    el("duration-out").textContent = s.duration + "ms";
+    renderCode();
+    audit();
+  }
+
+  wireChrome(() => { sync(); run(); });
+  el("order").addEventListener("change", () => { sync(); run(); });
+  el("pool").addEventListener("change", () => { sync(); run(); });
+  el("duration").addEventListener("input", sync);
+  el("scanline").addEventListener("change", sync);
+  el("replay").addEventListener("click", run);
+
+  sync();
+  if (!isReduced()) run();
+
+})();
+</script>
+</body>
+</html>

@@ -34,10 +34,22 @@
 .glitch[data-glitch="scramble"] .glitch__out { display: none; }
 
 .glitch[data-glitch="scramble"].is-enhanced .glitch__out {
-  display: inline;
-  /* Stable advance widths while characters resolve — proportional glyphs jitter. */
+  /* inline-block, NOT inline: an inline box ignores min-inline-size, which silently
+     disables the width pin below. */
+  display: inline-block;
+  /* tabular-nums governs DIGITS only. A letters pool is still proportional, and an
+     uppercase pool measures ~45% wider than lowercase copy at hero size — measured,
+     not guessed. So the pin, not this, is what actually holds the width. */
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
+  /* The width pin. --glitch-width is the settled text measured in px by the component
+     before it enhances; the ch value is a coarse fallback for a CSS-only build.
+     inline-size, NOT min-inline-size: a minimum is only a floor, so wider pool glyphs
+     still grow the box (measured 362px of real text against 484px of uppercase noise).
+     A fixed inline size caps it too, and white-space: pre stops the overflow wrapping
+     into a second line, which would move the box vertically instead. */
+  inline-size: var(--glitch-width, var(--glitch-cells, auto));
+  white-space: pre;
 }
 
 /* Visually hidden, still in the accessibility tree.

@@ -1,10 +1,10 @@
 ---
-name: "Glitch Text Reveal"
+name: "Glitch Text Reveal (Family)"
 slug: glitch-text-reveal
 category: Marketing & Content
 status: built
-summary: "A one-shot distortion that resolves a headline into place — scramble, slice tear, or signal lock. The craft is that the words stay readable, and the accessibility tree never sees the noise."
-tags: [motion, typography, headline, glitch, reveal, reduced-motion]
+summary: "The family overview for the three glitch reveals — scramble, slice tear, signal lock. Holds the shared contract, the choosing guide, and the chroma hover micro-variant; each variant has its own page."
+tags: [motion, typography, headline, glitch, reveal, reduced-motion, overview, family]
 preview:
   label: "Built like you."
 snippets:
@@ -81,6 +81,20 @@ references:
 ## Glitch Text Reveal
 
 A one-shot distortion that resolves a headline into its final, clean state — characters scrambling out of noise, horizontal bands tearing sideways, or a bad signal finding its lock. It is the loudest typographic move in the library and the one most often built wrong: the usual implementation animates from `opacity: 0`, pushes garbage characters into the accessibility tree, reflows the page on every frame, and runs forever. Done right it is a 900ms flourish that a screen reader never hears, a stalled animation never breaks, and a vestibular-sensitive visitor never sees.
+
+**This is the family page.** It holds what the three variants share — the contract, the choosing
+guide, the shared component, and the chroma hover micro-variant that is too small for a page of its
+own. Each variant has its own full reference page, because they diverge in exactly the places that
+decide whether they ship:
+
+| Variant | Page | JS? | What makes it its own page |
+| ---| ---| ---| --- |
+| **Scramble** | [Glitch Scramble Reveal](/knowledge/glitch-scramble-reveal) | Yes | The visible characters are not the real ones, so it carries the two-node accessibility contract, grapheme-cluster cells, a subset-verified glyph pool, and the settle net |
+| **Slice tear** | [Glitch Slice Tear](/knowledge/glitch-slice-tear) | No | `clip-path` band geometry, step rate as a flash-safety limit, the CSS-animation restart problem, and the pseudo-element trap |
+| **Signal lock** | [Glitch Signal Lock](/knowledge/glitch-signal-lock) | No | `filter` raster cost, stacking-context and containing-block side effects, and blur as a genuine legibility budget |
+
+Read this page to choose and to understand what they have in common. Read the variant page before
+you build, because the failure modes are not shared.
 
 * * *
 
@@ -167,10 +181,10 @@ Rules that matter:
 
 ## 6. Types / Variants
 
-1. **Scramble (decode).** Characters resolve left-to-right out of a pool of substitute glyphs while the whole line carries a chromatic split. Reads as a system booting or a cipher resolving. The only variant requiring JavaScript, and the only one whose visible characters differ from the real string — so it is also the only one with a genuine accessibility-tree problem to solve. Best for an identity or thesis statement where you want the visitor to *watch a word assemble*. The house default on the UJG hero.
-2. **Slice tear.** Horizontal bands defined by `clip-path: inset()` keyframes displace sideways in hard steps, then snap flush. Pure CSS, zero JS, zero layout cost, the cheapest to ship and the only one that survives a platform with no scripting (Wix-native scroll effects, an email-safe build, a CSS-only static site). The most aggressive of the three, and the most "Shon."
-3. **Signal lock.** Blur and contrast fight for a second until the feed locks in, with a flicker in the luminance. Closest in feel to a conventional blur-in reveal, which makes it the restrained option — glitch *texture* without the violence. The right pick when the glitch must coexist with serious content.
-4. **Chroma pulse (hover micro-variant).** A 300–500ms RGB-split jitter on pointer-enter, no displacement, no clip. For nav links and interactive labels. Pointer-only, never on focus.
+1. **Scramble (decode)** → [full page](/knowledge/glitch-scramble-reveal). Characters resolve left-to-right out of a pool of substitute glyphs while the whole line carries a chromatic split. Reads as a system booting or a cipher resolving. The only variant requiring JavaScript, and the only one whose visible characters differ from the real string — so it is also the only one with a genuine accessibility-tree problem to solve. Best for an identity or thesis statement where you want the visitor to *watch a word assemble*. The house default on the UJG hero.
+2. **Slice tear** → [full page](/knowledge/glitch-slice-tear). Horizontal bands defined by `clip-path: inset()` keyframes displace sideways in hard steps, then snap flush. Pure CSS, zero JS, zero layout cost, the cheapest to ship and the only one that survives a platform with no scripting (Wix-native scroll effects, an email-safe build, a CSS-only static site). The most aggressive of the three, and the most "Shon."
+3. **Signal lock** → [full page](/knowledge/glitch-signal-lock). Blur and contrast fight for a second until the feed locks in, with a flicker in the luminance. Closest in feel to a conventional blur-in reveal, which makes it the restrained option — glitch *texture* without the violence. The right pick when the glitch must coexist with serious content.
+4. **Chroma pulse (hover micro-variant).** A 300–500ms RGB-split jitter on pointer-enter, no displacement, no clip. For nav links and interactive labels. Pointer-only, never on focus. This one lives here rather than on its own page: it is four keyframes and a media query, and it has no failure mode the three reveals do not already cover.
 5. **Ambient loop.** Any of the above looped at low amplitude with long gaps (one pass every 6–10 seconds) as a persistent texture — a logo that twitches, a terminal label that flickers. **Conditions attached:** it must not flash more than 3×/second, it must be fully suppressed under reduced-motion, and if it persists past five seconds it needs a visible pause control to satisfy WCAG 2.2.2. Use it on a mark or a decorative label, never on the headline a visitor is trying to read.
 6. **Per-character stagger.** The slice or chroma treatment applied to individual characters on a short offset rather than to the whole line, so the corruption ripples. Requires splitting the text into per-character spans, which means an explicit accessibility strategy: the split spans are `aria-hidden` and a single visually-hidden copy of the real string carries the name. Visually the richest; by far the most DOM.
 
