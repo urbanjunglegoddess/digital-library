@@ -1,0 +1,67 @@
+---
+# Dictionary / Term Asset Template v1
+#
+# Copy this file to content/terms/<slug>.mdx and fill it in — one file per term.
+# It is the terminology counterpart to the Component Asset Template v2
+# (content/docs/_TEMPLATE.mdx): structured frontmatter followed by a fixed
+# section bar, so every term is documented to the same depth.
+# (Files starting with "_" — like this one — are ignored by the loader.)
+term: Term Name
+slug: term-slug                 # must match the filename, url-safe
+domain: General                 # the field this term belongs to, e.g. Web Performance, Herbalism, Finance
+status: drafting                # drafting | defined | researched | verified
+summary: "One plain sentence defining the term (≤160 chars)."
+aliases: [alternate name, abbreviation]   # other names people search for; omit if none
+tags: [tag1, tag2, tag3]
+sources:                        # the research this entry rests on — cite everything
+  - title: "Source title"
+    url: https://example.com
+    kind: research              # research | reference | primary | dataset | other
+related: [other-term-slug]      # adjacent entries; omit if none
+---
+
+## 1 · Definition
+The plain, precise meaning. State what the term **is**, what it is **not**
+(name the thing it gets confused with), and the one-line rule of thumb for when
+the term genuinely applies.
+
+## 2 · Etymology & origin
+Where the term comes from — first coinage or root, who introduced it, and how
+its meaning has shifted since. Skip only if genuinely unknown (say so).
+
+## 3 · Operation instances — Common
+How the term **typically operates in practice**: the everyday, expected cases.
+List each as a named instance with the condition that triggers it and what it
+looks like when it happens. These are the cases a reader will meet most often.
+
+## 4 · Operation instances — Rare
+The **edge, exceptional, or little-known** instances. For each, name the
+condition that produces it and say plainly why it is rare — an unusual input, a
+boundary case, a historical quirk. Do not pad this with common cases.
+
+## 5 · Research findings
+What the gathered research and literature actually say. Make claims, and attach
+the specific source each claim rests on (by its `sources` entry). Separate
+"the evidence shows X" from "some argue X" — do not present opinion as finding.
+
+## 6 · Proven occurrences
+**Documented, verifiable** real-world occurrences — not hypotheticals. Each one
+gets a date or context and a citation that proves it happened. If a claimed
+occurrence cannot be sourced, it belongs in §3/§4 as an instance, not here.
+
+## 7 · Distinctions & commonly confused with
+The near-terms and how this one differs from each, and the trap that each
+confusion sets. One row per confusable term.
+
+## 8 · Usage & register
+When and where to use the term — domain, formality, and audience. Give one or
+two example sentences that use it correctly.
+
+## 9 · Related terms
+Cross-links to adjacent entries (mirror the frontmatter `related`), each with a
+single line on how it relates to this term.
+
+## 10 · Sources & evidence
+The full citation list backing everything above — mirror the frontmatter
+`sources` and add anything cited inline. Prefer primary sources; mark secondary
+ones as such.
