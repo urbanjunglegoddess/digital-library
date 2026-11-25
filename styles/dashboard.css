@@ -218,3 +218,14 @@
 .dsh-deliv span { display: flex; align-items: center; gap: 5px; }
 .dsh-deliv i { width: 7px; height: 7px; border-radius: 50%; background: var(--gold); display: block; }
 .dsh-deliv i.off { background: rgba(232, 230, 225, 0.2); }
+
+/* --- Signed-out gate (ask #2) --------------------------------------------- */
+.dsh-gate { max-width: 560px; margin: 9vh 0 0; }
+.dsh-gate__lede {
+  color: var(--muted);
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin: 12px 0 22px;
+  max-width: 50ch;
+}
+.dsh-gate__actions { display: flex; flex-wrap: wrap; gap: 12px; }

@@ -1,0 +1,88 @@
+---
+term: Largest Contentful Paint (LCP)
+slug: largest-contentful-paint
+domain: Web Performance
+status: verified
+summary: "A Core Web Vital that measures when the largest content element in the viewport finishes rendering during page load."
+aliases: [LCP]
+tags: [performance, core-web-vitals, loading, metrics]
+sources:
+  - title: "web.dev — Largest Contentful Paint (LCP)"
+    url: https://web.dev/articles/lcp
+    kind: reference
+  - title: "W3C — Largest Contentful Paint API"
+    url: https://w3c.github.io/largest-contentful-paint/
+    kind: primary
+  - title: "MDN — LargestContentfulPaint"
+    url: https://developer.mozilla.org/en-US/docs/Web/API/LargestContentfulPaint
+    kind: reference
+  - title: "Google Search Central — Understanding page experience"
+    url: https://developers.google.com/search/docs/appearance/page-experience
+    kind: primary
+related: []
+---
+
+This entry is authored to the Dictionary / Term Asset Template — the same bar
+every term clears.
+
+## 1 · Definition
+**Largest Contentful Paint (LCP)** is the time, measured from when the page
+starts loading, at which the largest image or text block visible in the viewport
+has rendered. It is one of Google's **Core Web Vitals**.
+
+It is **not** the same as First Contentful Paint (the *first* pixel of content),
+nor "page fully loaded" — LCP tracks only the single largest element currently in
+view, and that element can change as the page loads. Rule of thumb: if you asked
+a user "what's the main thing on this screen?", LCP is roughly when that thing
+appeared.
+
+## 2 · Etymology & origin
+Introduced by the Chrome team as part of the **Web Vitals** initiative in 2020,
+as a more perception-aligned successor to older proxies like "load" and First
+Meaningful Paint. It is exposed to pages through the browser's
+`PerformanceObserver` as a `largest-contentful-paint` entry, specified by the
+W3C Largest Contentful Paint API.
+
+## 3 · Operation instances — Common
+- **Hero image.** On a marketing or product page, the banner image is usually the LCP element.
+- **Headline text block.** On an article, the `<h1>` or lead paragraph is often largest in view.
+- **Above-the-fold poster.** A video's poster frame or a large card image standing in before media loads.
+
+## 4 · Operation instances — Rare
+- **CSS `background-image` LCP.** When the largest element is painted via a background image rather than an `<img>`, it still counts — and is easy to miss when optimizing.
+- **Late element swap.** The LCP element is reported, then a larger element paints later and replaces it, moving the reported time.
+- **SVG or `<video>` first frame.** Less common largest-elements that still qualify under the spec.
+
+## 5 · Research findings
+web.dev documents the field thresholds: an LCP of **2.5 s or less** is "good",
+2.5–4 s "needs improvement", and over 4 s "poor", assessed at the **75th
+percentile** of page loads across mobile and desktop. Google's guidance ties
+faster LCP to better page experience; the exact commercial effect varies by site
+and should be measured per-property rather than assumed from a benchmark.
+
+## 6 · Proven occurrences
+- **Shipped as a Core Web Vital (2020).** LCP is a stable, measurable entry in the browser Performance API — verifiable by observing `largest-contentful-paint` entries in any Chromium browser.
+- **Became part of Google Search ranking signals.** Google's page-experience update incorporated Core Web Vitals (including LCP) into ranking, as documented on Google Search Central.
+
+## 7 · Distinctions & commonly confused with
+- **First Contentful Paint (FCP)** — the first *any* content paints; LCP is the *largest*. A fast FCP with a slow LCP means something big is arriving late.
+- **Time to Interactive (TTI)** — when the page can reliably respond to input; LCP is about visible rendering, not interactivity.
+- **Speed Index** — the average visual completeness over time; LCP is a single timestamp, not an area-under-curve.
+
+## 8 · Usage & register
+Used by front-end and performance engineers, and in SEO/page-experience
+conversations. Formal and precise — always say which percentile and which
+form-factor you mean.
+
+> "Our p75 mobile LCP regressed to 3.1 s after the new hero carousel — it's the
+> background-image, not the markup."
+
+## 9 · Related terms
+None in this dictionary yet. Natural neighbours: First Contentful Paint,
+Cumulative Layout Shift, Interaction to Next Paint.
+
+## 10 · Sources & evidence
+- web.dev — *Largest Contentful Paint (LCP)* (reference for thresholds and element rules).
+- W3C — *Largest Contentful Paint API* (the primary specification).
+- MDN — *LargestContentfulPaint* (the Performance API interface).
+- Google Search Central — *Understanding page experience* (ranking-signal context).
