@@ -12,7 +12,7 @@ import {
 import "@/styles/shell.css";
 
 /**
- * Global app shell — the nine product surfaces, at three sizes.
+ * Global app shell — the ten product surfaces, at three sizes.
  *
  *   ≥1024px   full 256px rail, grouped, label + hint; collapsible to a 72px
  *             icon rail via the header toggle (remembered per browser)
@@ -49,6 +49,7 @@ const SURFACES: Surface[] = [
   { href: "/dashboard", label: "Dashboard", glyph: "▤", hint: "Where items report", group: "Overview" },
   // Library — find and reference.
   { href: "/knowledge", label: "Knowledge Hub", glyph: "❋", hint: "Reference library", group: "Library", tab: "Library" },
+  { href: "/dictionary", label: "Dictionary", glyph: "❡", hint: "Terms & definitions", group: "Library" },
   { href: "/search", label: "Search", glyph: "⌕", hint: "Find anything", group: "Library", tab: "Search" },
   { href: "/templates", label: "Template Hub", glyph: "❐", hint: "Starters & kits", group: "Library" },
   // Create — make and keep work.

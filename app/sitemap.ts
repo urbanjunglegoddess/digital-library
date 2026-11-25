@@ -1,6 +1,7 @@
 import type { MetadataRoute } from "next";
 import { getAllComponents } from "@/lib/content";
 import { getAllReference } from "@/lib/reference";
+import { getAllTerms } from "@/lib/dictionary";
 import { SITE_URL } from "@/lib/site";
 
 /**
@@ -22,11 +23,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
       { path: "/knowledge", changeFrequency: "weekly", priority: 0.9 },
       { path: "/search", changeFrequency: "weekly", priority: 0.8 },
       { path: "/reference", changeFrequency: "monthly", priority: 0.7 },
+      { path: "/dictionary", changeFrequency: "weekly", priority: 0.7 },
       { path: "/templates", changeFrequency: "monthly", priority: 0.6 },
       { path: "/build", changeFrequency: "monthly", priority: 0.6 },
       { path: "/workspace", changeFrequency: "monthly", priority: 0.5 },
       { path: "/portal", changeFrequency: "monthly", priority: 0.5 },
-      { path: "/dashboard", changeFrequency: "monthly", priority: 0.4 },
+      // /dashboard is per-user and noindex — omitted from the sitemap.
     ] as const
   ).map(({ path, changeFrequency, priority }) => ({
     url: `${SITE_URL}${path}`,
@@ -50,5 +52,12 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
-  return [...staticRoutes, ...components, ...references];
+  const terms: MetadataRoute.Sitemap = getAllTerms().map((doc) => ({
+    url: `${SITE_URL}/dictionary/${doc.slug}`,
+    lastModified: now,
+    changeFrequency: "monthly",
+    priority: 0.6,
+  }));
+
+  return [...staticRoutes, ...components, ...references, ...terms];
 }

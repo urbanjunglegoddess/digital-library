@@ -6,7 +6,7 @@ the terminology counterpart to the component docs (`content/docs/<slug>.mdx`,
 see `authoring-component-pages.md`): same shape, different subject — a term
 instead of a component.
 
-Start from **`content/terms/_TEMPLATE.mdx`** (copy it to `<slug>.mdx`). Files
+Start from **`content/terms/_TERM_TEMPLATE.mdx`** (copy it to `<slug>.mdx`). Files
 starting with `_` and any `README.md` are ignored, so the template is safe to
 keep in place.
 
