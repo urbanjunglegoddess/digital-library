@@ -36,53 +36,100 @@ references:                     # optional — external docs only (drop internal
     source: apg                 # mdn | so | github | apg | other
 ---
 
+<!--
+  THE 17 REQUIRED SECTIONS — Component Asset Template v2.
+  "Built" = all 17 present, each meeting the minimum below, with real content
+  (no "same as <sibling>", no stubs). Button is the depth standard. The full
+  spec — Definition of Built, Quality Gates, Hard Rules, Status Ladder — is in
+  docs/authoring-component-pages.md.
+-->
+
+The 17 sections below are the bar. Minimums are noted inline; the full v2 spec
+(Definition of Built, Quality Gates, Hard Rules, Status Ladder) is in
+`docs/authoring-component-pages.md`.
+
 ## 1 · What it actually is
-Plain definition; what it's confused with; the rule of thumb for when it IS this.
+Plain definition in one paragraph · the 2–4 things people confuse it with, named and distinguished · the rule of thumb for when it IS this component vs. something else.
 
 ## 2 · Why it matters
-The stakes — conversion, accessibility, trust, performance, or legal.
+Minimum **3 stakes** — conversion, accessibility, trust, performance, or legal — specific to this component, not generic.
 
 ## 3 · Anatomy
-Every named part.
+Every named part listed and described. Minimum **5 parts** for interactive components, **3** for display-only.
 
 ## 4 · Sizes / scale / density
-Table of size tiers with tokens + pixel values + use cases.
+A real table with tokens + pixel values + use cases. Minimum **3 size tiers**. State the rules that matter (target size, spacing tokens, responsive behavior).
 
 ## 5 · States
-default · hover · focus · active · disabled · loading · error — plus any specific to this component.
+Every state listed **and described** (not "same as X"). Interactive minimum: default · hover · focus · active · disabled · loading · error — plus any component-specific states.
 
 ## 6 · Types / variants
-Every functional variant.
+Every functional variant named and described. Minimum **4 variants** for interactive components.
 
 ## 7 · When to use (and when not to)
-Use-when, don't-use-when (name the alternative), placement heuristics.
+"Use when" (concrete scenarios) · "Don't use / use something else when" (name the alternative component) · placement heuristics.
 
-## 8 · Across design systems + trends
-Material, Apple HIG, Fluent, Ant, Tailwind, shadcn/Radix, Bootstrap — and what's trending.
+## 8 · Across design systems
+How **≥6 systems** treat it — Material, Apple HIG, Fluent, Ant, Tailwind, shadcn/Radix, Bootstrap.
+
+## 8b · Visual styles / trends
+A "what's trending in 2026" subsection, or inline visual-style coverage. If all 11 skins are fully covered here, §17 may be a brief reference back; otherwise §17 carries the full version.
 
 ## 9 · The code
-The implementations (HTML, React+TS, and the other targets). Keep the primary ones in the frontmatter `snippets` too.
+The biggest section — minimum **10 of these 17 subsections** with real, runnable, production-shaped code (real imports, types, error handling; no stubs). Keep the primary ones in the frontmatter `snippets` too.
+
+1. HTML (semantic foundation with ARIA)
+2. CSS (states, layout, reduced-motion)
+3. React + TypeScript (full reusable component)
+4. Vanilla JavaScript (no framework, full keyboard)
+5. Tailwind CSS
+6. Next.js (App Router)
+7. shadcn/ui or Radix
+8. Vue 3 (SFC)
+9. Svelte
+10. Angular (standalone)
+11. Bootstrap 5
+12. Web Component (custom element)
+13. Python (Jinja2 + FastAPI/Express endpoint if it reaches a server)
+14. SwiftUI (iOS)
+15. Jetpack Compose (Android)
+16. Flutter (Dart)
+17. Testing (Vitest/RTL + jest-axe + Playwright E2E)
 
 ## 10 · Accessibility
-ARIA roles/attrs, keyboard map, focus management, contrast, 44px targets, reduced motion.
+**Standalone — never folded into §9.** ARIA roles/attributes · a keyboard map table (Key → Action) for interactive components · focus management (where focus goes on open/close/change) · contrast (text and non-text) · 44px target size · what changes under `prefers-reduced-motion` · the failures specific to this component.
 
 ## 11 · Innovative / emerging ideas
-Forward-looking patterns, including a 2026-era API.
+Minimum **4 forward-looking ideas**, at least one referencing a 2026-era API or platform change.
 
 ## 12 · Conversion / UX killers
-The silent mistakes, each with the why and the fix.
+Minimum **5 silent mistakes** that cost money or trust — each a specific, fixable failure that explains WHY it fails and implies the fix.
 
 ## 13 · Advanced patterns
-Senior techniques; at least one TS-enforced a11y pattern and one design-token pattern.
+Minimum **3 senior techniques**, including at least one TypeScript-enforced a11y pattern (discriminated unions, required props) and one design-token pattern (CSS custom properties, token tiers).
 
 ## 14 · Performance & bundle cost
-Animation/compositor, tree-shaking, virtualize/lazy-load.
+Minimum **4 considerations**, including at least one on animation (compositor-only properties), one on tree-shaking / import discipline, and one on what to virtualize or lazy-load.
 
 ## 15 · Security
-Attack surface, XSS, server validation, authorization. If zero surface, say so.
+**Standalone — never folded into §9.** The real attack surface · XSS if it renders user content · server-side validation if it reaches an endpoint · authorization if it gates content. If the surface is genuinely zero, say so in 2–3 honest sentences — don't invent threats, but don't skip the heading.
 
 ## 16 · Senior-level checklist
-The ship gate — semantics, keyboard, focus, contrast, target size, states, performance.
+The ship gate — minimum **8 items** covering semantics, keyboard, focus, contrast, target size, states, performance, and component-specific requirements.
 
 ## 17 · Visual styles
-The component across the 11 skins. Style is skin; behavior is the skeleton.
+The component rendered across the **11 core skins**, each with 1–2 sentences on how it applies to THIS component specifically (not generic descriptions):
+
+1. Flat
+2. Material
+3. Glassmorphism
+4. Liquid Glass (Apple iOS 26 / macOS Tahoe)
+5. Neumorphism
+6. Skeuomorphism
+7. Neo-Brutalism
+8. Claymorphism
+9. Aurora / Gradient
+10. Minimal / Swiss
+11. UJG Brand (Goldenrod on Eminence/Night, the house default)
+
+End with the rule that never changes: **style is skin, behavior is the skeleton** — semantics, keyboard, focus ring, and target size are identical across all skins. (The full 31 styles live on the Design Styles reference page; the doc covers 11 minimum, the playground covers all 31.)
